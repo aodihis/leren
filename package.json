@@ -8,13 +8,18 @@
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "test:lint-rules": "node tooling/oxlint/run-tests.mjs"
+    "test:lint-rules": "node tooling/oxlint/run-tests.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@oxlint/plugins": "^1.94.0",
+    "@vitest/coverage-v8": "^5.1.1",
     "oxfmt": "^0.79.0",
     "oxlint": "^1.94.0",
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "vitest": "^5.1.1"
   },
   "engines": {
     "node": ">=20"
