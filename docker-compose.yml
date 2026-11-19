@@ -27,6 +27,25 @@ services:
     volumes:
       - qdrant-data:/qdrant/storage
 
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    container_name: leren-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: leren
+      RABBITMQ_DEFAULT_PASS: leren
+    ports:
+      - "56720:5672"
+      - "56721:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres-data:
   qdrant-data:
+  rabbitmq-data:
