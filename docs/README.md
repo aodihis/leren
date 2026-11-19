@@ -4,6 +4,7 @@
 | ----------------------- | ----------------------------------------------------------------------------------- |
 | [`decision/`](decision) | Engineering decisions (ADRs): what we chose, why, and what it affects.              |
 | [`product/`](product)   | Product decisions: scope, behaviour and priorities.                                 |
+| [`plans/`](plans)       | Roadmaps and plans, with a status for each step.                                    |
 | [`rules/`](rules)       | Constraints and guides for working in this codebase.                                |
 | [`overview/`](overview) | User-facing documentation, including the high-level design in `overview/README.md`. |
 
