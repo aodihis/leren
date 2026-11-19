@@ -1,0 +1,6 @@
+{
+  "name": "example",
+  "version": "0.0.0",
+  "description": "A minimal plugin that registers one tool.",
+  "entry": "index.ts"
+}
