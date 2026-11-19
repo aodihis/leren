@@ -8,9 +8,21 @@ importers:
 
   .:
     devDependencies:
+      '@anvia/core':
+        specifier: ^1.19.2
+        version: 1.19.2(zod@4.6.7)
+      '@leren/agents':
+        specifier: workspace:*
+        version: link:packages/agents
+      '@leren/plugin-client':
+        specifier: workspace:*
+        version: link:packages/plugin-client
       '@oxlint/plugins':
         specifier: ^1.94.0
         version: 1.94.0
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
       '@vitest/coverage-v8':
         specifier: ^5.1.1
         version: 5.1.1(vitest@5.1.1)
@@ -23,9 +35,15 @@ importers:
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
       vitest:
         specifier: ^5.1.1
         version: 5.1.1(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.1.1)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
 
   apps/api:
     dependencies:
@@ -182,6 +200,22 @@ importers:
       '@anvia/lens':
         specifier: ^1.2.5
         version: 1.2.5(@anvia/core@1.19.2(zod@4.6.7))(@opentelemetry/api@1.9.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/plugin-client:
+    dependencies:
+      '@anvia/core':
+        specifier: ^1.19.2
+        version: 1.19.2(zod@4.6.7)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^26.6.6

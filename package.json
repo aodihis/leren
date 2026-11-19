@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Leren monorepo",
+  "type": "module",
   "scripts": {
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
@@ -14,16 +15,22 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "pnpm -r --if-present typecheck",
+    "typecheck": "pnpm -r --if-present typecheck && tsc --noEmit",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
+    "@anvia/core": "^1.19.2",
+    "@leren/agents": "workspace:*",
+    "@leren/plugin-client": "workspace:*",
     "@oxlint/plugins": "^1.94.0",
+    "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.1",
     "oxfmt": "^0.79.0",
     "oxlint": "^1.94.0",
     "tsx": "^4.23.15",
-    "vitest": "^5.1.1"
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1",
+    "zod": "^4.6.7"
   },
   "engines": {
     "node": ">=20"
