@@ -11,7 +11,7 @@ vi.mock("@leren/agents", async () => ({
 
 const { connectMcp } = await import("@leren/agents");
 const { runAgent } = await import("./core");
-const { allowedTools } = await import("./tools");
+const { allowedTools } = await import("./utils/mcp");
 
 const mcp = { url: "http://api.test/mcp", token: "token" };
 

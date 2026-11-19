@@ -1,14 +1,9 @@
+import type { AgentToolInput } from "@anvia/core";
+
 /**
- * The MCP tools the Assistant Agent may use.
+ * The tools that belong to this agent, such as a web search tool built with `createTool`.
  *
- * The agent only reads data and creates proposals that the user accepts in the interface. No tool
- * approves a change or sends email. The MCP server enforces scopes, and this list is a second,
- * client-side filter.
+ * Tools served by the MCP server are not listed here. `runAgent` adds them from the MCP
+ * connection, and the tools passed in its options are added after these.
  */
-export const allowedTools = [
-  "search_knowledge",
-  "get_knowledge_item",
-  "list_rules",
-  "suggest_questions",
-  "propose_knowledge_edit",
-] as const;
+export const tools: readonly AgentToolInput[] = [];

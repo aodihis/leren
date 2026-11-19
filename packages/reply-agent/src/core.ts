@@ -8,6 +8,7 @@ import type {
 import { createAgent } from "@leren/agents";
 import type { Observer } from "@leren/observability";
 import { instructions } from "./instructions";
+import { tools } from "./tools";
 import { connectReplyMcp } from "./utils/mcp";
 import type { McpOptions } from "./utils/mcp";
 
@@ -46,7 +47,7 @@ export async function runAgent(options: RunAgentOptions): Promise<string> {
       instructions,
       observer: options.observer,
       mcpServers: connection?.servers,
-      tools: options.tools,
+      tools: [...tools, ...(options.tools ?? [])],
       memory: options.memory,
     });
 
