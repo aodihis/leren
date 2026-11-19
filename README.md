@@ -13,10 +13,13 @@ For how the system fits together, read the [high-level design](docs/overview/REA
 
 ```sh
 pnpm install
+docker compose up -d
 pnpm --filter @leren/api dev
 pnpm --filter @leren/platform dev
 pnpm --filter @leren/worker dev
 ```
+
+Copy `.env.example` to `.env` first. The worker needs `RABBITMQ_URL`.
 
 ## Commands
 
