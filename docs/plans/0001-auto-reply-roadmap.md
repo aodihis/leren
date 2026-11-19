@@ -20,17 +20,17 @@ Every feature follows these steps, in order.
 
 ### F00 HLD and roadmap
 
-Status: In progress. Branch: `docs/00-hld-roadmap`.
+Status: In review. Branch: `docs/00-hld-roadmap`.
 
-- [~] Rewrite `docs/overview/README.md` as the high-level design.
-- [~] Add this roadmap and the `plans/` row in `docs/README.md`.
-- [~] ADRs 0005 (RabbitMQ), 0006 (two agents, UI first), 0007 (derived auto-reply status), 0008 (MCP server in the API, with sessions and scopes).
+- [x] Rewrite `docs/overview/README.md` as the high-level design.
+- [x] Add this roadmap and the `plans/` row in `docs/README.md`.
+- [x] ADRs 0005 (RabbitMQ), 0006 (two agents, UI first), 0007 (derived auto-reply status), 0008 (MCP server in the API, with sessions and scopes).
 
 ### F01 Test foundation
 
 Status: Todo. Branch: `feat/01-test-foundation`.
 
-- [ ] Add Vitest at the root and in each package.
+- [~] Add Vitest at the root and in each package. The root setup is done (ADR 0009).
 - [ ] Add a PostgreSQL test database helper.
 - [ ] Add an in-memory `VectorStore` for tests.
 - [ ] Add `pnpm test` and a `pnpm check` script that chains lint, format check, typecheck and test.
@@ -183,26 +183,26 @@ F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delaye
 
 ## Status
 
-| Feature | Name                         | Status      | PR  |
-| ------- | ---------------------------- | ----------- | --- |
-| F00     | HLD and roadmap              | In progress |     |
-| F01     | Test foundation              | Todo        |     |
-| F02     | Anvia foundation             | Todo        |     |
-| F03     | RabbitMQ queue               | Todo        |     |
-| F04     | Authentication and isolation | Todo        |     |
-| F05     | Auto-reply rules             | Todo        |     |
-| F06     | Knowledge management         | Todo        |     |
-| F07     | Indexing pipeline            | Todo        |     |
-| F08     | Retrieval                    | Todo        |     |
-| F09     | MCP server and sessions      | Todo        |     |
-| F10     | Assistant Agent              | Todo        |     |
-| F11     | Routing rules                | Todo        |     |
-| F12     | Email ingestion and gate     | Todo        |     |
-| F13     | Reply Agent and pipeline     | Todo        |     |
-| F14     | Approval and sending         | Todo        |     |
-| F15     | Dashboard and report         | Todo        |     |
-| F16     | Evaluation suite             | Todo        |     |
-| F17     | Hardening and documentation  | Todo        |     |
+| Feature | Name                         | Status    | PR  |
+| ------- | ---------------------------- | --------- | --- |
+| F00     | HLD and roadmap              | In review |     |
+| F01     | Test foundation              | Todo      |     |
+| F02     | Anvia foundation             | Todo      |     |
+| F03     | RabbitMQ queue               | Todo      |     |
+| F04     | Authentication and isolation | Todo      |     |
+| F05     | Auto-reply rules             | Todo      |     |
+| F06     | Knowledge management         | Todo      |     |
+| F07     | Indexing pipeline            | Todo      |     |
+| F08     | Retrieval                    | Todo      |     |
+| F09     | MCP server and sessions      | Todo      |     |
+| F10     | Assistant Agent              | Todo      |     |
+| F11     | Routing rules                | Todo      |     |
+| F12     | Email ingestion and gate     | Todo      |     |
+| F13     | Reply Agent and pipeline     | Todo      |     |
+| F14     | Approval and sending         | Todo      |     |
+| F15     | Dashboard and report         | Todo      |     |
+| F16     | Evaluation suite             | Todo      |     |
+| F17     | Hardening and documentation  | Todo      |     |
 
 ## Changes from the PRD
 
