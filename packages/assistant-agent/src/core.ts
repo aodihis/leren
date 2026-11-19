@@ -1,29 +1,20 @@
-import type {
-  AgentMemoryOptions,
-  AgentPrompt,
-  AgentStreamEvent,
-  AgentToolInput,
-  CompletionModel,
-  MemoryScope,
-} from "@anvia/core";
+import type { AgentPrompt, AgentStreamEvent, MemoryScope } from "@anvia/core";
 import { createAgent } from "@leren/agents";
-import type { Observer } from "@leren/observability";
+import type { CreateAgentOptions, McpOptions } from "@leren/agents";
 import { instructions } from "./instructions";
 import { tools } from "./tools";
 import { connectAssistantMcp } from "./utils/mcp";
-import type { McpOptions } from "./utils/mcp";
 
 const AGENT_ID = "assistant";
 const MAX_TURNS = 75;
 
 /** Everything one Assistant Agent run needs. */
-export interface RunAgentOptions {
+export interface RunAgentOptions extends Pick<
+  CreateAgentOptions,
+  "model" | "observer" | "tools" | "memory"
+> {
   readonly prompt: AgentPrompt;
-  readonly model: CompletionModel;
-  readonly observer: Observer;
   readonly mcp?: McpOptions | undefined;
-  readonly tools?: readonly AgentToolInput[] | undefined;
-  readonly memory?: AgentMemoryOptions | undefined;
   readonly session?: MemoryScope | undefined;
   readonly abortSignal?: AbortSignal | undefined;
 }

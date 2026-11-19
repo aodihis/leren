@@ -1,5 +1,5 @@
 import { connectMcp } from "@leren/agents";
-import type { McpConnection } from "@leren/agents";
+import type { McpConnection, McpOptions } from "@leren/agents";
 
 /**
  * The MCP tools the Reply Agent may use.
@@ -14,12 +14,6 @@ export const allowedTools = [
   "create_draft",
   "request_approval",
 ] as const;
-
-/** Connection details for the MCP server hosted by the API. */
-export interface McpOptions {
-  readonly url: string;
-  readonly token: string;
-}
 
 /** Connects to the MCP server and exposes only the Reply Agent's tools. */
 export function connectReplyMcp(

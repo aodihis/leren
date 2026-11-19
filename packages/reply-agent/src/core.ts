@@ -1,28 +1,20 @@
-import type {
-  AgentMemoryOptions,
-  AgentPrompt,
-  AgentToolInput,
-  CompletionModel,
-  MemoryScope,
-} from "@anvia/core";
+import type { AgentPrompt, MemoryScope } from "@anvia/core";
 import { createAgent } from "@leren/agents";
-import type { Observer } from "@leren/observability";
+import type { CreateAgentOptions, McpOptions } from "@leren/agents";
 import { instructions } from "./instructions";
 import { tools } from "./tools";
 import { connectReplyMcp } from "./utils/mcp";
-import type { McpOptions } from "./utils/mcp";
 
 const AGENT_ID = "reply";
 const MAX_TURNS = 5;
 
 /** Everything one Reply Agent run needs. */
-export interface RunAgentOptions {
+export interface RunAgentOptions extends Pick<
+  CreateAgentOptions,
+  "model" | "observer" | "tools" | "memory"
+> {
   readonly prompt: AgentPrompt;
-  readonly model: CompletionModel;
-  readonly observer: Observer;
   readonly mcp?: McpOptions | undefined;
-  readonly tools?: readonly AgentToolInput[] | undefined;
-  readonly memory?: AgentMemoryOptions | undefined;
   readonly session?: MemoryScope | undefined;
   readonly abortSignal?: AbortSignal | undefined;
 }

@@ -1,19 +1,17 @@
 import { Agent } from "@anvia/core";
-import type { AgentMemoryOptions, AgentToolInput, CompletionModel } from "@anvia/core";
-import type { McpServer } from "@anvia/mcp";
+import type { AgentOptions } from "@anvia/core";
 import type { Observer } from "@leren/observability";
 
-/** Everything needed to build one agent. */
-export interface CreateAgentOptions {
-  readonly id: string;
-  readonly maxTurns: number;
-  readonly model: CompletionModel;
-  readonly instructions: string;
-  readonly observer: Observer;
-  readonly mcpServers?: readonly McpServer[] | undefined;
-  readonly tools?: readonly AgentToolInput[] | undefined;
-  readonly memory?: AgentMemoryOptions | undefined;
-}
+/**
+ * Everything needed to build one agent.
+ *
+ * The fields come from Anvia's `AgentOptions`. The instructions and the turn limit are required
+ * here, and the observer replaces Anvia's observability options.
+ */
+export type CreateAgentOptions = Required<Pick<AgentOptions, "instructions" | "maxTurns">> &
+  Pick<AgentOptions, "id" | "model" | "mcpServers" | "tools" | "memory"> & {
+    readonly observer: Observer;
+  };
 
 /**
  * Builds an agent with a bounded number of turns and the observer's tracing.

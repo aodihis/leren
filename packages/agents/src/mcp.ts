@@ -1,13 +1,16 @@
 import { McpClient, McpClientGroup } from "@anvia/mcp";
-import type { McpServer } from "@anvia/mcp";
+import type { McpConnectOptions, McpServer, McpStreamableHttpTransport } from "@anvia/mcp";
 
 /** Connection details for the MCP server hosted by the API. */
 export interface McpConnectionOptions {
-  readonly url: string;
+  readonly url: McpStreamableHttpTransport["url"];
   readonly token: string;
   readonly allowedTools: readonly string[];
-  readonly abortSignal?: AbortSignal | undefined;
+  readonly abortSignal?: McpConnectOptions["abortSignal"];
 }
+
+/** The part of the connection that identifies the server and the user's session. */
+export type McpOptions = Pick<McpConnectionOptions, "url" | "token">;
 
 /** Connected MCP servers, restricted to one role's tools. The owner must call `close`. */
 export interface McpConnection {

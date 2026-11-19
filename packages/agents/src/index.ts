@@ -4,7 +4,7 @@ export type { CreateAgentOptions } from "./factory";
 
 export { connectMcp, restrictTools } from "./mcp";
 
-export type { McpConnection, McpConnectionOptions } from "./mcp";
+export type { McpConnection, McpConnectionOptions, McpOptions } from "./mcp";
 
 export { createModel } from "./model";
 
