@@ -9,6 +9,7 @@ Applies to everything in `packages/`.
 - Packages never import from `apps/*`.
 - Each package has a `typecheck` script.
 - `@leren/ui` lists `react` as a peer dependency. Other packages should avoid framework dependencies unless that is their purpose.
+- `@leren/ui` holds shadcn/ui components, which are excluded from the linter and formatter. See [0004](../decision/0004-shadcn-in-ui-package.md).
 
 ## Current packages
 
