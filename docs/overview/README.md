@@ -28,6 +28,7 @@ platform  ──HTTP──▶  api  ──enqueue──▶  worker
 | Package                | Purpose                    |
 | ---------------------- | -------------------------- |
 | `@leren/db`            | Database client and schema |
+| `@leren/vector-db`     | Vector store abstraction   |
 | `@leren/agents`        | Contracts for AI agents    |
 | `@leren/observability` | Logging                    |
 | `@leren/ui`            | Shared React components    |

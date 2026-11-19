@@ -18,3 +18,4 @@ Applies to everything in `packages/`.
 | `@leren/ui`            | Shared React components    |
 | `@leren/observability` | Logging and tracing        |
 | `@leren/db`            | Database client and schema |
+| `@leren/vector-db`     | Vector store abstraction   |
