@@ -1,0 +1,12 @@
+const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const PHONE = /(?<!\d)\+?\d(?:[\s().-]?\d){8,}(?!\d)/g;
+
+/**
+ * Replaces email addresses and phone numbers in `text` with `[redacted]`.
+ *
+ * Telemetry and logs call it before recording text that came from an email, so personal contact
+ * details are not stored. The input is not modified.
+ */
+export function redact(text: string): string {
+  return text.replace(EMAIL, "[redacted]").replace(PHONE, "[redacted]");
+}

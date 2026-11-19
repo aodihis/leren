@@ -32,7 +32,7 @@ Custom rules live in `tooling/oxlint/` and are enabled in `tooling/oxlint/base.j
 - Use Vitest. Configuration lives in `vitest.config.ts` at the root. See [0009](../decision/0009-vitest-for-unit-tests.md).
 - Put a test next to the code as `name.test.ts` or `name.test.tsx`.
 - Tests that need PostgreSQL use `createTestDatabase` from `@leren/db/testing`, which creates a migrated database per call. Start the services with `docker compose up -d` first. Tests that need a vector store use `createInMemoryVectorStore` from `@leren/vector-db`.
-- Coverage must stay at or above 80% for lines, branches, functions and statements. `packages/agents` is excluded because agents are evaluated with evals. Do not lower a threshold to make a change pass.
+- Coverage must stay at or above 80% for lines, branches, functions and statements. `packages/agents`, `packages/assistant-agent` and `packages/reply-agent` are excluded because agents are evaluated with evals. Do not lower a threshold to make a change pass.
 
 ## Commits
 
