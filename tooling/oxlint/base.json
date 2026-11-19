@@ -1,0 +1,43 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "eqeqeq": "error",
+    "no-debugger": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "typescript/no-explicit-any": "warn",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-non-null-assertion": "warn",
+    "import/no-duplicates": "error",
+    "import/no-unassigned-import": "off",
+    "react/jsx-key": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/react-in-jsx-scope": "off",
+    "no-nested-ternary": "error",
+    "rules/no-inline-comments": "error",
+    "rules/no-implicit-state": "error",
+    "rules/require-readable-spacing": "error",
+    "rules/no-conditional-empty-object-spread": "error",
+    "rules/no-chained-type-assertions": "error",
+    "rules/no-array-filter-map": "error"
+  },
+  "jsPlugins": [
+    {
+      "name": "rules",
+      "specifier": "./index.ts"
+    }
+  ]
+}

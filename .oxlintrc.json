@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./tooling/oxlint/base.json"],
+  "ignorePatterns": [
+    "tooling/oxlint/vendor/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/routeTree.gen.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["tooling/**"],
+      "rules": {
+        "rules/no-inline-comments": "off"
+      }
+    }
+  ]
+}
