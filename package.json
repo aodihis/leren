@@ -11,7 +11,9 @@
     "test:lint-rules": "node tooling/oxlint/run-tests.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
     "@oxlint/plugins": "^1.94.0",
