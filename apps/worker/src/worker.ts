@@ -1,61 +1,63 @@
-import { jobRegistry } from "./jobs/index.js";
-import type { Queue } from "./queue/types.js";
+import { NonRetryableError } from "@leren/queue";
+import type { Consumer, QueueClient } from "@leren/queue";
 
-export interface WorkerOptions {
-  queue: Queue;
-  pollIntervalMs?: number;
-}
+import type { JobDefinition } from "./job";
 
+export type WorkerOptions = {
+  queue: QueueClient;
+  jobs: JobDefinition[];
+};
+
+/**
+ * Consumes the queue of every job and runs the job's handler for each message.
+ *
+ * A payload that does not match the job's schema can never succeed, so it is dead-lettered
+ * without further attempts. Any other error is retried according to the job's retry policy.
+ */
 export class Worker {
-  private running = false;
-  private controller = new AbortController();
-  private loop?: Promise<void>;
+  private consumers: Consumer[] = [];
 
-  constructor(private readonly opts: WorkerOptions) {}
+  constructor(private readonly options: WorkerOptions) {}
 
-  start() {
-    this.running = true;
-    this.loop = this.run();
-  }
+  async start(): Promise<void> {
+    const { queue, jobs } = this.options;
 
-  async stop() {
-    this.running = false;
-    this.controller.abort();
-    await this.loop;
-  }
+    for (const job of jobs) {
+      const consumer = await queue.consume(
+        job.name,
+        async (message, { signal }) => {
+          const parsed = job.schema.safeParse(message.payload);
 
-  private async run() {
-    const { queue, pollIntervalMs = 1000 } = this.opts;
+          if (!parsed.success) {
+            throw new NonRetryableError(
+              `Invalid payload for job "${job.name}": ${parsed.error.message}`,
+            );
+          }
 
-    while (this.running) {
-      const job = await queue.dequeue();
+          try {
+            await job.handler(parsed.data, {
+              jobId: message.id,
+              attempt: message.attempt,
+              idempotencyKey: message.idempotencyKey,
+              signal,
+            });
+          } catch (error) {
+            console.error(`Job ${job.name} (${message.id}) failed:`, error);
 
-      if (!job) {
-        await new Promise((r) => setTimeout(r, pollIntervalMs));
-        continue;
-      }
+            throw error;
+          }
+        },
+        { maxAttempts: job.maxAttempts, backoff: job.backoff, concurrency: job.concurrency },
+      );
 
-      const def = jobRegistry.get(job.name);
-
-      if (!def) {
-        console.error(`No handler for job "${job.name}" (${job.id})`);
-        continue;
-      }
-
-      job.attempts += 1;
-
-      try {
-        const payload = def.schema.parse(job.payload);
-        await def.handler(payload, {
-          jobId: job.id,
-          attempt: job.attempts,
-          signal: this.controller.signal,
-        });
-      } catch (err) {
-        console.error(`Job ${job.name} (${job.id}) failed:`, err);
-
-        if (job.attempts < (def.maxAttempts ?? 1)) await queue.retry(job);
-      }
+      this.consumers.push(consumer);
     }
+  }
+
+  async stop(): Promise<void> {
+    const consumers = this.consumers;
+
+    this.consumers = [];
+    await Promise.all(consumers.map((consumer) => consumer.stop()));
   }
 }

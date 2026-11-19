@@ -87,7 +87,7 @@ Whether an email is handled at all is decided by the gate, in code, from stored 
 
 ## Queues
 
-The queues are `email.received`, `email.process`, `email.send` and `knowledge.index`, each with a dead-letter queue. A consumer acknowledges a message only after its work is durable. Every message carries an idempotency key, and every handler is safe to retry.
+The queues are `email.received`, `email.process`, `email.send` and `knowledge.index`, each with a dead-letter queue named `<queue>.dlq`. A failed message is retried with exponential backoff and moved to the dead-letter queue when its attempts are used up. A consumer acknowledges a message only after its work is durable. Every message carries an idempotency key, and every handler is safe to retry.
 
 ## MCP server
 
@@ -113,14 +113,15 @@ Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a s
 
 ## Shared packages
 
-| Package                | Purpose                    |
-| ---------------------- | -------------------------- |
-| `@leren/db`            | Database client and schema |
-| `@leren/vector-db`     | Vector store abstraction   |
-| `@leren/agents`        | Contracts for AI agents    |
-| `@leren/observability` | Logging                    |
-| `@leren/ui`            | Shared React components    |
+| Package                | Purpose                     |
+| ---------------------- | --------------------------- |
+| `@leren/db`            | Database client and schema  |
+| `@leren/vector-db`     | Vector store abstraction    |
+| `@leren/queue`         | Durable queues with retries |
+| `@leren/agents`        | Contracts for AI agents     |
+| `@leren/observability` | Logging                     |
+| `@leren/ui`            | Shared React components     |
 
 ## Current limitations
 
-The job queue is in memory and exists only inside the worker process. Jobs are lost when the worker restarts, and the API cannot enqueue jobs until RabbitMQ replaces it. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.
+Jobs run on RabbitMQ and survive worker restarts, but only the worker uses the queue so far. The API does not publish jobs yet, and the idempotency helper has only an in-memory store until the pipeline tables exist. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.

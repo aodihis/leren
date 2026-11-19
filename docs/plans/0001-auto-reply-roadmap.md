@@ -36,7 +36,7 @@ Status: Done. Branch: `feat/01-test-foundation`. PR: [#3](https://github.com/aod
 
 ### F02 Anvia foundation
 
-Status: Done. Branch: `feat/02-anvia-foundation`.
+Status: Done. Branch: `feat/02-anvia-foundation`. PRs: [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5).
 
 - [x] Add the Anvia SDK and an ADR for the integration (ADR 0010).
 - [x] In `packages/agents`: an agent factory, an MCP client wrapper and a fake LLM for tests. Add `packages/assistant-agent` and `packages/reply-agent` with their role-scoped tool configuration.
@@ -44,13 +44,13 @@ Status: Done. Branch: `feat/02-anvia-foundation`.
 
 ### F03 RabbitMQ queue
 
-Status: Todo. Branch: `feat/03-rabbitmq-queue`.
+Status: Done. Branch: `feat/03-rabbitmq-queue`. PR: [#6](https://github.com/aodihis/leren/pull/6).
 
-- [ ] Add RabbitMQ to `docker-compose.yml` and `.env.example`.
-- [ ] Add `packages/queue` with publish, consume, retry with backoff, dead-letter queues and an idempotency helper.
-- [ ] Rebuild the `apps/worker` consumers on it, keeping `defineJob`.
-- [ ] Update the "Current limitations" section of the overview.
-- [ ] Test against a real broker and against a fake.
+- [x] Add RabbitMQ to `docker-compose.yml` and `.env.example`.
+- [x] Add `packages/queue` with publish, consume, retry with backoff, dead-letter queues and an idempotency helper.
+- [x] Rebuild the `apps/worker` consumers on it, keeping `defineJob`.
+- [x] Update the "Current limitations" section of the overview.
+- [x] Test against a real broker and against a fake.
 
 ### F04 Authentication and user isolation
 
@@ -183,26 +183,26 @@ F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delaye
 
 ## Status
 
-| Feature | Name                         | Status | PR                                            |
-| ------- | ---------------------------- | ------ | --------------------------------------------- |
-| F00     | HLD and roadmap              | Done   | [#2](https://github.com/aodihis/leren/pull/2) |
-| F01     | Test foundation              | Done   | [#3](https://github.com/aodihis/leren/pull/3) |
-| F02     | Anvia foundation             | Done   |                                               |
-| F03     | RabbitMQ queue               | Todo   |                                               |
-| F04     | Authentication and isolation | Todo   |                                               |
-| F05     | Auto-reply rules             | Todo   |                                               |
-| F06     | Knowledge management         | Todo   |                                               |
-| F07     | Indexing pipeline            | Todo   |                                               |
-| F08     | Retrieval                    | Todo   |                                               |
-| F09     | MCP server and sessions      | Todo   |                                               |
-| F10     | Assistant Agent              | Todo   |                                               |
-| F11     | Routing rules                | Todo   |                                               |
-| F12     | Email ingestion and gate     | Todo   |                                               |
-| F13     | Reply Agent and pipeline     | Todo   |                                               |
-| F14     | Approval and sending         | Todo   |                                               |
-| F15     | Dashboard and report         | Todo   |                                               |
-| F16     | Evaluation suite             | Todo   |                                               |
-| F17     | Hardening and documentation  | Todo   |                                               |
+| Feature | Name                         | Status | PR                                                                                           |
+| ------- | ---------------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| F00     | HLD and roadmap              | Done   | [#2](https://github.com/aodihis/leren/pull/2)                                                |
+| F01     | Test foundation              | Done   | [#3](https://github.com/aodihis/leren/pull/3)                                                |
+| F02     | Anvia foundation             | Done   | [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5) |
+| F03     | RabbitMQ queue               | Done   | [#6](https://github.com/aodihis/leren/pull/6)                                                |
+| F04     | Authentication and isolation | Todo   |                                                                                              |
+| F05     | Auto-reply rules             | Todo   |                                                                                              |
+| F06     | Knowledge management         | Todo   |                                                                                              |
+| F07     | Indexing pipeline            | Todo   |                                                                                              |
+| F08     | Retrieval                    | Todo   |                                                                                              |
+| F09     | MCP server and sessions      | Todo   |                                                                                              |
+| F10     | Assistant Agent              | Todo   |                                                                                              |
+| F11     | Routing rules                | Todo   |                                                                                              |
+| F12     | Email ingestion and gate     | Todo   |                                                                                              |
+| F13     | Reply Agent and pipeline     | Todo   |                                                                                              |
+| F14     | Approval and sending         | Todo   |                                                                                              |
+| F15     | Dashboard and report         | Todo   |                                                                                              |
+| F16     | Evaluation suite             | Todo   |                                                                                              |
+| F17     | Hardening and documentation  | Todo   |                                                                                              |
 
 ## Changes from the PRD
 

@@ -25,5 +25,7 @@ docs/       decisions and rules
 
 - [0001 API module-driven structure](../decision/0001-api-module-driven-structure.md)
 - [0002 Frontend module-driven structure](../decision/0002-frontend-module-driven-structure.md)
+- [0005 RabbitMQ for background queues](../decision/0005-rabbitmq-for-queues.md)
+- [0012 Worker module-driven structure](../decision/0012-worker-module-driven-structure.md)
 
 See also [backend](backend.md), [frontend](frontend.md), [packages](packages.md) and [general](general.md).
