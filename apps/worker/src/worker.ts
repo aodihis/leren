@@ -2,6 +2,7 @@ import { NonRetryableError } from "@leren/queue";
 import type { Consumer, QueueClient } from "@leren/queue";
 
 import type { JobDefinition } from "./job";
+import { logger } from "./logger";
 
 export type WorkerOptions = {
   queue: QueueClient;
@@ -42,7 +43,7 @@ export class Worker {
               signal,
             });
           } catch (error) {
-            console.error(`Job ${job.name} (${message.id}) failed:`, error);
+            logger.child({ job: job.name, jobId: message.id }).error("Job failed", { error });
 
             throw error;
           }
