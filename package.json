@@ -8,6 +8,8 @@
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
+    "runner:assistant": "pnpm --filter @leren/assistant-agent runner:run",
+    "runner:reply": "pnpm --filter @leren/reply-agent runner:run",
     "test:lint-rules": "node tooling/oxlint/run-tests.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

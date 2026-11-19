@@ -36,11 +36,11 @@ Status: Done. Branch: `feat/01-test-foundation`. PR: [#3](https://github.com/aod
 
 ### F02 Anvia foundation
 
-Status: Todo. Branch: `feat/02-anvia-foundation`. Blocked until the Anvia SDK and docs are available.
+Status: Done. Branch: `feat/02-anvia-foundation`.
 
-- [ ] Add the Anvia SDK and an ADR for the integration.
-- [ ] In `packages/agents`: an agent factory, an MCP client wrapper, a fake LLM for tests and role-scoped tool configuration.
-- [ ] In `packages/observability`: a Lens tracer, a no-op tracer and a redaction function.
+- [x] Add the Anvia SDK and an ADR for the integration (ADR 0010).
+- [x] In `packages/agents`: an agent factory, an MCP client wrapper and a fake LLM for tests. Add `packages/assistant-agent` and `packages/reply-agent` with their role-scoped tool configuration.
+- [x] In `packages/observability`: a vendor-neutral observer with a Lens implementation, a no-op observer and a redaction function.
 
 ### F03 RabbitMQ queue
 
@@ -161,8 +161,9 @@ Status: Todo. Branch: `feat/15-dashboard`.
 
 Status: Todo. Branch: `feat/16-evals`.
 
-- [ ] Create 50 cases: 15 project questions, 10 task assignments, 8 informational, 7 urgent, 5 without knowledge, 5 prompt injections.
-- [ ] Add the runner and scorers: classification accuracy, Recall@5, groundedness, rule compliance, correct abstention and policy checks.
+- [ ] Reply Agent suite in `packages/reply-agent/src/evals`: 50 cases: 15 project questions, 10 task assignments, 8 informational, 7 urgent, 5 without knowledge, 5 prompt injections.
+- [ ] Assistant Agent suite in `packages/assistant-agent/src/evals`: cases for lookups of saved data, suggested questions, edit proposals that match the source, and requests to approve or send, which must be refused. Score tool choice, faithfulness to saved data and proposal-only behavior.
+- [ ] Add a shared runner and the Reply Agent scorers: classification accuracy, Recall@5, groundedness, rule compliance, correct abstention and policy checks. Each suite has its own dataset and quality gate.
 - [ ] Link results to Lens traces.
 - [ ] Add a script that turns failures and rejected drafts into new cases.
 
@@ -186,7 +187,7 @@ F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delaye
 | ------- | ---------------------------- | ------ | --------------------------------------------- |
 | F00     | HLD and roadmap              | Done   | [#2](https://github.com/aodihis/leren/pull/2) |
 | F01     | Test foundation              | Done   | [#3](https://github.com/aodihis/leren/pull/3) |
-| F02     | Anvia foundation             | Todo   |                                               |
+| F02     | Anvia foundation             | Done   |                                               |
 | F03     | RabbitMQ queue               | Todo   |                                               |
 | F04     | Authentication and isolation | Todo   |                                               |
 | F05     | Auto-reply rules             | Todo   |                                               |
