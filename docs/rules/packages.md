@@ -26,6 +26,7 @@ Applies to everything in `packages/`.
 | `@leren/queue`           | RabbitMQ queues and retries |
 | `@leren/logger`          | Library-agnostic logging    |
 | `@leren/email`           | Email sending over SMTP     |
+| `@leren/auto-reply`      | Rule status and conditions  |
 
 ## Observability
 

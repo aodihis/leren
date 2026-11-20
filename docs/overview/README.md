@@ -27,6 +27,15 @@ An auto-reply rule has an `enabled` flag, an optional `starts_at`, an optional `
 
 A missing bound is open. Knowledge and routing rules belong to an auto-reply rule, so retrieval filters by rule, approval status and validity dates.
 
+A rule has a name that identifies it in the list. It also has conditions for each channel. For email, the conditions say:
+
+- Which senders are answered: anyone, or only listed addresses and domains.
+- Which recipient roles are answered: To, Cc or Bcc. A message is Bcc when the user's address is in neither the To nor the Cc header.
+- Whether the user must be the only recipient when addressed in the To header.
+- Whether a message that mentions the user by name is answered even when the role or the recipient count would otherwise exclude it. Names are matched against the user's name and a list of aliases. A rule can also ask a model to decide when no alias matches.
+- Whether new threads, replies in an existing thread, or both are answered.
+- Whether mailing lists and automatically generated messages are skipped.
+
 ## Agents
 
 The platform UI is the main way to manage data. The assistant is an optional helper beside it. The two agents never share a prompt, a tool set or a session.
@@ -83,7 +92,7 @@ Email listener (worker) ─▶ [email.received]
                           [email.send] ─▶ Reply sender (worker) ─▶ Email provider
 ```
 
-Whether an email is handled at all is decided by the gate, in code, from stored rules. The agent is never asked whether to reply to a message outside an active rule.
+Whether an email is handled at all is decided by the gate, in code, from stored rules and their conditions. The Reply Agent is never asked whether to reply to a message outside an active rule. The only model call in the gate is the optional mention check of a rule that asks for it.
 
 ## Queues
 
@@ -125,6 +134,7 @@ Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a s
 | `@leren/vector-db`     | Vector store abstraction    |
 | `@leren/queue`         | Durable queues with retries |
 | `@leren/email`         | Email sending over SMTP     |
+| `@leren/auto-reply`    | Rule status and conditions  |
 | `@leren/agents`        | Contracts for AI agents     |
 | `@leren/observability` | Logging                     |
 | `@leren/ui`            | Shared React components     |

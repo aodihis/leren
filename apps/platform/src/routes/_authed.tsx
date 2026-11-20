@@ -35,6 +35,9 @@ function AuthedLayout() {
         <Link to="/" className="[&.active]:font-bold">
           Home
         </Link>
+        <Link to="/auto-reply-rules" className="[&.active]:font-bold">
+          Rules
+        </Link>
         <Link to="/profile" className="[&.active]:font-bold">
           Profile
         </Link>
