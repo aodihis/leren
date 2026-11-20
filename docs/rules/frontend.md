@@ -26,3 +26,7 @@ src/
 ## Styling
 
 - Use Tailwind utility classes. Avoid custom CSS unless Tailwind cannot express it.
+
+## Testing
+
+- Test a route by rendering it with `renderApp` from `src/testing.tsx` and replacing `auth-client` and `api-client` with test doubles. Query by role, label and text, and use `user-event`. See [0018](../decision/0018-testing-library-for-platform-components.md).
