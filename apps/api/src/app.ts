@@ -8,6 +8,8 @@ import { z } from "zod";
 import { createAuthRouter } from "./modules/auth/router";
 import type { Auth } from "./modules/auth/service";
 import { createAutoReplyRulesRouter } from "./modules/auto-reply-rules/router";
+import { createContactsRouter } from "./modules/contacts/router";
+import { createKnowledgeItemsRouter } from "./modules/knowledge-items/router";
 
 const echoSchema = z.object({ message: z.string().min(1) });
 
@@ -43,7 +45,9 @@ export function createApp({ auth, db, logger }: AppDependencies) {
       return c.json({ message });
     })
     .route("/", createAuthRouter(auth, db))
-    .route("/", createAutoReplyRulesRouter(auth, db));
+    .route("/", createAutoReplyRulesRouter(auth, db))
+    .route("/", createContactsRouter(auth, db))
+    .route("/", createKnowledgeItemsRouter(auth, db));
 }
 
 export type AppType = ReturnType<typeof createApp>;

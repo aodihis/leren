@@ -27,6 +27,7 @@ Applies to everything in `packages/`.
 | `@leren/logger`          | Library-agnostic logging    |
 | `@leren/email`           | Email sending over SMTP     |
 | `@leren/auto-reply`      | Rule status and conditions  |
+| `@leren/knowledge`       | Usable knowledge rule       |
 
 ## Observability
 

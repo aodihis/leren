@@ -17,6 +17,7 @@
     "@leren/auto-reply": "workspace:*",
     "@leren/db": "workspace:*",
     "@leren/email": "workspace:*",
+    "@leren/knowledge": "workspace:*",
     "@leren/logger": "workspace:*",
     "better-auth": "^1.7.26",
     "drizzle-orm": "^0.45.4",

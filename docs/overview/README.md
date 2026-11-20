@@ -36,6 +36,12 @@ A rule has a name that identifies it in the list. It also has conditions for eac
 - Whether new threads, replies in an existing thread, or both are answered.
 - Whether mailing lists and automatically generated messages are skipped.
 
+## Knowledge and approval
+
+Knowledge is a set of **knowledge items**. Each belongs to one auto-reply rule and has a topic, a response that the assistant may give, optional example messages that help find the item, restrictions on what must not be said, an optional validity window and optional **contacts**, the people a reply may point to.
+
+An item is a `draft`, `approved` or `archived`. The assistant may use an item only when it is approved and the current time is inside its validity window. Only the user approves, archives or restores an item. Editing an approved item returns it to draft, so a changed text is reviewed again.
+
 ## Agents
 
 The platform UI is the main way to manage data. The assistant is an optional helper beside it. The two agents never share a prompt, a tool set or a session.

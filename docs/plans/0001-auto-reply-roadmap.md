@@ -74,12 +74,12 @@ Status: Done. Branch: `feat/05-auto-reply-rules`. PR: [#10](https://github.com/a
 
 ### F06 Knowledge management
 
-Status: Todo. Branch: `feat/06-knowledge`.
+Status: In progress. Branch: `feat/06-knowledge`.
 
-- [ ] Add `knowledge_items` (topic, questions, answer, contacts, restrictions, validity, approval `draft|approved|archived`) and `contacts`.
-- [ ] Add the API modules.
-- [ ] Add the platform screens to create, edit, approve and archive.
-- [ ] Test that only approved and currently valid items are usable.
+- [x] Add `knowledge_items` (topic, response, examples, contacts, restrictions, validity, approval `draft|approved|archived`) and `contacts`.
+- [x] Add the API modules.
+- [x] Add the platform screens to create, edit, approve and archive.
+- [x] Test that only approved and currently valid items are usable.
 
 ### F07 Indexing pipeline
 
