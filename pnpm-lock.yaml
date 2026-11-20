@@ -62,6 +62,9 @@ importers:
       '@leren/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@leren/knowledge':
+        specifier: workspace:*
+        version: link:../../packages/knowledge
       '@leren/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -267,6 +270,15 @@ importers:
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.2
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/knowledge:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

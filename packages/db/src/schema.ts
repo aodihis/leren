@@ -1,4 +1,14 @@
-import { boolean, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 /**
  * Application users. The shape follows Better Auth's `user` model, with `firstName` and
@@ -136,3 +146,77 @@ export const emailReplyConditions = pgTable("email_reply_conditions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+/**
+ * People that the assistant may name in a reply, such as the person to contact about a topic. A
+ * contact belongs to one user and is unique by address within that user. `role` is a free-text
+ * label such as "Project lead".
+ */
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    role: text("role").notNull().default(""),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("contacts_user_id_email_idx").on(table.userId, table.email)],
+);
+
+export const approvalStatusEnum = pgEnum("approval_status", ["draft", "approved", "archived"]);
+
+/**
+ * What the assistant may say about a topic while an auto-reply rule is in effect. Only an
+ * `approved` item whose validity window contains the current time is usable. `validFrom` and
+ * `validUntil` are instants and a null bound is open. `examples` are optional sample messages, in any
+ * phrasing, that help retrieval find the item. `response` is what the assistant may say, and
+ * `restrictions` states what must not be said. `userId` repeats the
+ * owner of the rule so that every query can filter by user without a join.
+ */
+export const knowledgeItems = pgTable(
+  "knowledge_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => autoReplyRules.id, { onDelete: "cascade" }),
+    topic: text("topic").notNull(),
+    examples: text("examples").array().notNull().default([]),
+    response: text("response").notNull(),
+    restrictions: text("restrictions").notNull().default(""),
+    validFrom: timestamp("valid_from", { withTimezone: true }),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    approvalStatus: approvalStatusEnum("approval_status").notNull().default("draft"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("knowledge_items_user_id_idx").on(table.userId),
+    index("knowledge_items_rule_id_idx").on(table.ruleId),
+  ],
+);
+
+/**
+ * The contacts attached to a knowledge item. Deleting either side removes the link.
+ */
+export const knowledgeItemContacts = pgTable(
+  "knowledge_item_contacts",
+  {
+    knowledgeItemId: uuid("knowledge_item_id")
+      .notNull()
+      .references(() => knowledgeItems.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.knowledgeItemId, table.contactId] })],
+);
