@@ -1,3 +1,6 @@
+/** The wire protocols an OpenAI-compatible endpoint can speak. */
+export type ModelApi = "responses" | "chat";
+
 /** The reasoning effort levels a model can be asked to use. */
 export type ReasoningEffort = "minimal" | "low" | "medium" | "high";
 
@@ -5,13 +8,17 @@ export type ReasoningEffort = "minimal" | "low" | "medium" | "high";
  * One model the harness can run an agent on, together with the client that talks to it.
  *
  * `modelId` is the identifier the provider expects. `apiKeyEnv` names the environment variable that
- * holds the credentials, so the config file never contains a secret. When `reasoningEfforts` is
- * empty the model does not support reasoning effort, and `defaultReasoningEffort` must be omitted.
+ * holds the credentials, so the config file never contains a secret. `baseUrl` selects the
+ * endpoint of an OpenAI-compatible service and defaults to the provider's own. `api` selects the
+ * wire protocol and defaults to `"responses"`. When `reasoningEfforts` is empty the model does not
+ * support reasoning effort, and `defaultReasoningEffort` must be omitted.
  */
 export interface ModelDefinition {
   readonly provider: "openai";
   readonly modelId: string;
   readonly apiKeyEnv: string;
+  readonly baseUrl?: string;
+  readonly api?: ModelApi;
   readonly contextWindow: number;
   readonly maxOutputTokens: number;
   readonly reasoningEfforts: readonly ReasoningEffort[];

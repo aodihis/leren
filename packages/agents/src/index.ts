@@ -1,6 +1,12 @@
 export { defineHarnessConfig } from "./config";
 
-export type { AgentName, HarnessConfig, ModelDefinition, ReasoningEffort } from "./config";
+export type {
+  AgentName,
+  HarnessConfig,
+  ModelApi,
+  ModelDefinition,
+  ReasoningEffort,
+} from "./config";
 
 export { createAgent } from "./factory";
 
