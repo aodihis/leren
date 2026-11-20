@@ -15,6 +15,19 @@ vi.stubGlobal("scrollTo", vi.fn());
 document.elementFromPoint = () => null;
 
 /**
+ * Radix measures a switch with a `ResizeObserver`, and jsdom does not implement it. This observer
+ * never reports a size, which is what a browser reports for an element that has no layout.
+ */
+vi.stubGlobal(
+  "ResizeObserver",
+  class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+);
+
+/**
  * Unmounts the components that a test rendered, so that the next test starts with an empty
  * document. Testing Library registers this itself only when the runner exposes global hooks, and
  * this repository's Vitest configuration does not.
