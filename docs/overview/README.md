@@ -38,9 +38,15 @@ A rule has a name that identifies it in the list. It also has conditions for eac
 
 ## Knowledge and approval
 
-Knowledge is a set of **knowledge items**. Each belongs to one auto-reply rule and has a topic, a response that the assistant may give, optional example messages that help find the item, restrictions on what must not be said, an optional validity window and optional **contacts**, the people a reply may point to.
+Knowledge is a set of **knowledge items**. Each belongs to one auto-reply rule and has a topic, a response that the assistant may give, optional example messages that help find the item, restrictions on what must not be said, an optional validity window and optional **contacts**, the email addresses or handles of the people a reply may point to.
 
 An item is a `draft`, `approved` or `archived`. The assistant may use an item only when it is approved and the current time is inside its validity window. Only the user approves, archives or restores an item. Editing an approved item returns it to draft, so a changed text is reviewed again.
+
+## Channels and accounts
+
+A **channel** is a kind of medium that messages arrive on, such as email or Slack. A user connects a **channel account** with OAuth, for example a Gmail mailbox. A message belongs to the user who owns the account it was fetched through. The address the user signs in with is not used to match messages, and it can differ from every connected address.
+
+A user has many rules and a rule has many knowledge items. A rule listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. Channels and channel accounts are specified in decision 0021 and are not built yet.
 
 ## Agents
 

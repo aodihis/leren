@@ -3,8 +3,6 @@ import { describe, expect, it } from "vitest";
 import { getNewKnowledgeValues, toFormValues, toRequestBody } from "./form-values";
 import type { KnowledgeItem } from "./types";
 
-const contactId = "33333333-3333-4333-8333-333333333333";
-
 const item: KnowledgeItem = {
   id: "11111111-1111-4111-8111-111111111111",
   ruleId: "22222222-2222-4222-8222-222222222222",
@@ -17,7 +15,7 @@ const item: KnowledgeItem = {
   approvalStatus: "draft",
   approvedAt: null,
   usable: false,
-  contacts: [{ id: contactId, name: "Dewi", email: "dewi@example.com", role: "" }],
+  contacts: ["dewi@example.com", "@Don"],
 };
 
 describe("knowledge form values", () => {
@@ -30,17 +28,18 @@ describe("knowledge form values", () => {
       restrictions: "No budget.",
       validFrom: "2026-12-01T09:00",
       validUntil: "",
-      contactIds: [contactId],
+      contacts: "dewi@example.com, @Don",
     });
   });
 
-  it("reads the bounds in the timezone of the rule, keeps an empty bound open and drops blank examples", () => {
+  it("reads the bounds in the timezone of the rule, keeps an empty bound open and drops blank examples and contacts", () => {
     const values = {
       ...getNewKnowledgeValues(item.ruleId),
       topic: "Status",
       response: "On track.",
       examples: "First?\n\n  \nSecond?",
       validFrom: "2026-12-01T09:00",
+      contacts: "a@example.com, @Don\n b@example.com,, ",
     };
 
     expect(toRequestBody(values, "Asia/Jakarta")).toEqual({
@@ -51,7 +50,7 @@ describe("knowledge form values", () => {
       restrictions: "",
       validFrom: "2026-12-01T02:00:00.000Z",
       validUntil: null,
-      contactIds: [],
+      contacts: ["a@example.com", "@Don", "b@example.com"],
     });
   });
 });

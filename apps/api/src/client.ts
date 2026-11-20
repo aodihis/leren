@@ -9,6 +9,4 @@ export type { Auth } from "./modules/auth/service";
 
 export type { AutoReplyRuleInput } from "./modules/auto-reply-rules/schema";
 
-export type { ContactInput } from "./modules/contacts/schema";
-
 export type { KnowledgeItemInput } from "./modules/knowledge-items/schema";

@@ -13,7 +13,7 @@ export function getNewKnowledgeValues(ruleId: string): KnowledgeFormValues {
     restrictions: "",
     validFrom: "",
     validUntil: "",
-    contactIds: [],
+    contacts: "",
   };
 }
 
@@ -30,13 +30,13 @@ export function toFormValues(item: KnowledgeItem, timezone: string): KnowledgeFo
     restrictions: item.restrictions,
     validFrom: isoToZonedLocal(item.validFrom, timezone),
     validUntil: isoToZonedLocal(item.validUntil, timezone),
-    contactIds: item.contacts.map((contact) => contact.id),
+    contacts: item.contacts.join(", "),
   };
 }
 
 /**
  * Converts form values to the request body. The bounds are read as wall clock time in `timezone`
- * and an empty bound is open. Blank lines in the examples are dropped.
+ * and an empty bound is open. Blank examples and contacts are dropped.
  */
 export function toRequestBody(values: KnowledgeFormValues, timezone: string): KnowledgeItemInput {
   return {
@@ -47,6 +47,6 @@ export function toRequestBody(values: KnowledgeFormValues, timezone: string): Kn
     restrictions: values.restrictions,
     validFrom: zonedLocalToIso(values.validFrom, timezone),
     validUntil: zonedLocalToIso(values.validUntil, timezone),
-    contactIds: values.contactIds,
+    contacts: values.contacts.split(/[\n,]/).flatMap((contact) => contact.trim() || []),
   };
 }

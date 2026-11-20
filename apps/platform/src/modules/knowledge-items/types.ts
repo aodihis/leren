@@ -4,8 +4,6 @@ import type { api } from "../api/api-client";
 
 type ItemsEndpoint = (typeof api.api)["knowledge-items"];
 
-type ContactsEndpoint = (typeof api.api)["contacts"];
-
 /**
  * The body that creates or replaces a knowledge item, as the API declares it.
  */
@@ -17,13 +15,9 @@ export type KnowledgeItemInput = InferRequestType<ItemsEndpoint["$post"]>["json"
 export type KnowledgeItem = InferResponseType<ItemsEndpoint["$get"], 200>["items"][number];
 
 /**
- * A contact as the API returns it.
- */
-export type Contact = InferResponseType<ContactsEndpoint["$get"], 200>["contacts"][number];
-
-/**
  * The values of the knowledge form. The validity bounds are `datetime-local` strings in the
- * timezone of the item's rule, and the examples are text with one example on each line.
+ * timezone of the item's rule, the examples are text with one example on each line, and the
+ * contacts are text that the user separates with commas.
  */
 export interface KnowledgeFormValues {
   ruleId: string;
@@ -33,5 +27,5 @@ export interface KnowledgeFormValues {
   restrictions: string;
   validFrom: string;
   validUntil: string;
-  contactIds: string[];
+  contacts: string;
 }

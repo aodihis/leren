@@ -14,7 +14,7 @@ import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { api } from "../../../modules/api/api-client";
-import { loadFormOptions } from "../../../modules/knowledge-items/load-options";
+import { loadRules } from "../../../modules/knowledge-items/load-rules";
 
 const STATUS_BADGES = {
   draft: { label: "Draft", variant: "secondary" },
@@ -35,9 +35,9 @@ type Action = (typeof ACTIONS)[keyof typeof ACTIONS][number]["action"];
 
 export const Route = createFileRoute("/_authed/knowledge/")({
   loader: async () => {
-    const [response, { rules }] = await Promise.all([
+    const [response, rules] = await Promise.all([
       api.api["knowledge-items"].$get({ query: {} }),
-      loadFormOptions(),
+      loadRules(),
     ]);
 
     if (!response.ok) {
@@ -83,9 +83,6 @@ function KnowledgePage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Knowledge</h1>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link to="/contacts">Contacts</Link>
-          </Button>
           <Button asChild>
             <Link to="/knowledge/new">New item</Link>
           </Button>
