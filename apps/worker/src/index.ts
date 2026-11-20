@@ -1,5 +1,6 @@
 import { createRabbitMqQueue } from "@leren/queue";
 
+import { logger } from "./logger";
 import { jobs } from "./modules";
 import { Worker } from "./worker";
 
@@ -12,7 +13,7 @@ if (!url) {
 const queue = await createRabbitMqQueue({
   url,
   onConnectionLost: (error) => {
-    console.error("Lost the RabbitMQ connection:", error);
+    logger.fatal("Lost the RabbitMQ connection", { error });
     process.exit(1);
   },
 });
@@ -21,10 +22,10 @@ const worker = new Worker({ queue, jobs });
 
 await worker.start();
 
-console.log(`Worker started with jobs: ${jobs.map((job) => job.name).join(", ")}`);
+logger.info("Worker started", { jobs: jobs.map((job) => job.name) });
 
 const shutdown = async () => {
-  console.log("Shutting down worker...");
+  logger.info("Shutting down worker");
   await worker.stop();
   await queue.close();
   process.exit(0);

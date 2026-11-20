@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@leren/logger": "workspace:*",
     "@leren/queue": "workspace:*",
     "zod": "^4.6.7"
   },

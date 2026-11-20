@@ -107,6 +107,12 @@ The MCP server lives in `api` and exposes tools, resources and prompts. It is th
 - **Lifecycle.** Sessions expire and can be revoked. Tokens are never logged.
 - **Untrusted content.** Email text and tool results are data. Tool descriptions are fixed by the system.
 
+## Signing in
+
+Registration and sign-in are the same flow and there are no passwords. A user enters an email address and the API emails a six-digit code that expires after ten minutes. Entering the code signs the user in and creates the account if the address is new. A user may then save a first and last name on the profile page. The API protects its routes with the `requireUser` middleware, which sets `userId` from the session cookie, and every query for user data is scoped by that ID.
+
+In development, emails are delivered to Mailpit and can be read at http://localhost:58025.
+
 ## Observability
 
 Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a span correlated by message id. Telemetry is redacted by default, so full email bodies, prompts and replies are not exported unless explicitly enabled. Evaluation cases run against the Reply Agent, and their results link to traces. Failed evaluations and rejected drafts become new cases.
@@ -118,6 +124,7 @@ Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a s
 | `@leren/db`            | Database client and schema  |
 | `@leren/vector-db`     | Vector store abstraction    |
 | `@leren/queue`         | Durable queues with retries |
+| `@leren/email`         | Email sending over SMTP     |
 | `@leren/agents`        | Contracts for AI agents     |
 | `@leren/observability` | Logging                     |
 | `@leren/ui`            | Shared React components     |

@@ -1,26 +1,36 @@
 import { serve } from "@hono/node-server";
-import { zValidator } from "@hono/zod-validator";
-import { Hono } from "hono";
-import { z } from "zod";
+import { createDb } from "@leren/db";
+import { createSmtpEmailSender } from "@leren/email";
+import { createLogger } from "@leren/logger";
 
-const app = new Hono();
+import { createApp } from "./app";
+import type { AppType } from "./app";
+import { loadConfig } from "./config";
+import { createAuth } from "./modules/auth/service";
 
-app.get("/", (c) => c.json({ name: "leren-api" }));
+const logger = createLogger({ name: "api" });
+const config = loadConfig();
+const db = createDb(config.DATABASE_URL);
 
-app.get("/health", (c) => c.json({ status: "ok" }));
+const emailSender = createSmtpEmailSender({ url: config.SMTP_URL, from: config.EMAIL_FROM });
 
-const echoSchema = z.object({ message: z.string().min(1) });
-
-app.post("/echo", zValidator("json", echoSchema), (c) => {
-  const { message } = c.req.valid("json");
-
-  return c.json({ message });
+emailSender.verify().catch((error) => {
+  logger.error("Cannot reach the SMTP server, so sign-in codes will not be delivered", { error });
 });
 
-const port = Number(process.env.PORT ?? 3000);
-
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`API listening on http://localhost:${info.port}`);
+const auth = createAuth({
+  db,
+  logger,
+  secret: config.BETTER_AUTH_SECRET,
+  baseURL: config.API_URL,
+  trustedOrigins: [config.PLATFORM_URL],
+  emailSender,
 });
 
-export type AppType = typeof app;
+const app = createApp({ auth, db, logger });
+
+serve({ fetch: app.fetch, port: config.PORT }, (info) => {
+  logger.info("API listening", { port: info.port });
+});
+
+export type { AppType };

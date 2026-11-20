@@ -24,6 +24,8 @@ Applies to everything in `packages/`.
 | `@leren/db`              | Database client and schema  |
 | `@leren/vector-db`       | Vector store abstraction    |
 | `@leren/queue`           | RabbitMQ queues and retries |
+| `@leren/logger`          | Library-agnostic logging    |
+| `@leren/email`           | Email sending over SMTP     |
 
 ## Observability
 

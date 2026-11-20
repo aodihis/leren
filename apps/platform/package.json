@@ -10,10 +10,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^7.0.7",
+    "@leren/api": "workspace:*",
     "@leren/ui": "workspace:*",
     "@tanstack/react-router": "^1.170.46",
+    "better-auth": "^1.7.26",
+    "hono": "^4.13.19",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "react-hook-form": "^7.92.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.5",

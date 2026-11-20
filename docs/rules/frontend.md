@@ -18,6 +18,11 @@ src/
 - Generic, app-agnostic UI goes in `packages/ui`.
 - Do not edit `src/routeTree.gen.ts`. It is generated and git-ignored.
 
+## Calling the API
+
+- Call the API with the typed client in `src/modules/api/api-client.ts`. Do not write `fetch` calls or redefine request and response types the API already declares. Derive types with `InferRequestType` and `InferResponseType` from `hono/client`.
+- Do not define zod schemas for data the API validates. Show the API's `fieldErrors` next to the fields with `setError`. See [0017](../decision/0017-hono-rpc-for-api-types.md).
+
 ## Styling
 
 - Use Tailwind utility classes. Avoid custom CSS unless Tailwind cannot express it.

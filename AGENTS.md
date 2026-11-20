@@ -30,7 +30,7 @@ Constraints for working in this repository. Details live in `docs/`. This file d
 - Follow the comment and documentation rules below.
 - Do not edit generated files, such as `apps/platform/src/routeTree.gen.ts`.
 - Do not add a dependency without a reason the user can see. Prefer what the workspace already uses.
-- Do not import across apps. Share code through `packages/*`.
+- Do not import across apps. Share code through `packages/*`. The only exception is the type-only `@leren/api/client` entry point (decision 0017).
 
 ## Comments and documentation
 

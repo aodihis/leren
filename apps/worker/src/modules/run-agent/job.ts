@@ -1,4 +1,5 @@
 import { defineJob } from "../../job";
+import { logger } from "../../logger";
 import { runAgentPayloadSchema } from "./schema";
 import { createAgentRegistry, runAgent } from "./service";
 
@@ -11,6 +12,8 @@ export const runAgentJob = defineJob({
   async handler(payload, context) {
     const result = await runAgent(agentRegistry, payload, { signal: context.signal });
 
-    console.log(`[run-agent] ${payload.agentId} finished`, result.output);
+    logger
+      .child({ job: "run-agent", jobId: context.jobId })
+      .info("Agent finished", { agentId: payload.agentId, output: result.output });
   },
 });

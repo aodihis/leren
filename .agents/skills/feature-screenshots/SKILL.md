@@ -19,7 +19,7 @@ Do not capture screenshots for a change that has no visible effect. Say that no 
 ## 1) Run the app
 
 1. Check `docs/rules/` and the project scripts for the current way to start the app. At the time of writing, `pnpm dev` in `apps/platform` starts the Vite dev server.
-2. If the feature needs the API, worker, Postgres or Qdrant, start them first as `docker-compose.yml` and the docs describe. Do not capture a screen that shows an error because a dependency was not running.
+2. If the feature needs the API, worker, Postgres or Qdrant, start them first as `docker-compose.dev.yml` and the docs describe. Do not capture a screen that shows an error because a dependency was not running.
 3. Seed or create only the data the feature needs. Use realistic, neutral sample content. Never show real user data, secrets, tokens or `.env` values in a screenshot.
 
 If the app cannot be started, say so and do not substitute a mock-up.
