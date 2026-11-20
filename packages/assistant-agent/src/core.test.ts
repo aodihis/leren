@@ -35,6 +35,7 @@ describe("runAgent", () => {
   it("returns the model answer and connects with the allowed tools", async () => {
     const answer = await collectText(
       runAgent({
+        instructions: "Be brief.",
         prompt: "Hi",
         model: createFakeModel([{ text: "Hello" }]),
         observer: createNoopObserver(),
@@ -51,6 +52,7 @@ describe("runAgent", () => {
     const types: string[] = [];
 
     for await (const event of runAgent({
+      instructions: "Be brief.",
       prompt: "Hi",
       model: createFakeModel([]),
       observer: createNoopObserver(),

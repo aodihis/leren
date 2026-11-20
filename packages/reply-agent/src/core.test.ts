@@ -22,6 +22,7 @@ describe("runAgent", () => {
 
   it("returns the model answer and connects with the allowed tools", async () => {
     const answer = await runAgent({
+      instructions: "Be brief.",
       prompt: "Email: when is the deadline?",
       model: createFakeModel([{ text: "Hello" }]),
       observer: createNoopObserver(),
@@ -36,6 +37,7 @@ describe("runAgent", () => {
   it("closes the connection when the run fails", async () => {
     await expect(
       runAgent({
+        instructions: "Be brief.",
         prompt: "Email: when is the deadline?",
         model: createFakeModel([]),
         observer: createNoopObserver(),
