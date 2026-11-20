@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const MAX_EXAMPLES = 50;
 const MAX_CONTACTS = 20;
+const CONTACT_PATTERN = /^([^\s,@]+@[^\s,@]+\.[^\s,@]+|@?[\w.-]+)$/;
 
 /**
  * The body of a request that creates or replaces a knowledge item. The bounds are ISO 8601 instants
@@ -18,7 +19,9 @@ export const knowledgeItemSchema = z
     restrictions: z.string().trim().max(2000),
     validFrom: z.iso.datetime({ offset: true }).nullable(),
     validUntil: z.iso.datetime({ offset: true }).nullable(),
-    contactIds: z.array(z.uuid()).max(MAX_CONTACTS),
+    contacts: z
+      .array(z.string().trim().regex(CONTACT_PATTERN, "Enter an email address or a handle"))
+      .max(MAX_CONTACTS),
   })
   .refine(
     (item) =>

@@ -17,8 +17,7 @@ import { createItem, deleteItem, getItem, listItems, transitionItem, updateItem 
  * Mounts the routes of the signed-in user's knowledge items under `/api/knowledge-items`. Every
  * route requires a session and every query is scoped by the session's user, so an item of another
  * user is reported as not found. The approval status changes only through
- * `POST /api/knowledge-items/:id/:action`, so a body sent to create or replace an item cannot
- * approve it.
+ * `POST /api/knowledge-items/:id/:action` and is never read from a request body.
  */
 export function createKnowledgeItemsRouter(auth: Auth, db: Db) {
   return new Hono<{ Variables: AuthVariables }>()

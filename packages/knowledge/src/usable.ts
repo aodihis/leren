@@ -1,6 +1,5 @@
 /**
- * The approval state of a knowledge item. Only a person changes it, never an agent (decision
- * 0020).
+ * The approval state of a knowledge item. Only a person changes it, never an agent (decision 0020).
  */
 export type KnowledgeApproval = "draft" | "approved" | "archived";
 
@@ -16,8 +15,8 @@ export interface KnowledgeUsability {
 
 /**
  * Reports whether the assistant may use a knowledge item at `now`. An item is usable only when it
- * is approved and `now` is inside its validity window, and both bounds are inclusive. Indexing and
- * retrieval apply this same rule, so an item that is not usable never reaches a reply.
+ * is approved and `now` is inside its validity window, and both bounds are inclusive. Code that
+ * selects knowledge for a reply calls this function, so the rule is defined in one place.
  */
 export function isKnowledgeUsable(item: KnowledgeUsability, now: Date): boolean {
   if (item.approvalStatus !== "approved") {

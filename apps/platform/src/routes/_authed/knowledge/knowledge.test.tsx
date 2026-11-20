@@ -12,13 +12,11 @@ const itemsApi = vi.hoisted(() => ({
 
 const rulesApi = vi.hoisted(() => ({ $get: vi.fn() }));
 
-const contactsApi = vi.hoisted(() => ({ $get: vi.fn() }));
-
 vi.mock("../../../modules/auth/auth-client", () => ({ authClient }));
 
 vi.mock("../../../modules/api/api-client", () => ({
   api: {
-    api: { "knowledge-items": itemsApi, "auto-reply-rules": rulesApi, contacts: contactsApi },
+    api: { "knowledge-items": itemsApi, "auto-reply-rules": rulesApi },
   },
 }));
 
@@ -35,13 +33,6 @@ const rule = {
   id: "22222222-2222-4222-8222-222222222222",
   name: "Holiday",
   timezone: "Asia/Jakarta",
-};
-
-const dewi = {
-  id: "33333333-3333-4333-8333-333333333333",
-  name: "Dewi",
-  email: "dewi@example.com",
-  role: "",
 };
 
 const draft = {
@@ -90,7 +81,6 @@ describe("knowledge routes", () => {
     });
     itemsApi.$get.mockImplementation(() => jsonResponse({ items: [] }, 200));
     rulesApi.$get.mockImplementation(() => jsonResponse({ rules: [rule] }, 200));
-    contactsApi.$get.mockImplementation(() => jsonResponse({ contacts: [dewi] }, 200));
   });
 
   describe("list", () => {
@@ -176,7 +166,7 @@ describe("knowledge routes", () => {
   });
 
   describe("new item", () => {
-    it("sends the entered item with the chosen contact and returns to the list", async () => {
+    it("sends the entered item with its contacts and returns to the list", async () => {
       itemsApi.$post.mockImplementation(() => jsonResponse({ item: draft }, 201));
       const user = userEvent.setup();
       const router = await renderApp("/knowledge/new");
@@ -184,7 +174,7 @@ describe("knowledge routes", () => {
       await user.type(await screen.findByLabelText("Topic"), "Project status");
       await user.type(screen.getByLabelText("Examples"), "How is it going?{Enter}When?");
       await user.type(screen.getByLabelText("Response"), "On track.");
-      await user.click(screen.getByRole("checkbox", { name: /Dewi/ }));
+      await user.type(screen.getByLabelText("Contacts"), "dewi@example.com, @Don");
       await user.click(screen.getByRole("button", { name: "Create item" }));
 
       expect(await screen.findByText(/You have no knowledge yet/)).toBeTruthy();
@@ -198,7 +188,7 @@ describe("knowledge routes", () => {
           restrictions: "",
           validFrom: null,
           validUntil: null,
-          contactIds: [dewi.id],
+          contacts: ["dewi@example.com", "@Don"],
         },
       });
     });

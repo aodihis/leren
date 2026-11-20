@@ -7,7 +7,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Checkbox,
   Form,
   FormControl,
   FormDescription,
@@ -26,11 +25,11 @@ import { useForm, useWatch } from "react-hook-form";
 import { api } from "../../api/api-client";
 import type { Rule } from "../../auto-reply-rules/types";
 import { getNewKnowledgeValues, toFormValues, toRequestBody } from "../form-values";
-import type { Contact, KnowledgeFormValues, KnowledgeItem } from "../types";
+import type { KnowledgeFormValues, KnowledgeItem } from "../types";
 
 /**
  * The API reports a failure under the name of the request field. Each of those names is also the
- * name of a form field, except the contacts, which are shown under their checkboxes.
+ * name of a form field.
  */
 const ERROR_FIELDS = [
   "ruleId",
@@ -39,22 +38,21 @@ const ERROR_FIELDS = [
   "restrictions",
   "validFrom",
   "validUntil",
-  "contactIds",
+  "contacts",
 ] as const;
 
 interface KnowledgeFormProps {
   item?: KnowledgeItem;
   rules: Rule[];
-  contacts: Contact[];
 }
 
 /**
  * Creates a knowledge item, or replaces `item` when it is given, and returns to the list after a
  * successful save. The validity bounds are read in the timezone of the selected rule. The API
- * validates the request again and its field errors are shown next to the fields. A user without a
- * rule is asked to create one first, because every item belongs to a rule.
+ * validates the request again and its field errors are shown next to the fields. Every item belongs
+ * to a rule, so the form asks for a rule to exist first.
  */
-export function KnowledgeForm({ item, rules, contacts }: KnowledgeFormProps) {
+export function KnowledgeForm({ item, rules }: KnowledgeFormProps) {
   const navigate = useNavigate();
   const itemRule = rules.find((rule) => rule.id === item?.ruleId);
 
@@ -214,6 +212,23 @@ export function KnowledgeForm({ item, rules, contacts }: KnowledgeFormProps) {
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="contacts"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contacts</FormLabel>
+                  <FormControl>
+                    <Input placeholder="dewi@example.com, @Don" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Who a reply may point to for this topic. Separate email addresses or handles
+                    with commas.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
         <Card>
@@ -247,50 +262,6 @@ export function KnowledgeForm({ item, rules, contacts }: KnowledgeFormProps) {
                   <FormControl>
                     <Input type="datetime-local" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Contacts</CardTitle>
-            <CardDescription>
-              People a reply may point to for this topic.{" "}
-              <Link to="/contacts" className="underline">
-                Manage contacts
-              </Link>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="contactIds"
-              render={({ field }) => (
-                <FormItem>
-                  {contacts.length === 0 && (
-                    <p className="text-sm text-muted-foreground">You have no contacts yet.</p>
-                  )}
-                  {contacts.map((contact) => (
-                    <FormItem key={contact.id} className="flex items-center gap-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value.includes(contact.id)}
-                          onCheckedChange={(checked) =>
-                            field.onChange(
-                              checked
-                                ? [...field.value, contact.id]
-                                : field.value.filter((id) => id !== contact.id),
-                            )
-                          }
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal">
-                        {contact.name} ({contact.email})
-                      </FormLabel>
-                    </FormItem>
-                  ))}
                   <FormMessage />
                 </FormItem>
               )}

@@ -76,7 +76,7 @@ Status: Done. Branch: `feat/05-auto-reply-rules`. PR: [#10](https://github.com/a
 
 Status: In progress. Branch: `feat/06-knowledge`.
 
-- [x] Add `knowledge_items` (topic, response, examples, contacts, restrictions, validity, approval `draft|approved|archived`) and `contacts`.
+- [x] Add `knowledge_items` (topic, response, examples, contacts, restrictions, validity, approval `draft|approved|archived`). Contacts are a list of text on the item (ADR 0020).
 - [x] Add the API modules.
 - [x] Add the platform screens to create, edit, approve and archive.
 - [x] Test that only approved and currently valid items are usable.
@@ -125,6 +125,16 @@ Status: Todo. Branch: `feat/11-routing-rules`.
 - [ ] Add the schema: conditions, action `answer|delegate|ignore|escalate`, priority, validity, designated contact. Automatic sending is not available.
 - [ ] Add a deterministic evaluator with unit tests.
 - [ ] Add the API module, the editor and templates for the five PRD example rules.
+
+### F12a Channel accounts
+
+Status: Todo. Branch: `feat/12a-channel-accounts`.
+
+- [ ] Add an ADR for the first OAuth provider, its scopes and the token encryption key.
+- [ ] Add the `channel_accounts` table and a nullable `channel_account_id` on `email_reply_conditions` (ADR 0021).
+- [ ] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
+- [ ] Add the platform screen to connect and disconnect the account, and let a rule choose it.
+- [ ] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.
 
 ### F12 Email ingestion and gate
 
@@ -180,7 +190,7 @@ Status: Todo. Branch: `feat/17-hardening-docs`.
 
 ## Order
 
-F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F11 → F12 → F13 → F14 → F15 → F16 → F17.
+F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F11 → F12a → F12 → F13 → F14 → F15 → F16 → F17.
 
 F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delayed.
 
@@ -200,6 +210,7 @@ F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delaye
 | F09     | MCP server and sessions      | Todo   |                                                                                              |
 | F10     | Assistant Agent              | Todo   |                                                                                              |
 | F11     | Routing rules                | Todo   |                                                                                              |
+| F12a    | Channel accounts             | Todo   |                                                                                              |
 | F12     | Email ingestion and gate     | Todo   |                                                                                              |
 | F13     | Reply Agent and pipeline     | Todo   |                                                                                              |
 | F14     | Approval and sending         | Todo   |                                                                                              |

@@ -7,12 +7,10 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../../app";
 import { createAuth } from "../auth/service";
-import type { ContactInput } from "../contacts/schema";
 import type { KnowledgeItemInput } from "./schema";
 
 const ORIGIN = "http://localhost:5173";
 const ITEMS = "/api/knowledge-items";
-const CONTACTS = "/api/contacts";
 const MISSING_ID = "00000000-0000-4000-8000-000000000000";
 const PAST = "2000-01-01T00:00:00.000Z";
 const FUTURE = "2999-01-01T00:00:00.000Z";
@@ -60,12 +58,12 @@ function itemBody(ruleId: string, overrides: Partial<KnowledgeItemInput> = {}) {
     restrictions: "Do not share the budget.",
     validFrom: null,
     validUntil: null,
-    contactIds: [],
+    contacts: [],
     ...overrides,
   };
 }
 
-describe("knowledge items and contacts API", () => {
+describe("knowledge items API", () => {
   let database: TestDatabase;
   let sender: InMemoryEmailSender;
   let app: ReturnType<typeof createApp>;
@@ -103,19 +101,6 @@ describe("knowledge items and contacts API", () => {
     return rule.id as string;
   };
 
-  const createContact = async (cookie: string, contact: Partial<ContactInput> = {}) => {
-    const response = await call(cookie, "POST", CONTACTS, {
-      name: "Dewi",
-      email: "dewi@example.com",
-      role: "Project lead",
-      ...contact,
-    });
-
-    const body = await response.json();
-
-    return body.contact.id as string;
-  };
-
   const createItem = async (
     cookie: string,
     ruleId: string,
@@ -124,7 +109,7 @@ describe("knowledge items and contacts API", () => {
     const response = await call(cookie, "POST", ITEMS, itemBody(ruleId, overrides));
     const { item } = await response.json();
 
-    return item as { id: string; approvalStatus: string; usable: boolean };
+    return item as { id: string; approvalStatus: string; usable: boolean; contacts: string[] };
   };
 
   const act = (cookie: string, id: string, action: string) =>
@@ -160,10 +145,6 @@ describe("knowledge items and contacts API", () => {
       ["PUT", `${ITEMS}/${MISSING_ID}`],
       ["POST", `${ITEMS}/${MISSING_ID}/approve`],
       ["DELETE", `${ITEMS}/${MISSING_ID}`],
-      ["GET", CONTACTS],
-      ["POST", CONTACTS],
-      ["PUT", `${CONTACTS}/${MISSING_ID}`],
-      ["DELETE", `${CONTACTS}/${MISSING_ID}`],
     ]) {
       const response = await app.request(path, { method });
 
@@ -172,31 +153,26 @@ describe("knowledge items and contacts API", () => {
   });
 
   describe("knowledge items", () => {
-    it("creates a draft item with its contacts that is not usable yet", async () => {
+    it("creates a draft item that is not usable yet", async () => {
       const cookie = await signIn("author@example.com");
       const ruleId = await createRule(cookie);
-      const contactId = await createContact(cookie);
 
       const response = await call(
         cookie,
         "POST",
         ITEMS,
-        itemBody(ruleId, { contactIds: [contactId] }),
+        itemBody(ruleId, { contacts: ["dewi@example.com", "@Don"] }),
       );
 
       expect(response.status).toBe(201);
-      const { contactIds: _contactIds, ...expectedFields } = itemBody(ruleId);
-
       expect(await response.json()).toEqual({
         item: {
-          ...expectedFields,
+          ...itemBody(ruleId),
           id: expect.any(String),
+          contacts: ["dewi@example.com", "@Don"],
           approvalStatus: "draft",
           approvedAt: null,
           usable: false,
-          contacts: [
-            { id: contactId, name: "Dewi", email: "dewi@example.com", role: "Project lead" },
-          ],
         },
       });
     });
@@ -231,26 +207,38 @@ describe("knowledge items and contacts API", () => {
       ]);
     });
 
-    it("rejects a rule or a contact that belongs to another user", async () => {
+    it("rejects a rule that belongs to another user", async () => {
       const owner = await signIn("owner-refs@example.com");
       const other = await signIn("other-refs@example.com");
-      const ownersRule = await createRule(owner);
       const othersRule = await createRule(other);
-      const othersContact = await createContact(other);
 
-      const foreignRule = await call(owner, "POST", ITEMS, itemBody(othersRule));
+      const create = await call(owner, "POST", ITEMS, itemBody(othersRule));
+      const own = await createItem(owner, await createRule(owner));
+      const move = await call(owner, "PUT", `${ITEMS}/${own.id}`, itemBody(othersRule));
 
-      const foreignContact = await call(
-        owner,
+      expect(create.status).toBe(400);
+      expect((await create.json()).fieldErrors).toHaveProperty("ruleId");
+      expect(move.status).toBe(400);
+    });
+
+    it("stores the contacts without repeats and rejects an entry that is neither an address nor a handle", async () => {
+      const cookie = await signIn("contacts@example.com");
+      const ruleId = await createRule(cookie);
+
+      const item = await createItem(cookie, ruleId, {
+        contacts: ["a@example.com", "A@Example.com", "@Lin", "Don"],
+      });
+
+      const invalid = await call(
+        cookie,
         "POST",
         ITEMS,
-        itemBody(ownersRule, { contactIds: [othersContact] }),
+        itemBody(ruleId, { contacts: ["two words", "x@"] }),
       );
 
-      expect(foreignRule.status).toBe(400);
-      expect((await foreignRule.json()).fieldErrors).toHaveProperty("ruleId");
-      expect(foreignContact.status).toBe(400);
-      expect((await foreignContact.json()).fieldErrors).toHaveProperty("contactIds");
+      expect(item.contacts).toEqual(["a@example.com", "@Lin", "Don"]);
+      expect(invalid.status).toBe(400);
+      expect((await invalid.json()).fieldErrors).toHaveProperty("contacts");
     });
 
     it("approves a draft, archives it and returns it to draft on restore", async () => {
@@ -317,20 +305,16 @@ describe("knowledge items and contacts API", () => {
     it("replaces the contacts of an item on update", async () => {
       const cookie = await signIn("edit-contacts@example.com");
       const ruleId = await createRule(cookie);
-      const first = await createContact(cookie, { email: "first@example.com", name: "First" });
-      const second = await createContact(cookie, { email: "second@example.com", name: "Second" });
-      const item = await createItem(cookie, ruleId, { contactIds: [first] });
+      const item = await createItem(cookie, ruleId, { contacts: ["first@example.com"] });
 
       const response = await call(
         cookie,
         "PUT",
         `${ITEMS}/${item.id}`,
-        itemBody(ruleId, { contactIds: [second] }),
+        itemBody(ruleId, { contacts: ["second@example.com", "@Don"] }),
       );
 
-      expect((await response.json()).item.contacts.map((c: { id: string }) => c.id)).toEqual([
-        second,
-      ]);
+      expect((await response.json()).item.contacts).toEqual(["second@example.com", "@Don"]);
     });
 
     it("lists only the items that are approved and inside their validity window when asked", async () => {
@@ -387,18 +371,6 @@ describe("knowledge items and contacts API", () => {
       expect(fetched.status).toBe(404);
     });
 
-    it("keeps an item when its contact is deleted", async () => {
-      const cookie = await signIn("delete-contact@example.com");
-      const contactId = await createContact(cookie);
-      const item = await createItem(cookie, await createRule(cookie), { contactIds: [contactId] });
-
-      await call(cookie, "DELETE", `${CONTACTS}/${contactId}`);
-
-      const fetched = await (await call(cookie, "GET", `${ITEMS}/${item.id}`)).json();
-
-      expect(fetched.item.contacts).toEqual([]);
-    });
-
     it("hides the items of one user from another user", async () => {
       const owner = await signIn("item-owner@example.com");
       const intruder = await signIn("item-intruder@example.com");
@@ -417,84 +389,6 @@ describe("knowledge items and contacts API", () => {
         404, 404, 404, 404,
       ]);
       expect((await stillThere.json()).item.approvalStatus).toBe("draft");
-    });
-  });
-
-  describe("contacts", () => {
-    it("creates, lists, replaces and deletes a contact", async () => {
-      const cookie = await signIn("contacts@example.com");
-      const id = await createContact(cookie, { email: "Mixed@Example.com" });
-
-      const replaced = await call(cookie, "PUT", `${CONTACTS}/${id}`, {
-        name: "Dewi A.",
-        email: "dewi.a@example.com",
-        role: "",
-      });
-
-      const list = await (await call(cookie, "GET", CONTACTS)).json();
-      const deleted = await call(cookie, "DELETE", `${CONTACTS}/${id}`);
-
-      expect(replaced.status).toBe(200);
-      expect(list.contacts).toEqual([
-        { id, name: "Dewi A.", email: "dewi.a@example.com", role: "" },
-      ]);
-      expect(deleted.status).toBe(204);
-    });
-
-    it("stores the address in lower case and rejects a duplicate address", async () => {
-      const cookie = await signIn("duplicates@example.com");
-
-      await createContact(cookie, { email: "Same@Example.com" });
-
-      const duplicate = await call(cookie, "POST", CONTACTS, {
-        name: "Again",
-        email: "same@example.com",
-        role: "",
-      });
-
-      const list = await (await call(cookie, "GET", CONTACTS)).json();
-
-      expect(duplicate.status).toBe(400);
-      expect((await duplicate.json()).fieldErrors).toHaveProperty("email");
-      expect(list.contacts.map((contact: { email: string }) => contact.email)).toEqual([
-        "same@example.com",
-      ]);
-    });
-
-    it("allows two users to have a contact with the same address", async () => {
-      const first = await signIn("shared-a@example.com");
-      const second = await signIn("shared-b@example.com");
-
-      await createContact(first, { email: "shared@example.com" });
-
-      const response = await call(second, "POST", CONTACTS, {
-        name: "Shared",
-        email: "shared@example.com",
-        role: "",
-      });
-
-      expect(response.status).toBe(201);
-    });
-
-    it("hides the contacts of one user from another user", async () => {
-      const owner = await signIn("contact-owner@example.com");
-      const intruder = await signIn("contact-intruder@example.com");
-      const id = await createContact(owner);
-
-      const list = await (await call(intruder, "GET", CONTACTS)).json();
-
-      const replace = await call(intruder, "PUT", `${CONTACTS}/${id}`, {
-        name: "Mallory",
-        email: "mallory@example.com",
-        role: "",
-      });
-
-      const remove = await call(intruder, "DELETE", `${CONTACTS}/${id}`);
-      const stillThere = await (await call(owner, "GET", CONTACTS)).json();
-
-      expect(list.contacts).toEqual([]);
-      expect([replace.status, remove.status]).toEqual([404, 404]);
-      expect(stillThere.contacts).toHaveLength(1);
     });
   });
 });
