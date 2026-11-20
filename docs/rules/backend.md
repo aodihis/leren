@@ -16,7 +16,8 @@ Each feature lives in `apps/api/src/modules/:module-name/`:
 - Keep route handlers thin: parse, call the service, return the response.
 - Services take plain arguments and return plain values. They do not touch Hono's context.
 - Do not import another module's `router.ts` or `service.ts` internals. Move shared code to a package.
-- Mount each module's router in `src/index.ts`.
+- Mount each module's router in `createApp` in `src/app.ts`.
+- Protect a route that serves user data with `requireUser` from the `auth` module and scope every query by `c.get("userId")`. See [0013](../decision/0013-better-auth-email-code.md).
 
 ## Worker modules
 

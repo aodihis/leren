@@ -46,7 +46,7 @@ Status: Done. Branch: `feat/02-anvia-foundation`. PRs: [#4](https://github.com/a
 
 Status: Done. Branch: `feat/03-rabbitmq-queue`. PR: [#6](https://github.com/aodihis/leren/pull/6).
 
-- [x] Add RabbitMQ to `docker-compose.yml` and `.env.example`.
+- [x] Add RabbitMQ to `docker-compose.dev.yml` and `.env.example`.
 - [x] Add `packages/queue` with publish, consume, retry with backoff, dead-letter queues and an idempotency helper.
 - [x] Rebuild the `apps/worker` consumers on it, keeping `defineJob`.
 - [x] Update the "Current limitations" section of the overview.
@@ -54,12 +54,13 @@ Status: Done. Branch: `feat/03-rabbitmq-queue`. PR: [#6](https://github.com/aodi
 
 ### F04 Authentication and user isolation
 
-Status: Todo. Branch: `feat/04-auth`.
+Status: In progress. Branch: `feat/04-auth`.
 
-- [ ] Extend `users` and add sessions.
-- [ ] Add the API `auth` module and middleware that sets `userId`.
-- [ ] Add the platform login page and an authenticated layout.
-- [ ] Test that user A cannot read user B's data.
+- [x] Extend `users` and add sessions, accounts and verifications.
+- [x] Add the API `auth` module and middleware that sets `userId`. Sign-in and registration use an emailed one-time code with Better Auth (ADR 0013).
+- [x] Add `packages/email` with an SMTP sender and Mailpit in `docker-compose.dev.yml` (ADR 0014).
+- [x] Add the platform login page, profile page and authenticated layout.
+- [x] Test that user A cannot read user B's data. Only the profile exists so far. Extend the test when a feature adds user-owned data.
 
 ### F05 Auto-reply rules
 

@@ -13,13 +13,17 @@ For how the system fits together, read the [high-level design](docs/overview/REA
 
 ```sh
 pnpm install
-docker compose up -d
+pnpm services:up
 pnpm --filter @leren/api dev
 pnpm --filter @leren/platform dev
 pnpm --filter @leren/worker dev
 ```
 
-Copy `.env.example` to `.env` first. The worker needs `RABBITMQ_URL`.
+Copy `.env.example` to `.env` first and set `BETTER_AUTH_SECRET`. The worker needs `RABBITMQ_URL`.
+
+`pnpm services:up` starts the local services from `docker-compose.dev.yml`, which is for development only: PostgreSQL, Qdrant, RabbitMQ and Mailpit. Mailpit catches every email the API sends. Open its inbox at http://localhost:58025 to read sign-in codes.
+
+Apply the database migrations with `pnpm --filter @leren/db db:migrate`.
 
 ## Commands
 
