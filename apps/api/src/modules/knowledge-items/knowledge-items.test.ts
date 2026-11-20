@@ -67,6 +67,7 @@ describe("knowledge items API", () => {
   let database: TestDatabase;
   let sender: InMemoryEmailSender;
   let app: ReturnType<typeof createApp>;
+  const requestKnowledgeIndex = vi.fn<(itemId: string) => Promise<void>>();
 
   const post = (path: string, body: unknown) =>
     app.request(path, {
@@ -130,7 +131,7 @@ describe("knowledge items API", () => {
       trustedOrigins: [ORIGIN],
     });
 
-    app = createApp({ auth, db: database.db, logger });
+    app = createApp({ auth, db: database.db, logger, requestKnowledgeIndex });
   });
 
   afterAll(async () => {
@@ -369,6 +370,48 @@ describe("knowledge items API", () => {
 
       expect(deleted.status).toBe(204);
       expect(fetched.status).toBe(404);
+    });
+
+    it("requests indexing after each written change and not after a rejected one", async () => {
+      const cookie = await signIn("index-requests@example.com");
+      const ruleId = await createRule(cookie);
+      const item = await createItem(cookie, ruleId);
+
+      expect(requestKnowledgeIndex).toHaveBeenLastCalledWith(item.id);
+
+      requestKnowledgeIndex.mockClear();
+
+      await call(cookie, "PUT", `${ITEMS}/${item.id}`, itemBody(ruleId, { topic: "Changed" }));
+      await act(cookie, item.id, "approve");
+      await act(cookie, item.id, "archive");
+
+      expect(requestKnowledgeIndex.mock.calls).toEqual([[item.id], [item.id], [item.id]]);
+
+      requestKnowledgeIndex.mockClear();
+
+      await act(cookie, item.id, "approve");
+      await call(cookie, "POST", ITEMS, itemBody(MISSING_ID));
+      await call(cookie, "PUT", `${ITEMS}/${MISSING_ID}`, itemBody(ruleId));
+      await call(cookie, "DELETE", `${ITEMS}/${MISSING_ID}`);
+
+      expect(requestKnowledgeIndex).not.toHaveBeenCalled();
+
+      await call(cookie, "DELETE", `${ITEMS}/${item.id}`);
+
+      expect(requestKnowledgeIndex).toHaveBeenCalledExactlyOnceWith(item.id);
+    });
+
+    it("does not request indexing for the items of another user", async () => {
+      const owner = await signIn("index-owner@example.com");
+      const intruder = await signIn("index-intruder@example.com");
+      const item = await createItem(owner, await createRule(owner));
+
+      requestKnowledgeIndex.mockClear();
+
+      await act(intruder, item.id, "approve");
+      await call(intruder, "DELETE", `${ITEMS}/${item.id}`);
+
+      expect(requestKnowledgeIndex).not.toHaveBeenCalled();
     });
 
     it("hides the items of one user from another user", async () => {

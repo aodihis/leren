@@ -5,6 +5,7 @@ const configSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters"),
   API_URL: z.url().default("http://localhost:3000"),
   PLATFORM_URL: z.url().default("http://localhost:5173"),
+  RABBITMQ_URL: z.string().min(1),
   SMTP_URL: z.string().min(1),
   EMAIL_FROM: z.string().min(1).default("Leren <no-reply@leren.local>"),
   PORT: z.coerce.number().int().positive().default(3000),

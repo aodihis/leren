@@ -28,7 +28,12 @@ function createTestApp() {
     child: vi.fn().mockReturnValue(requestLogger),
   };
 
-  const app = createApp({ auth: {} as Auth, db: {} as Db, logger });
+  const app = createApp({
+    auth: {} as Auth,
+    db: {} as Db,
+    logger,
+    requestKnowledgeIndex: vi.fn(),
+  });
 
   return { app, logger, requestLogger };
 }

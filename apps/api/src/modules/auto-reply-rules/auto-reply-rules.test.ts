@@ -99,7 +99,7 @@ describe("auto-reply rules API", () => {
       trustedOrigins: [ORIGIN],
     });
 
-    app = createApp({ auth, db: database.db, logger });
+    app = createApp({ auth, db: database.db, logger, requestKnowledgeIndex: vi.fn() });
   });
 
   afterAll(async () => {
