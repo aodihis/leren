@@ -68,6 +68,9 @@ importers:
       '@leren/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@leren/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
       better-auth:
         specifier: ^1.7.26
         version: 1.7.26(@opentelemetry/api@1.10.0)(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.1.1)
@@ -163,12 +166,27 @@ importers:
 
   apps/worker:
     dependencies:
+      '@leren/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@leren/embedder':
+        specifier: workspace:*
+        version: link:../../packages/embedder
+      '@leren/knowledge':
+        specifier: workspace:*
+        version: link:../../packages/knowledge
       '@leren/logger':
         specifier: workspace:*
         version: link:../../packages/logger
       '@leren/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@leren/vector-db':
+        specifier: workspace:*
+        version: link:../../packages/vector-db
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -270,6 +288,15 @@ importers:
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.2
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/embedder:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

@@ -9,8 +9,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@leren/db": "workspace:*",
+    "@leren/embedder": "workspace:*",
+    "@leren/knowledge": "workspace:*",
     "@leren/logger": "workspace:*",
     "@leren/queue": "workspace:*",
+    "@leren/vector-db": "workspace:*",
+    "drizzle-orm": "^0.45.4",
     "zod": "^4.6.7"
   },
   "devDependencies": {
