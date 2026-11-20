@@ -12,6 +12,7 @@
 | `pnpm test`            | Run the unit tests         |
 | `pnpm test:watch`      | Run the unit tests on save |
 | `pnpm test:coverage`   | Run tests with coverage    |
+| `pnpm test:e2e`        | Run the end-to-end tests   |
 
 Lint and formatting must pass before committing. `pnpm check` runs lint, format check, typecheck and tests in one command.
 
@@ -32,6 +33,8 @@ Custom rules live in `tooling/oxlint/` and are enabled in `tooling/oxlint/base.j
 - Use Vitest. Configuration lives in `vitest.config.ts` at the root. See [0009](../decision/0009-vitest-for-unit-tests.md).
 - Put a test next to the code as `name.test.ts` or `name.test.tsx`.
 - Tests that need PostgreSQL use `createTestDatabase` from `@leren/db/testing`, which creates a migrated database per call. Start the services with `pnpm services:up` first. Tests that need a vector store use `createInMemoryVectorStore` from `@leren/vector-db`. Code that consumes queues is tested with `createInMemoryQueue` from `@leren/queue/testing`. The RabbitMQ client itself is tested against the broker from `pnpm services:up`, using the same contract tests as the in-memory queue.
+- Integration tests, which use real PostgreSQL, a broker or an in-process app, are Vitest tests next to the code like unit tests. End-to-end tests drive the real platform in a browser with Playwright and live in `tests/e2e/specs/` as `*.spec.ts`. See [0016](../decision/0016-playwright-for-e2e-tests.md).
+- Run the end-to-end tests with `pnpm test:e2e` after `pnpm services:up`. Run `pnpm --filter @leren/e2e install:browsers` once to download Chromium. The tests start their own API and platform on ports 13100 and 15174 against the `leren_e2e` database, and read sign-in codes from Mailpit. Vitest does not collect them and they do not count toward coverage.
 - Coverage must stay at or above 80% for lines, branches, functions and statements. `packages/agents`, `packages/assistant-agent` and `packages/reply-agent` are excluded because agents are evaluated with evals. Do not lower a threshold to make a change pass.
 
 ## Commits

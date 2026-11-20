@@ -7,3 +7,5 @@ dist/
 .DS_Store
 apps/platform/src/routeTree.gen.ts
 coverage/
+test-results/
+playwright-report/

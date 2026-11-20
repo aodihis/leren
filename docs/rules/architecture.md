@@ -5,6 +5,7 @@
 ```
 apps/       deployable applications (api, platform, worker)
 packages/   shared libraries (agents, ui, observability, db)
+tests/      end-to-end tests (Playwright)
 tooling/    development tooling (oxlint rules)
 docs/       decisions and rules
 ```
