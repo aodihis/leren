@@ -83,13 +83,13 @@ Status: In progress. Branch: `feat/06-knowledge`.
 
 ### F07 Indexing pipeline
 
-Status: Todo. Branch: `feat/07-indexing`.
+Status: In progress. Branch: `feat/07-indexing`.
 
-- [ ] Add an `Embedder` interface, an ADR for the provider and a deterministic fake.
-- [ ] Index approved knowledge in Qdrant with knowledge id, user id, rule id, type and validity in the payload.
-- [ ] Add a `knowledge.index` consumer for create, edit, archive and expiry.
-- [ ] Add a drift check between PostgreSQL and Qdrant.
-- [ ] Test that every vector references an existing PostgreSQL row.
+- [x] Add an `Embedder` interface, an ADR for the provider (ADR 0024) and a deterministic fake.
+- [x] Index approved knowledge in Qdrant with knowledge id, user id, rule id, type and validity in the payload.
+- [x] Add a `knowledge.index` consumer for create, edit, archive and expiry.
+- [x] Add a drift check between PostgreSQL and Qdrant.
+- [x] Test that every vector references an existing PostgreSQL row.
 
 ### F08 Retrieval
 

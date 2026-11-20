@@ -23,6 +23,7 @@ Applies to everything in `packages/`.
 | `@leren/observability`   | Logging and tracing         |
 | `@leren/db`              | Database client and schema  |
 | `@leren/vector-db`       | Vector store abstraction    |
+| `@leren/embedder`        | Text embedding provider     |
 | `@leren/queue`           | RabbitMQ queues and retries |
 | `@leren/logger`          | Library-agnostic logging    |
 | `@leren/email`           | Email sending over SMTP     |
