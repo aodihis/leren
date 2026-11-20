@@ -41,6 +41,56 @@ export interface HarnessConfig {
   readonly pluginsDir: string;
 }
 
+/** The tasks whose model is chosen by an environment variable. */
+export type ModelTask = "assistant" | "reply";
+
+/**
+ * The environment variable that holds the harness model key for each task. An unset or empty
+ * variable selects `defaultModel`.
+ */
+export const MODEL_TASK_ENV: Readonly<Record<ModelTask, string>> = {
+  assistant: "ASSISTANT_MODEL",
+  reply: "REPLY_MODEL",
+};
+
+/** A model chosen for a task, with the key it has in the config. */
+export interface ResolvedModel {
+  readonly key: string;
+  readonly definition: ModelDefinition;
+  readonly apiKey: string;
+}
+
+/**
+ * Finds the model a task runs on and reads its API key.
+ *
+ * The task's environment variable names a key of `config.models`. Throws an error that lists the
+ * available keys when the key is unknown, and an error that names the variable when the model's
+ * API key is not set, so a misconfigured process fails before the first request.
+ */
+export function resolveTaskModel(
+  config: HarnessConfig,
+  task: ModelTask,
+  env: NodeJS.ProcessEnv = process.env,
+): ResolvedModel {
+  const variable = MODEL_TASK_ENV[task];
+  const key = env[variable] || config.defaultModel;
+  const definition = config.models[key];
+
+  if (!definition) {
+    const available = Object.keys(config.models).join(", ");
+
+    throw new Error(`${variable}="${key}" is not a model in the harness. Available: ${available}`);
+  }
+
+  const apiKey = env[definition.apiKeyEnv];
+
+  if (!apiKey) {
+    throw new Error(`${definition.apiKeyEnv} is not set, but model "${key}" needs it`);
+  }
+
+  return { key, definition, apiKey };
+}
+
 /** Returns the config unchanged, so that a config file gets full type checking. */
 export function defineHarnessConfig(config: HarnessConfig): HarnessConfig {
   return config;

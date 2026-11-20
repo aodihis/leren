@@ -1,11 +1,13 @@
-export { defineHarnessConfig } from "./config";
+export { MODEL_TASK_ENV, defineHarnessConfig, resolveTaskModel } from "./config";
 
 export type {
   AgentName,
   HarnessConfig,
   ModelApi,
   ModelDefinition,
+  ModelTask,
   ReasoningEffort,
+  ResolvedModel,
 } from "./config";
 
 export { createAgent } from "./factory";
