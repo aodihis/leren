@@ -32,6 +32,8 @@ Apply the database migrations with `pnpm --filter @leren/db db:migrate`.
 | `pnpm lint`         | Run oxlint        |
 | `pnpm format`       | Format with oxfmt |
 | `pnpm format:check` | Check formatting  |
+| `pnpm test`         | Run unit tests    |
+| `pnpm test:e2e`     | Run Playwright    |
 
 ## Repository layout
 
@@ -39,6 +41,7 @@ Apply the database migrations with `pnpm --filter @leren/db db:migrate`.
 | ----------- | --------------------------------------------- |
 | `apps/`     | `api`, `platform` and `worker`                |
 | `packages/` | Shared packages under the `@leren` scope      |
+| `tests/`    | End-to-end tests                              |
 | `tooling/`  | Local development tooling, such as lint rules |
 | `docs/`     | Overview, decisions, rules                    |
 
