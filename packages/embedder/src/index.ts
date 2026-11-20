@@ -1,5 +1,5 @@
 export type { Embedder } from "./types";
 
-export { createOpenAiEmbedder } from "./openai";
+export { createEmbedder } from "./factory";
 
-export type { OpenAiEmbedderOptions } from "./openai";
+export type { EmbedderOptions } from "./factory";

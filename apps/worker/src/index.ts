@@ -1,5 +1,5 @@
 import { createDb } from "@leren/db";
-import { createOpenAiEmbedder } from "@leren/embedder";
+import { createEmbedder } from "@leren/embedder";
 import { createRabbitMqQueue } from "@leren/queue";
 import { createVectorStore } from "@leren/vector-db";
 
@@ -22,7 +22,7 @@ const queue = await createRabbitMqQueue({
 const jobs = createJobs({
   db: createDb(config.DATABASE_URL),
   store: createVectorStore({ url: config.VECTOR_STORE_URL }),
-  embedder: createOpenAiEmbedder({
+  embedder: createEmbedder({
     baseUrl: config.EMBEDDING_BASE_URL,
     apiKey: config.EMBEDDING_API_KEY,
     model: config.EMBEDDING_MODEL,
