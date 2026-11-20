@@ -8,6 +8,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins/email-otp";
 
+import type { UpdateProfileInput } from "./schema";
+
 const CODE_LENGTH = 6;
 const CODE_LIFETIME_SECONDS = 10 * 60;
 const CODE_MAX_ATTEMPTS = 3;
@@ -107,20 +109,38 @@ export function createAuth(options: CreateAuthOptions) {
 
 export type Auth = ReturnType<typeof createAuth>;
 
+const profileColumns = {
+  id: users.id,
+  email: users.email,
+  firstName: users.firstName,
+  lastName: users.lastName,
+};
+
 /**
  * Returns the public profile of a user, or `null` when the user does not exist. The query is
  * scoped to `userId`, so a caller can only read the profile it was authenticated as.
  */
 export async function getProfile(db: Db, userId: string) {
+  const [profile] = await db.select(profileColumns).from(users).where(eq(users.id, userId));
+
+  return profile ?? null;
+}
+
+/**
+ * Saves a user's first and last name and derives the display name from them. The update is
+ * scoped to `userId`. Returns the updated profile, or `null` when the user does not exist.
+ */
+export async function updateProfile(db: Db, userId: string, input: UpdateProfileInput) {
   const [profile] = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      firstName: users.firstName,
-      lastName: users.lastName,
+    .update(users)
+    .set({
+      firstName: input.firstName,
+      lastName: input.lastName,
+      name: formatDisplayName(input.firstName, input.lastName),
+      updatedAt: new Date(),
     })
-    .from(users)
-    .where(eq(users.id, userId));
+    .where(eq(users.id, userId))
+    .returning(profileColumns);
 
   return profile ?? null;
 }

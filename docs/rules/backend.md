@@ -12,7 +12,8 @@ Each feature lives in `apps/api/src/modules/:module-name/`:
 | `schema.ts`  | zod schemas and inferred types                  |
 | `service.ts` | Business logic, independent of HTTP             |
 
-- Validate every request body, query and param with `zValidator` and a schema from `schema.ts`.
+- Validate every request body, query and param with `validate` from `src/validation.ts` (a `zValidator` that responds with `400` and `{ fieldErrors }`) and a schema from `schema.ts`.
+- Chain the routes of a router on the `Hono` instance and return it, so Hono RPC can infer their types for the platform. Export any other type the platform needs from `src/client.ts`, which must stay type-only.
 - Keep route handlers thin: parse, call the service, return the response.
 - Services take plain arguments and return plain values. They do not touch Hono's context.
 - Do not import another module's `router.ts` or `service.ts` internals. Move shared code to a package.

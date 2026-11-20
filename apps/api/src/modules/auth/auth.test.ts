@@ -155,6 +155,52 @@ describe("email code authentication", () => {
     expect(row?.name).toBe("Augusta Lovelace");
   });
 
+  it("updates the profile through PATCH /api/me", async () => {
+    const { cookie } = await signIn("patch@example.com");
+
+    const response = await app.request("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie },
+      body: JSON.stringify({ firstName: "Grace", lastName: "Hopper" }),
+    });
+
+    const [row] = await database.db
+      .select()
+      .from(users)
+      .where(eq(users.email, "patch@example.com"));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      user: { firstName: "Grace", lastName: "Hopper" },
+    });
+    expect(row?.name).toBe("Grace Hopper");
+  });
+
+  it("rejects an invalid profile with field errors", async () => {
+    const { cookie } = await signIn("invalid@example.com");
+
+    const response = await app.request("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie },
+      body: JSON.stringify({ firstName: " ", lastName: "Hopper" }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      fieldErrors: { firstName: ["Enter your first name"] },
+    });
+  });
+
+  it("does not let a signed-out request update a profile", async () => {
+    const response = await app.request("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ firstName: "A", lastName: "B" }),
+    });
+
+    expect(response.status).toBe(401);
+  });
+
   it("returns each user only their own profile", async () => {
     const userA = await signIn("a@example.com");
     const userB = await signIn("b@example.com");

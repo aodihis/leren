@@ -1,4 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Alert,
   AlertDescription,
@@ -17,17 +16,12 @@ import {
   Input,
 } from "@leren/ui";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import type { InferRequestType } from "hono/client";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
-import { authClient } from "../../modules/auth/auth-client";
+import { api } from "../../modules/api/api-client";
 
-const profileSchema = z.object({
-  firstName: z.string().trim().min(1, "Enter your first name"),
-  lastName: z.string().trim().min(1, "Enter your last name"),
-});
-
-type ProfileValues = z.infer<typeof profileSchema>;
+type ProfileValues = InferRequestType<typeof api.api.me.$patch>["json"];
 
 export const Route = createFileRoute("/_authed/profile")({
   component: ProfilePage,
@@ -38,15 +32,23 @@ function ProfilePage() {
   const navigate = useNavigate();
 
   const form = useForm<ProfileValues>({
-    resolver: zodResolver(profileSchema),
     defaultValues: { firstName: user.firstName ?? "", lastName: user.lastName ?? "" },
   });
 
   async function handleSubmit(values: ProfileValues) {
-    const { error } = await authClient.updateUser(values);
+    const response = await api.api.me.$patch({ json: values });
 
-    if (error) {
-      form.setError("root", { message: error.message ?? "Could not save your profile" });
+    if (response.status === 400) {
+      const { fieldErrors } = await response.json();
+
+      form.setError("firstName", { message: fieldErrors.firstName?.[0] });
+      form.setError("lastName", { message: fieldErrors.lastName?.[0] });
+
+      return;
+    }
+
+    if (!response.ok) {
+      form.setError("root", { message: "Could not save your profile" });
 
       return;
     }
