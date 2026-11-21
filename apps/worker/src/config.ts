@@ -4,10 +4,7 @@ const configSchema = z.object({
   DATABASE_URL: z.string().min(1),
   VECTOR_STORE_URL: z.string().min(1),
   RABBITMQ_URL: z.string().min(1),
-  EMBEDDING_BASE_URL: z.url().default("https://openrouter.ai/api/v1"),
-  EMBEDDING_API_KEY: z.string().min(1),
-  EMBEDDING_MODEL: z.string().min(1).default("openai/text-embedding-3-small"),
-  EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(1536),
+  REPLY_MODEL: z.string().optional(),
   KNOWLEDGE_DRIFT_INTERVAL_MINUTES: z.coerce.number().positive().default(10),
 });
 

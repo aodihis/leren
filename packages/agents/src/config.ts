@@ -25,6 +25,19 @@ export interface ModelDefinition {
   readonly defaultReasoningEffort?: ReasoningEffort;
 }
 
+/**
+ * One embedding model the harness can use. `baseUrl` is the endpoint root of an OpenAI-compatible
+ * service, `apiKeyEnv` names the variable that holds its key, and `dimensions` is the length of
+ * every vector the model returns.
+ */
+export interface EmbeddingModelDefinition {
+  readonly provider: "openai";
+  readonly modelId: string;
+  readonly apiKeyEnv: string;
+  readonly baseUrl: string;
+  readonly dimensions: number;
+}
+
 /** The agents that take a system prompt from the harness config. */
 export type AgentName = "assistant" | "reply";
 
@@ -32,12 +45,15 @@ export type AgentName = "assistant" | "reply";
  * The single configuration file of the harness, `harness.config.ts` in the repository root.
  *
  * Paths are relative to the directory that contains the config file. `models` is keyed by a
- * name chosen here, and `defaultModel` must be one of those keys.
+ * name chosen here, and `defaultModel` must be one of those keys. `embeddingModels` and
+ * `defaultEmbeddingModel` follow the same rule for the models that produce vectors.
  */
 export interface HarnessConfig {
   readonly prompts: Readonly<Record<AgentName, string>>;
   readonly models: Readonly<Record<string, ModelDefinition>>;
   readonly defaultModel: string;
+  readonly embeddingModels: Readonly<Record<string, EmbeddingModelDefinition>>;
+  readonly defaultEmbeddingModel: string;
   readonly pluginsDir: string;
 }
 
@@ -80,6 +96,44 @@ export function resolveTaskModel(
     const available = Object.keys(config.models).join(", ");
 
     throw new Error(`${variable}="${key}" is not a model in the harness. Available: ${available}`);
+  }
+
+  const apiKey = env[definition.apiKeyEnv];
+
+  if (!apiKey) {
+    throw new Error(`${definition.apiKeyEnv} is not set, but model "${key}" needs it`);
+  }
+
+  return { key, definition, apiKey };
+}
+
+/** The environment variable that holds the key of the embedding model in `embeddingModels`. */
+export const EMBEDDING_MODEL_ENV = "EMBEDDING_MODEL";
+
+/** An embedding model chosen from the config, with the key it has there. */
+export interface ResolvedEmbeddingModel {
+  readonly key: string;
+  readonly definition: EmbeddingModelDefinition;
+  readonly apiKey: string;
+}
+
+/**
+ * Finds the embedding model named by `EMBEDDING_MODEL` and reads its API key. An unset or empty
+ * variable selects `defaultEmbeddingModel`. The errors are the same as those of `resolveTaskModel`.
+ */
+export function resolveEmbeddingModel(
+  config: HarnessConfig,
+  env: NodeJS.ProcessEnv = process.env,
+): ResolvedEmbeddingModel {
+  const key = env[EMBEDDING_MODEL_ENV] || config.defaultEmbeddingModel;
+  const definition = config.embeddingModels[key];
+
+  if (!definition) {
+    const available = Object.keys(config.embeddingModels).join(", ");
+
+    throw new Error(
+      `${EMBEDDING_MODEL_ENV}="${key}" is not an embedding model in the harness. Available: ${available}`,
+    );
   }
 
   const apiKey = env[definition.apiKeyEnv];

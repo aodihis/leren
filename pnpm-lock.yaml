@@ -169,6 +169,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@leren/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@leren/db':
         specifier: workspace:*
         version: link:../../packages/db
