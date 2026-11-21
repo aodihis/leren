@@ -25,6 +25,11 @@ export type SearchResult = {
   metadata: VectorMetadata;
 };
 
+export type StoredRecord = {
+  id: string;
+  metadata: VectorMetadata;
+};
+
 export type CollectionConfig = {
   name: string;
   dimensions: number;
@@ -39,5 +44,7 @@ export interface VectorStore {
   upsert(collection: string, records: VectorRecord[]): Promise<void>;
   search(query: SearchQuery): Promise<SearchResult[]>;
   delete(collection: string, ids: string[]): Promise<void>;
+  /** Returns the id and metadata of every record, without the vectors. Order is unspecified. */
+  list(collection: string): Promise<StoredRecord[]>;
   deleteCollection(collection: string): Promise<void>;
 }

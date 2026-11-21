@@ -17,9 +17,14 @@ import { createItem, deleteItem, getItem, listItems, transitionItem, updateItem 
  * Mounts the routes of the signed-in user's knowledge items under `/api/knowledge-items`. Every
  * route requires a session and every query is scoped by the session's user, so an item of another
  * user is reported as not found. The approval status changes only through
- * `POST /api/knowledge-items/:id/:action` and is never read from a request body.
+ * `POST /api/knowledge-items/:id/:action` and is never read from a request body. After every
+ * change that was written, `requestIndex` asks for the vector index of the item to be updated.
  */
-export function createKnowledgeItemsRouter(auth: Auth, db: Db) {
+export function createKnowledgeItemsRouter(
+  auth: Auth,
+  db: Db,
+  requestIndex: (itemId: string) => Promise<void>,
+) {
   return new Hono<{ Variables: AuthVariables }>()
     .use("/api/knowledge-items/*", requireUser(auth))
     .use("/api/knowledge-items", requireUser(auth))
@@ -31,9 +36,13 @@ export function createKnowledgeItemsRouter(auth: Auth, db: Db) {
     .post("/api/knowledge-items", validate("json", knowledgeItemSchema), async (c) => {
       const result = await createItem(db, c.get("userId"), c.req.valid("json"));
 
-      return result.status === "saved"
-        ? c.json({ item: result.item }, 201)
-        : c.json({ fieldErrors: result.status === "invalid" ? result.fieldErrors : {} }, 400);
+      if (result.status !== "saved") {
+        return c.json({ fieldErrors: result.status === "invalid" ? result.fieldErrors : {} }, 400);
+      }
+
+      await requestIndex(result.item.id);
+
+      return c.json({ item: result.item }, 201);
     })
     .get("/api/knowledge-items/:id", validate("param", knowledgeItemParamsSchema), async (c) => {
       const item = await getItem(db, c.get("userId"), c.req.valid("param").id);
@@ -53,6 +62,8 @@ export function createKnowledgeItemsRouter(auth: Auth, db: Db) {
         );
 
         if (result.status === "saved") {
+          await requestIndex(result.item.id);
+
           return c.json({ item: result.item }, 200);
         }
 
@@ -69,6 +80,8 @@ export function createKnowledgeItemsRouter(auth: Auth, db: Db) {
         const result = await transitionItem(db, c.get("userId"), id, action);
 
         if (result.status === "saved") {
+          await requestIndex(result.item.id);
+
           return c.json({ item: result.item }, 200);
         }
 
@@ -78,8 +91,15 @@ export function createKnowledgeItemsRouter(auth: Auth, db: Db) {
       },
     )
     .delete("/api/knowledge-items/:id", validate("param", knowledgeItemParamsSchema), async (c) => {
-      const deleted = await deleteItem(db, c.get("userId"), c.req.valid("param").id);
+      const { id } = c.req.valid("param");
+      const deleted = await deleteItem(db, c.get("userId"), id);
 
-      return deleted ? c.body(null, 204) : c.json({ error: "Not found" }, 404);
+      if (!deleted) {
+        return c.json({ error: "Not found" }, 404);
+      }
+
+      await requestIndex(id);
+
+      return c.body(null, 204);
     });
 }

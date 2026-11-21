@@ -111,6 +111,15 @@ export function createInMemoryVectorStore(): VectorStore {
       }
     },
 
+    async list(collectionName) {
+      const collection = getCollection(collectionName);
+
+      return [...collection.records.values()].map((record) => ({
+        id: record.id,
+        metadata: { ...record.metadata },
+      }));
+    },
+
     async deleteCollection(collectionName) {
       collections.delete(collectionName);
     },

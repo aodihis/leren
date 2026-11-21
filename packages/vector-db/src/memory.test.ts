@@ -160,4 +160,16 @@ describe("createInMemoryVectorStore", () => {
       store.search({ collection: COLLECTION, vector: [1, 0], limit: 1 }),
     ).rejects.toThrow("does not exist");
   });
+
+  it("lists the id and metadata of every record", async () => {
+    await store.upsert(COLLECTION, [
+      { id: "a", vector: [1, 0], metadata: { userId: "u1" } },
+      { id: "b", vector: [0, 1] },
+    ]);
+
+    expect(await store.list(COLLECTION)).toEqual([
+      { id: "a", metadata: { userId: "u1" } },
+      { id: "b", metadata: {} },
+    ]);
+  });
 });
