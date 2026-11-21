@@ -54,5 +54,15 @@ export default defineHarnessConfig({
     },
   },
   defaultModel: "deepseek-fast",
+  embeddingModels: {
+    "openrouter-embedding-small": {
+      provider: "openai",
+      modelId: "openai/text-embedding-3-small",
+      apiKeyEnv: "EMBEDDING_API_KEY",
+      baseUrl: "https://openrouter.ai/api/v1",
+      dimensions: 1536,
+    },
+  },
+  defaultEmbeddingModel: "openrouter-embedding-small",
   pluginsDir: "plugins",
 });

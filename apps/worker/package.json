@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@leren/agents": "workspace:*",
     "@leren/db": "workspace:*",
     "@leren/embedder": "workspace:*",
     "@leren/knowledge": "workspace:*",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defineHarnessConfig, resolveTaskModel } from "./config";
+import { defineHarnessConfig, resolveEmbeddingModel, resolveTaskModel } from "./config";
 
 const config = defineHarnessConfig({
   prompts: { assistant: "a.md", reply: "r.md" },
@@ -22,6 +22,16 @@ const config = defineHarnessConfig({
     },
   },
   defaultModel: "fast",
+  embeddingModels: {
+    small: {
+      provider: "openai",
+      modelId: "embed-1",
+      apiKeyEnv: "EMBED_KEY",
+      baseUrl: "https://embed.test/v1",
+      dimensions: 8,
+    },
+  },
+  defaultEmbeddingModel: "small",
   pluginsDir: "plugins",
 });
 
@@ -48,5 +58,25 @@ describe("resolveTaskModel", () => {
 
   it("names the missing API key variable", () => {
     expect(() => resolveTaskModel(config, "assistant", {})).toThrow(/FAST_KEY is not set/);
+  });
+});
+
+describe("resolveEmbeddingModel", () => {
+  it("uses the default embedding model when the variable is empty", () => {
+    const resolved = resolveEmbeddingModel(config, { EMBEDDING_MODEL: "", EMBED_KEY: "e" });
+
+    expect(resolved.key).toBe("small");
+    expect(resolved.definition.dimensions).toBe(8);
+    expect(resolved.apiKey).toBe("e");
+  });
+
+  it("lists the available keys when the key is unknown", () => {
+    expect(() => resolveEmbeddingModel(config, { EMBEDDING_MODEL: "nope" })).toThrow(
+      /EMBEDDING_MODEL="nope".*small/,
+    );
+  });
+
+  it("names the missing API key variable", () => {
+    expect(() => resolveEmbeddingModel(config, {})).toThrow(/EMBED_KEY is not set/);
   });
 });
