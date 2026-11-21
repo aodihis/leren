@@ -54,7 +54,7 @@ The platform UI is the main way to manage data. The assistant is an optional hel
 
 |             | Assistant Agent                                                                                 | Reply Agent                                          |
 | ----------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Started by  | The user, from the chat panel in the platform.                                                  | A queued email job.                                  |
+| Started by  | The user, from the chat page in the platform.                                                   | A queued email job.                                  |
 | Purpose     | Look up saved data, generate example questions, refine wording and point out gaps.              | Decide how to handle one email and draft the output. |
 | Writes      | Creates and changes rules and knowledge after the user confirms. Knowledge it saves is a draft. | A draft reply or a decision record. It cannot send.  |
 | Input trust | Written by the user.                                                                            | Email content is untrusted data, never instructions. |
@@ -72,7 +72,7 @@ User ─▶ platform chat ─▶ api ─▶ Assistant Agent
                             MCP server (in api) ─▶ services ─▶ PostgreSQL / Qdrant
 ```
 
-The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes rules and knowledge through the same services the UI uses. The assistant asks for confirmation in the chat before it saves anything. Only the user approves knowledge in the UI (decisions 0032 and 0034). The chat panel is available on the rules and knowledge screens and keeps its history, which is the agent's memory (decision 0034).
+The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes rules and knowledge through the same services the UI uses. The assistant asks for confirmation in the chat before it saves anything. Only the user approves knowledge in the UI (decisions 0032 and 0034). The chat is a full page that the sidebar opens with New chat. The sidebar lists earlier chats below the menu, and a chat's history is the agent's memory (decision 0034).
 
 ## Flow B: incoming email
 

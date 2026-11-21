@@ -15,10 +15,19 @@ export const allowedTools = [
   "request_approval",
 ] as const;
 
-/** Connects to the MCP server and exposes only the Reply Agent's tools. */
+/**
+ * Connects to the MCP server and exposes only the Reply Agent's tools. The URL is Leren's own MCP
+ * endpoint, which comes from deployment configuration and commonly points at a loopback address,
+ * so the library's check for private addresses is disabled.
+ */
 export function connectReplyMcp(
   options: McpOptions,
   abortSignal?: AbortSignal,
 ): Promise<McpConnection> {
-  return connectMcp({ ...options, allowedTools, abortSignal });
+  return connectMcp({
+    ...options,
+    allowedTools,
+    abortSignal,
+    ssrfProtection: "disabled",
+  });
 }

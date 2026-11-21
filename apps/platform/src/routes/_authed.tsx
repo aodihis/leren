@@ -14,7 +14,7 @@ import {
   redirect,
   useLocation,
   useNavigate,
-  useRouter,
+  useParams,
 } from "@tanstack/react-router";
 import {
   BookOpenIcon,
@@ -23,18 +23,15 @@ import {
   LogOutIcon,
   MenuIcon,
   SlidersHorizontalIcon,
-  SparklesIcon,
+  SquarePenIcon,
   UserIcon,
 } from "lucide-react";
 import { useState } from "react";
 
-import { ChatPanel } from "../modules/assistant/components/chat-panel";
-import { useChatOpen } from "../modules/assistant/hooks/use-chat-open";
+import { api } from "../modules/api/api-client";
+import { ChatHistory } from "../modules/assistant/components/chat-history";
 import { authClient } from "../modules/auth/auth-client";
 import { Logo } from "../modules/layout/components/logo";
-import { useMediaQuery } from "../modules/layout/hooks/use-media-query";
-
-const ASSISTANT_PATHS = /^\/(knowledge|auto-reply-rules)(\/|$)/;
 
 const NAV_ITEMS = [
   { to: "/", label: "Overview", icon: HouseIcon },
@@ -58,6 +55,19 @@ export const Route = createFileRoute("/_authed")({
 
     return { user: data.user };
   },
+  loader: async () => {
+    try {
+      const response = await api.api.assistant.$get();
+
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch {
+      return { available: false, conversations: [] };
+    }
+
+    return { available: false, conversations: [] };
+  },
   component: AuthedLayout,
 });
 
@@ -68,19 +78,9 @@ export const Route = createFileRoute("/_authed")({
  * tree because they are visually hidden, not removed.
  */
 function AuthedLayout() {
-  const { user } = Route.useRouteContext();
-  const router = useRouter();
   const pathname = useLocation({ select: (location) => location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useChatOpen(user.id);
-  const docked = useMediaQuery("(min-width: 1024px)");
-  const hasAssistant = ASSISTANT_PATHS.test(pathname);
-  const showChat = hasAssistant && chatOpen;
-  const everOpened = useEverTrue(showChat);
-
-  const chat = (
-    <ChatPanel onSaved={() => void router.invalidate()} onClose={() => setChatOpen(false)} />
-  );
+  const isChat = pathname === "/chat" || pathname.startsWith("/chat/");
 
   return (
     <div className="flex h-screen overflow-hidden bg-canvas">
@@ -106,53 +106,20 @@ function AuthedLayout() {
           </Sheet>
           <BrandName />
         </header>
-        {hasAssistant && (
-          <div className="flex h-header flex-none items-center justify-end border-b bg-surface px-4">
-            <Button
-              variant="outline"
-              size="sm"
-              aria-pressed={chatOpen}
-              onClick={() => setChatOpen(!chatOpen)}
-            >
-              <SparklesIcon strokeWidth={1.75} />
-              Assistant
-            </Button>
-          </div>
-        )}
-        <main className="min-h-0 flex-1 overflow-auto p-6">
-          <div className="mx-auto max-w-280">
+        {isChat ? (
+          <main className="min-h-0 flex-1 overflow-hidden">
             <Outlet />
-          </div>
-        </main>
+          </main>
+        ) : (
+          <main className="min-h-0 flex-1 overflow-auto p-6">
+            <div className="mx-auto max-w-280">
+              <Outlet />
+            </div>
+          </main>
+        )}
       </div>
-      {everOpened && (
-        <aside
-          aria-label="Assistant dock"
-          className={cn(
-            !showChat && "hidden",
-            showChat && docked && "w-chat flex-none border-l",
-            showChat && !docked && "fixed inset-0 z-50",
-          )}
-        >
-          {chat}
-        </aside>
-      )}
     </div>
   );
-}
-
-/**
- * Stays `true` once `value` has been `true`. The assistant panel is mounted on first use and then
- * only hidden, so a conversation that is streaming survives navigation and a change of layout.
- */
-function useEverTrue(value: boolean): boolean {
-  const [ever, setEver] = useState(value);
-
-  if (value && !ever) {
-    setEver(true);
-  }
-
-  return ever;
 }
 
 function BrandName() {
@@ -174,6 +141,8 @@ interface SidebarContentProps {
  */
 function SidebarContent({ onNavigate }: SidebarContentProps) {
   const { user } = Route.useRouteContext();
+  const { conversations } = Route.useLoaderData();
+  const { sessionId } = useParams({ strict: false });
   const navigate = useNavigate();
   const displayName = user.name || user.email;
 
@@ -206,7 +175,23 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
           </Link>
         ))}
       </nav>
-      <div className="mt-auto flex items-center gap-2.5 border-t p-3 max-lg:md:flex-col">
+      <div className="px-3 py-1">
+        <Link
+          to="/chat"
+          activeOptions={{ exact: true }}
+          onClick={onNavigate}
+          className={cn(
+            "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium text-ink outline-none",
+            "hover:bg-subtle focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            "max-lg:md:justify-center",
+          )}
+        >
+          <SquarePenIcon className="size-4.5 flex-none" strokeWidth={1.75} aria-hidden="true" />
+          <span data-label>New chat</span>
+        </Link>
+      </div>
+      <ChatHistory conversations={conversations} activeId={sessionId} onNavigate={onNavigate} />
+      <div className="flex items-center gap-2.5 border-t p-3 max-lg:md:flex-col">
         <span
           className="grid size-8 flex-none place-items-center rounded-full bg-sand text-xs font-semibold text-ink"
           aria-hidden="true"

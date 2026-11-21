@@ -15,6 +15,7 @@
     "studio:assistant": "dotenvx run -f .env -- pnpm --filter @leren/assistant-agent studio",
     "api:dev:secure": "dotenvx run -f .env -- pnpm --filter @leren/api dev",
     "api:start:secure": "dotenvx run -f .env -- pnpm --filter @leren/api start",
+    "platform:dev:secure": "dotenvx run -f .env -- pnpm --filter @leren/platform dev",
     "worker:dev:secure": "dotenvx run -f .env -- pnpm --filter @leren/worker dev",
     "worker:start:secure": "dotenvx run -f .env -- pnpm --filter @leren/worker start",
     "runner:assistant:secure": "dotenvx run -f .env -- pnpm runner:assistant",

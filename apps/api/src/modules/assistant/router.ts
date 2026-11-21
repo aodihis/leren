@@ -2,6 +2,7 @@ import { agentToClientStream, parseClientStreamRequest } from "@anvia/client";
 import { createClientStreamResponse } from "@anvia/server";
 import type { Message } from "@anvia/core";
 import type { Db } from "@leren/db";
+import type { Logger } from "@leren/logger";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 
@@ -27,6 +28,7 @@ import {
 export type AssistantRouterDependencies = {
   auth: Auth;
   db: Db;
+  logger: Logger;
   /** Runs the Assistant Agent. Without it the chat is unavailable and the other routes still work. */
   agent?: Agent | undefined;
 };
@@ -47,14 +49,18 @@ function textOf(content: Message["content"]): string | null {
 /**
  * Mounts the routes of the signed-in user's assistant chat under `/api/assistant`. Every route
  * requires a session and every query is scoped by the session's user, so a conversation of another
- * user is reported as not found.
+ * user has no messages, which is the same as a conversation that does not exist yet.
  *
  * `POST /api/assistant/chat?sessionId=` speaks Anvia's client stream protocol, so the platform uses
  * `useChat` against it. The conversation is the agent's memory for that session id, which the
  * client chooses for a new conversation, so there is no other state to keep. The agent asks the
  * user to confirm in the conversation before it creates or changes anything.
+ *
+ * The response status is 200 before the agent runs, so a failed run is only visible in the stream.
+ * Every failure of a run, whether thrown or reported as an `error` event, is logged here with the
+ * user and the conversation.
  */
-export function createAssistantRouter({ auth, db, agent }: AssistantRouterDependencies) {
+export function createAssistantRouter({ auth, db, logger, agent }: AssistantRouterDependencies) {
   const running = new Set<string>();
   let memory: ReturnType<typeof createMemoryStore> | undefined;
 
@@ -78,9 +84,7 @@ export function createAssistantRouter({ auth, db, agent }: AssistantRouterDepend
           c.req.valid("param").sessionId,
         );
 
-        return messages.length > 0
-          ? c.json({ messages }, 200)
-          : c.json({ error: "Not found" }, 404);
+        return c.json({ messages }, 200);
       },
     )
     .delete(
@@ -125,6 +129,7 @@ export function createAssistantRouter({ auth, db, agent }: AssistantRouterDepend
         const title = chatMetadataSchema.safeParse(last.metadata ?? {}).data?.title;
 
         const key = `${userId}:${sessionId}`;
+        const runLogger = logger.child({ userId, sessionId });
 
         if (running.has(key)) {
           return c.json({ error: "This chat is already answering" }, 409);
@@ -137,12 +142,22 @@ export function createAssistantRouter({ auth, db, agent }: AssistantRouterDepend
 
         async function* untilDone() {
           try {
-            yield* run({
+            for await (const event of run({
               userId,
               messages,
               memory: { store: getStore(), session: scopeFor(userId, sessionId, title) },
               abortSignal: c.req.raw.signal,
-            });
+            })) {
+              if (event.type === "error") {
+                runLogger.error("The assistant run reported an error", { error: event.error });
+              }
+
+              yield event;
+            }
+          } catch (error) {
+            runLogger.error("The assistant run failed", { error });
+
+            throw error;
           } finally {
             running.delete(key);
           }

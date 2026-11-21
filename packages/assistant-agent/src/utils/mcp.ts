@@ -23,10 +23,18 @@ export const allowedTools = [
 /**
  * Connects to the MCP server and exposes only the Assistant Agent's tools. The agent confirms
  * every change with the user in the conversation before it calls a tool that writes.
+ *
+ * The URL is Leren's own MCP endpoint, which comes from deployment configuration and commonly
+ * points at a loopback address, so the library's check for private addresses is disabled.
  */
 export function connectAssistantMcp(
   options: McpOptions,
   abortSignal?: AbortSignal,
 ): Promise<McpConnection> {
-  return connectMcp({ ...options, allowedTools, abortSignal });
+  return connectMcp({
+    ...options,
+    allowedTools,
+    abortSignal,
+    ssrfProtection: "disabled",
+  });
 }

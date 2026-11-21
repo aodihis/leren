@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import type { Db } from "@leren/db";
 import type { Logger } from "@leren/logger";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
 import { createMcpEndpoint } from "@leren/mcp-server";
 import type { McpToolDependencies } from "@leren/mcp-server";
@@ -65,11 +66,16 @@ export function createApp({
 
       await next();
 
-      requestLogger.info("Request completed", {
-        method: c.req.method,
-        path: c.req.path,
-        status: c.res.status,
-      });
+      const status = c.res.status;
+      const metadata = { method: c.req.method, path: c.req.path, status };
+
+      if (status >= 500) {
+        requestLogger.error("Request failed", metadata);
+      } else if (status >= 400) {
+        requestLogger.warn("Request rejected", metadata);
+      } else {
+        requestLogger.info("Request completed", metadata);
+      }
     })
     .get("/", (c) => c.json({ name: "leren-api" }))
     .get("/health", (c) => c.json({ status: "ok" }))
@@ -82,7 +88,21 @@ export function createApp({
     .route("/", createAutoReplyRulesRouter(auth, db))
     .route("/", createKnowledgeItemsRouter(auth, db, requestKnowledgeIndex))
     .route("/", createMcpRouter({ auth, db, sessions, endpoint }))
-    .route("/", createAssistantRouter({ auth, db, agent: assistant }));
+    .route("/", createAssistantRouter({ auth, db, logger, agent: assistant }))
+    .onError((error, c) => {
+      if (error instanceof HTTPException) {
+        return error.getResponse();
+      }
+
+      logger.error("Unhandled error", {
+        requestId: c.get("requestId"),
+        method: c.req.method,
+        path: c.req.path,
+        error,
+      });
+
+      return c.json({ error: "Something went wrong" }, 500);
+    });
 }
 
 export type AppType = ReturnType<typeof createApp>;

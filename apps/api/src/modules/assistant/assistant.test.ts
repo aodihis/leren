@@ -74,11 +74,11 @@ describe("assistant chat API", () => {
   let sender: InMemoryEmailSender;
   let auth: ReturnType<typeof createAuth>;
 
-  const buildApp = (agent?: Agent) =>
+  const buildApp = (agent?: Agent, logger: Logger = createSilentLogger()) =>
     createApp({
       auth,
       db: database.db,
-      logger: createSilentLogger(),
+      logger,
       requestKnowledgeIndex: vi.fn(),
       assistant: agent,
       mcp: { secret: "an-mcp-test-secret-of-at-least-32-chars" },
@@ -176,6 +176,26 @@ describe("assistant chat API", () => {
     );
   });
 
+  it("logs a run that fails after the response has started", async () => {
+    const logger = createSilentLogger();
+    const failure = new Error("The MCP server is unreachable");
+
+    const app = buildApp(async function* () {
+      yield* [];
+
+      throw failure;
+    }, logger);
+
+    const cookie = await signIn(app, "failing@example.com");
+    const response = await send(app, chatPath(randomUUID()), userMessage("Hi"), cookie);
+
+    expect(response.status).toBe(200);
+
+    await response.text();
+
+    expect(logger.error).toHaveBeenCalledWith("The assistant run failed", { error: failure });
+  });
+
   it("answers a message and keeps the conversation as history", async () => {
     const app = buildApp(createScriptedAgent([{ text: "Hello there" }, { text: "Again" }]));
     const cookie = await signIn(app, "chat@example.com");
@@ -239,7 +259,9 @@ describe("assistant chat API", () => {
 
     await readEvents(await send(app, chatPath(sessionId), userMessage("Secret plan"), owner));
 
-    expect((await get(app, conversationPath(sessionId), other)).status).toBe(404);
+    expect(await (await get(app, conversationPath(sessionId), other)).json()).toEqual({
+      messages: [],
+    });
     expect((await (await get(app, "/api/assistant", other)).json()).conversations).toEqual([]);
 
     await readEvents(await send(app, chatPath(sessionId), userMessage("Hello"), other));
@@ -269,7 +291,9 @@ describe("assistant chat API", () => {
     });
 
     expect(deleted.status).toBe(204);
-    expect((await get(app, conversationPath(sessionId), cookie)).status).toBe(404);
+    expect(await (await get(app, conversationPath(sessionId), cookie)).json()).toEqual({
+      messages: [],
+    });
     expect((await (await get(app, "/api/assistant", cookie)).json()).conversations).toEqual([]);
   });
 });
