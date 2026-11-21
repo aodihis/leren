@@ -1,9 +1,10 @@
 import { serve } from "@hono/node-server";
-import { resolveEmbeddingModel } from "@leren/agents";
+import { loadHarness, resolveEmbeddingModel } from "@leren/agents";
 import { createDb } from "@leren/db";
 import { createSmtpEmailSender } from "@leren/email";
 import { createEmbedder } from "@leren/embedder";
 import { createLogger } from "@leren/logger";
+import { createObserver } from "@leren/observability";
 import { createRabbitMqQueue } from "@leren/queue";
 import { createVectorStore } from "@leren/vector-db";
 
@@ -11,6 +12,7 @@ import harness from "../../../harness.config";
 import { createApp } from "./app";
 import type { AppType } from "./app";
 import { loadConfig } from "./config";
+import { createAgent } from "./modules/assistant/agent";
 import { createAuth } from "./modules/auth/service";
 import { createKnowledgeIndexRequester } from "./modules/knowledge-items/indexing";
 
@@ -65,11 +67,35 @@ function createSearchDependencies() {
   }
 }
 
+/**
+ * Builds the agent of the assistant chat. The chat is optional, so a deployment whose assistant
+ * model or prompt cannot be loaded still serves every other route.
+ */
+async function createAssistant() {
+  try {
+    const harness = await loadHarness();
+
+    return createAgent({
+      sessions: { db, secret: config.MCP_SESSION_SECRET },
+      mcpUrl: `http://127.0.0.1:${config.PORT}/mcp`,
+      logger,
+      instructions: await harness.readPrompt("assistant"),
+      model: harness.createModel("assistant"),
+      observer: createObserver(),
+    });
+  } catch (error) {
+    logger.warn("The assistant chat is disabled", { error });
+
+    return undefined;
+  }
+}
+
 const app = createApp({
   auth,
   db,
   logger,
   requestKnowledgeIndex: createKnowledgeIndexRequester(queue, logger),
+  assistant: await createAssistant(),
   mcp: { secret: config.MCP_SESSION_SECRET, search: createSearchDependencies() },
 });
 

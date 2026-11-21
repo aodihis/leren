@@ -7,6 +7,8 @@ import { createMcpEndpoint } from "@leren/mcp-server";
 import type { McpToolDependencies } from "@leren/mcp-server";
 import { z } from "zod";
 
+import { createAssistantRouter } from "./modules/assistant/router";
+import type { Agent } from "./modules/assistant/agent";
 import { createAuthRouter } from "./modules/auth/router";
 import type { Auth } from "./modules/auth/service";
 import { createRuleMcpActions } from "./modules/auto-reply-rules/mcp-actions";
@@ -23,6 +25,8 @@ export type AppDependencies = {
   logger: Logger;
   /** Asks the worker to bring the vector index of a knowledge item up to date. Must not throw. */
   requestKnowledgeIndex: (itemId: string) => Promise<void>;
+  /** Runs the Assistant Agent for the chat. Without it, the chat reports that it is unavailable. */
+  assistant?: Agent | undefined;
   mcp: {
     /** Signs MCP session tokens. At least 32 characters. */
     secret: string;
@@ -35,7 +39,14 @@ export type AppDependencies = {
  * Builds the Hono application from its collaborators, so tests can run it against a test database
  * without starting a server.
  */
-export function createApp({ auth, db, logger, requestKnowledgeIndex, mcp }: AppDependencies) {
+export function createApp({
+  auth,
+  db,
+  logger,
+  requestKnowledgeIndex,
+  assistant,
+  mcp,
+}: AppDependencies) {
   const sessions = { db, secret: mcp.secret };
 
   const endpoint = createMcpEndpoint({
@@ -70,7 +81,8 @@ export function createApp({ auth, db, logger, requestKnowledgeIndex, mcp }: AppD
     .route("/", createAuthRouter(auth, db))
     .route("/", createAutoReplyRulesRouter(auth, db))
     .route("/", createKnowledgeItemsRouter(auth, db, requestKnowledgeIndex))
-    .route("/", createMcpRouter({ auth, db, sessions, endpoint }));
+    .route("/", createMcpRouter({ auth, db, sessions, endpoint }))
+    .route("/", createAssistantRouter({ auth, db, agent: assistant }));
 }
 
 export type AppType = ReturnType<typeof createApp>;

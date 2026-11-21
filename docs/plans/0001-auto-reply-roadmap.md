@@ -117,8 +117,9 @@ Status: Todo. Branch: `feat/10-assistant-agent`.
 
 - [x] Add the Anvia agent with read tools and confirmed write tools for rules and knowledge (ADR 0032).
 - [x] Add the `structure-knowledge` skill and the assistant prompt, tried in Anvia Studio (`pnpm studio:assistant`).
-- [ ] Add the chat panel to the knowledge and rules screens, with accept actions that use the normal API.
-- [ ] Confirm the UI works fully without the assistant.
+- [x] Add the chat panel to the knowledge and rules screens, with its history, over Anvia's client protocol and memory (ADR 0034). The assistant confirms writes in the chat.
+- [x] Confirm the UI works fully without the assistant. The panel is closed by default, and the screens do not call the assistant API.
+- [ ] Revisit write confirmation. The assistant confirms in the chat by following its prompt (ADR 0034), so a model that ignores the prompt, or text stored in a rule or knowledge item, could trigger a write without a yes. Decide whether to enforce confirmation in code, for example a runtime approval on the write tools or a write that takes effect only after the user clicks in the interface. Deferred: not part of F10.
 - [ ] Document upload and extraction (PDF, TXT, DOCX, up to 20 files). Deferred: not part of F10.
 
 ### F11 Routing rules

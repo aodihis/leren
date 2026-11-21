@@ -1,7 +1,7 @@
 import { loadHarness } from "@leren/agents";
 import { createObserver } from "@leren/observability";
 import { Studio } from "@anvia/studio";
-import { createAssistantAgent } from "./core";
+import { createAssistantAgent } from "./agent";
 
 const DEFAULT_PORT = 4021;
 

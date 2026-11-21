@@ -72,7 +72,7 @@ User ─▶ platform chat ─▶ api ─▶ Assistant Agent
                             MCP server (in api) ─▶ services ─▶ PostgreSQL / Qdrant
 ```
 
-The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes rules and knowledge through the same services the UI uses. Only the user approves knowledge in the UI (decision 0032).
+The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes rules and knowledge through the same services the UI uses. The assistant asks for confirmation in the chat before it saves anything. Only the user approves knowledge in the UI (decisions 0032 and 0034). The chat panel is available on the rules and knowledge screens and keeps its history, which is the agent's memory (decision 0034).
 
 ## Flow B: incoming email
 

@@ -21,6 +21,7 @@ src/
 ## Calling the API
 
 - Call the API with the typed client in `src/modules/api/api-client.ts`. Do not write `fetch` calls or redefine request and response types the API already declares. Derive types with `InferRequestType` and `InferResponseType` from `hono/client`.
+- The assistant chat is the exception to the typed client: it uses `useChat` and `createHttpClientTransport` from Anvia, because it streams. See [0034](../decision/0034-assistant-chat-over-anvia-protocol.md).
 - Do not define zod schemas for data the API validates. Show the API's `fieldErrors` next to the fields with `setError`. See [0017](../decision/0017-hono-rpc-for-api-types.md).
 
 ## Styling

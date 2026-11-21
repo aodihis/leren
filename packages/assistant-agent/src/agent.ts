@@ -1,6 +1,13 @@
 import { fileURLToPath } from "node:url";
 import { loadSkills, skill } from "@anvia/core";
-import type { Agent, AgentPrompt, AgentStreamEvent, MemoryScope } from "@anvia/core";
+import type {
+  Agent,
+  AgentStreamEvent,
+  MemoryScope,
+  MemoryStore,
+  Message,
+  UserMessage,
+} from "@anvia/core";
 import { createAgent } from "@leren/agents";
 import type { CreateAgentOptions, McpOptions } from "@leren/agents";
 import { tools } from "./tools";
@@ -63,27 +70,45 @@ export async function createAssistantAgent(
 }
 
 /** Everything one Assistant Agent run needs. */
-export interface RunAgentOptions extends AssistantAgentOptions {
-  readonly prompt: AgentPrompt;
-  readonly session?: MemoryScope | undefined;
+export interface RunAgentOptions extends Omit<AssistantAgentOptions, "memory"> {
+  /** The conversation so far, ending with the user's new message. */
+  readonly messages: readonly Message[];
+  /** Where the conversation is stored. Without it, the run sees only `messages`. */
+  readonly memory?: { readonly store: MemoryStore; readonly session: MemoryScope } | undefined;
 }
 
 /**
  * Runs the Assistant Agent once and yields its stream events as they happen.
  *
  * The MCP connection is opened when iteration starts and is closed when the stream ends, fails or
- * is abandoned by the caller, so it cannot outlive the run.
- * Conversation history is loaded and saved only when `memory` and `session` are both given.
+ * is abandoned by the caller, so it cannot outlive the run. When `memory` is given, the store
+ * already holds the earlier turns, so only the newest user message is sent and the turn is saved
+ * when it ends. Otherwise all of `messages` is sent and nothing is saved.
  */
 export async function* runAgent(options: RunAgentOptions): AsyncGenerator<AgentStreamEvent> {
-  const { agent, close } = await createAssistantAgent(options);
+  const { agent, close } = await createAssistantAgent({
+    ...options,
+    memory: options.memory && { store: options.memory.store, savePolicy: "turn" },
+  });
 
   try {
-    yield* agent.stream({
-      prompt: options.prompt,
-      session: options.session,
-      abortSignal: options.abortSignal,
-    });
+    if (options.memory) {
+      const prompt = [...options.messages]
+        .reverse()
+        .find((message): message is UserMessage => message.role === "user");
+
+      if (!prompt) {
+        throw new Error("The Assistant Agent needs at least one user message.");
+      }
+
+      yield* agent.stream({
+        prompt,
+        session: options.memory.session,
+        abortSignal: options.abortSignal,
+      });
+    } else {
+      yield* agent.stream({ messages: options.messages, abortSignal: options.abortSignal });
+    }
   } finally {
     await close();
   }

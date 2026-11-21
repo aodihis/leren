@@ -1,4 +1,5 @@
 import { createNoopObserver } from "@leren/observability";
+import { InMemoryMemoryStore } from "@anvia/core";
 import { createFakeModel } from "@leren/agents/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,8 +11,8 @@ vi.mock("@leren/agents", async () => ({
 }));
 
 const { connectMcp } = await import("@leren/agents");
-const { runAgent } = await import("./core");
-const { allowedTools, approvalTools } = await import("./utils/mcp");
+const { runAgent } = await import("./agent");
+const { allowedTools } = await import("./utils/mcp");
 
 const mcp = { url: "http://api.test/mcp", token: "token" };
 
@@ -32,11 +33,11 @@ describe("runAgent", () => {
     close.mockClear();
   });
 
-  it("returns the model answer and connects with the allowed and approval tools", async () => {
+  it("returns the model answer and connects with the allowed tools", async () => {
     const answer = await collectText(
       runAgent({
         instructions: "Be brief.",
-        prompt: "Hi",
+        messages: [{ role: "user", content: "Hi" }],
         model: createFakeModel([{ text: "Hello" }]),
         observer: createNoopObserver(),
         mcp,
@@ -44,9 +45,7 @@ describe("runAgent", () => {
     );
 
     expect(answer).toBe("Hello");
-    expect(connectMcp).toHaveBeenCalledWith(
-      expect.objectContaining({ ...mcp, allowedTools, approvalTools }),
-    );
+    expect(connectMcp).toHaveBeenCalledWith(expect.objectContaining({ ...mcp, allowedTools }));
     expect(close).toHaveBeenCalledOnce();
   });
 
@@ -55,7 +54,7 @@ describe("runAgent", () => {
 
     for await (const event of runAgent({
       instructions: "Be brief.",
-      prompt: "Hi",
+      messages: [{ role: "user", content: "Hi" }],
       model: createFakeModel([]),
       observer: createNoopObserver(),
       mcp,
@@ -65,6 +64,43 @@ describe("runAgent", () => {
 
     expect(types).toContain("error");
     expect(close).toHaveBeenCalledOnce();
+  });
+});
+
+describe("runAgent with memory", () => {
+  /**
+   * The store holds the earlier turns, so a client that sends its whole history must not make the
+   * model see the same message twice.
+   */
+  it("sends only the newest user message and replays the rest from the store", async () => {
+    const model = createFakeModel([{ text: "First answer" }, { text: "Second answer" }]);
+    const store = new InMemoryMemoryStore();
+    const session = { sessionId: "chat-1", userId: "user-1" };
+
+    const run = (messages: Parameters<typeof runAgent>[0]["messages"]) =>
+      collectText(
+        runAgent({
+          instructions: "Be brief.",
+          messages,
+          model,
+          observer: createNoopObserver(),
+          memory: { store, session },
+        }),
+      );
+
+    await run([{ role: "user", content: "one" }]);
+    await run([
+      { role: "user", content: "one" },
+      { role: "assistant", content: "First answer" },
+      { role: "user", content: "two" },
+    ]);
+
+    const second = JSON.stringify(model.requests[1]);
+
+    expect(second.match(/"one"/g)).toHaveLength(1);
+    expect(second).toContain("First answer");
+    expect(second).toContain("two");
+    expect(await store.load({ scope: session })).toHaveLength(4);
   });
 });
 
@@ -79,15 +115,5 @@ describe("allowedTools", () => {
    */
   it("has no tool that approves or deletes", () => {
     expect(allowedTools.filter((tool) => /approve|delete|archive/.test(tool))).toEqual([]);
-  });
-
-  /**
-   * Guards the confirmation contract of decision 0032: a tool that is added to the allow-list as a
-   * writer must also be an approval tool, so no write runs without the user's approval.
-   */
-  it("requires approval for every tool that writes and for no tool that reads", () => {
-    expect([...approvalTools].sort()).toEqual(
-      allowedTools.filter((tool) => /^(create|update)_/.test(tool)).sort(),
-    );
   });
 });

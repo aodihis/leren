@@ -21,23 +21,12 @@ export const allowedTools = [
 ] as const;
 
 /**
- * The tools that change data. Every call needs the user's approval before it runs, so nothing is
- * created or changed without the user's confirmation.
- */
-export const approvalTools = [
-  "create_rule",
-  "update_rule",
-  "create_knowledge",
-  "update_knowledge",
-] as const;
-
-/**
- * Connects to the MCP server and exposes only the Assistant Agent's tools. The tools that write
- * require the user's approval.
+ * Connects to the MCP server and exposes only the Assistant Agent's tools. The agent confirms
+ * every change with the user in the conversation before it calls a tool that writes.
  */
 export function connectAssistantMcp(
   options: McpOptions,
   abortSignal?: AbortSignal,
 ): Promise<McpConnection> {
-  return connectMcp({ ...options, allowedTools, approvalTools, abortSignal });
+  return connectMcp({ ...options, allowedTools, abortSignal });
 }

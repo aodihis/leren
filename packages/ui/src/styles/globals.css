@@ -171,6 +171,7 @@
   --spacing-sidebar: 264px;
   --spacing-sidebar-rail: 72px;
   --spacing-header: 56px;
+  --spacing-chat: 400px;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
