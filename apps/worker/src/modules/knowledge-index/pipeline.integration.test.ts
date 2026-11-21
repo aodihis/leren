@@ -187,7 +187,11 @@ describe("knowledge indexing pipeline", () => {
     ]);
 
     await queue.publish(driftQueue, {});
-    await waitFor(async () => (await indexedIds()).includes(missing.id));
+    await waitFor(async () => {
+      const ids = await indexedIds();
+
+      return ids.includes(missing.id) && !ids.includes(orphan);
+    });
 
     expect(await indexedIds()).toEqual([missing.id]);
   });

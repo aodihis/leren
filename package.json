@@ -5,7 +5,7 @@
   "description": "Leren monorepo",
   "type": "module",
   "scripts": {
-    "prepare": "git config core.hooksPath .githooks",
+    "prepare": "git config core.hooksPath .githooks || true",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
