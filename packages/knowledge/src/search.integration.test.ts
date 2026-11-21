@@ -1,4 +1,4 @@
-import { autoReplyRules, knowledgeItems, users } from "@leren/db";
+import { playbooks, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createEmbedder } from "@leren/embedder";
@@ -48,7 +48,6 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
     let store: VectorStore;
     let embedder: Embedder;
     let userId: string;
-    let ruleId: string;
 
     beforeAll(async () => {
       database = await createTestDatabase();
@@ -70,29 +69,24 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
         .values({ email: `${crypto.randomUUID()}@example.com` })
         .returning({ id: users.id });
 
-      const [rule] = await database.db
-        .insert(autoReplyRules)
-        .values({ userId: user.id, name: "Holiday", timezone: "UTC" })
-        .returning({ id: autoReplyRules.id });
-
-      return { userId: user.id, ruleId: rule.id };
+      return { userId: user.id };
     }
 
     beforeEach(async () => {
       await database.db.delete(users);
       await store.deleteCollection(KNOWLEDGE_COLLECTION);
-      ({ userId, ruleId } = await createOwner());
+      ({ userId } = await createOwner());
     });
 
-    async function createIndexedItem(
-      values: Partial<typeof knowledgeItems.$inferInsert>,
-      owner: { userId: string; ruleId: string } = { userId, ruleId },
+    async function createIndexedPlaybook(
+      values: Partial<typeof playbooks.$inferInsert>,
+      owner: { userId: string } = { userId },
     ) {
-      const [item] = await database.db
-        .insert(knowledgeItems)
+      const [playbook] = await database.db
+        .insert(playbooks)
         .values({
           ...owner,
-          approvalStatus: "approved",
+          timezone: "UTC",
           topic: "Topic",
           response: "Response.",
           ...values,
@@ -102,16 +96,16 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
       await store.ensureCollection({ name: KNOWLEDGE_COLLECTION, dimensions: embedder.dimensions });
       await store.upsert(KNOWLEDGE_COLLECTION, [
         {
-          id: item.id,
-          vector: (await embedder.embed([toEmbeddingText(item)]))[0],
-          metadata: toVectorMetadata(item),
+          id: playbook.id,
+          vector: (await embedder.embed([toEmbeddingText(playbook)]))[0],
+          metadata: toVectorMetadata(playbook),
         },
       ]);
 
-      return item;
+      return playbook;
     }
 
-    function search(text: string, owner = { userId, ruleId }) {
+    function search(text: string, owner = { userId }) {
       return searchKnowledge(
         { db: database.db, store, embedder },
         { ...owner, text },
@@ -119,8 +113,8 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
       );
     }
 
-    it("finds an indexed item and returns the row from PostgreSQL", async () => {
-      const item = await createIndexedItem({
+    it("finds an indexed playbook and returns the row from PostgreSQL", async () => {
+      const playbook = await createIndexedPlaybook({
         topic: "Opening hours",
         response: "We are open from 9 to 5.",
       });
@@ -129,28 +123,28 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
 
       expect(result).toEqual({
         status: "found",
-        matches: [{ item, score: expect.any(Number) }],
+        matches: [{ playbook, score: expect.any(Number) }],
       });
     });
 
-    it("never returns the knowledge of another user or another rule", async () => {
+    it("never returns the knowledge of another user", async () => {
       const other = await createOwner();
 
-      await createIndexedItem({ topic: "Opening hours" }, other);
+      await createIndexedPlaybook({ topic: "Opening hours" }, other);
 
       expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });
       expect(await search("opening hours", other)).toMatchObject({ status: "found" });
     });
 
-    it("excludes vectors whose row is unapproved or expired", async () => {
-      await createIndexedItem({ topic: "Opening hours", approvalStatus: "draft" });
-      await createIndexedItem({ topic: "Opening hours", validUntil: PAST });
+    it("excludes vectors whose row is disabled or expired", async () => {
+      await createIndexedPlaybook({ topic: "Opening hours", enabled: false });
+      await createIndexedPlaybook({ topic: "Opening hours", endsAt: PAST });
 
       expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });
     });
 
     it("reports no reliable result for an unrelated query", async () => {
-      await createIndexedItem({ topic: "Opening hours", response: "We are open from 9 to 5." });
+      await createIndexedPlaybook({ topic: "Opening hours", response: "We are open from 9 to 5." });
 
       expect(await search("quarterly tax declaration deadline")).toEqual({
         status: "no_reliable_result",
@@ -158,14 +152,14 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
     });
 
     it("scores a labelled case as Recall@5 of 1", async () => {
-      const hours = await createIndexedItem({
+      const hours = await createIndexedPlaybook({
         topic: "Opening hours",
         response: "We are open from 9 to 5.",
       });
 
       const report = await measureRecall(
         { db: database.db, store, embedder },
-        [{ query: { userId, ruleId, text: "opening hours" }, relevantIds: [hours.id] }],
+        [{ query: { userId, text: "opening hours" }, relevantIds: [hours.id] }],
         { now: NOW },
       );
 
@@ -212,31 +206,24 @@ describe.skipIf(!embeddingApiKey)("semantic retrieval with the embedding endpoin
     await database.drop();
   });
 
-  it("ranks the paraphrased question's item first and abstains on an unrelated one", async () => {
+  it("ranks the paraphrased question's playbook first and abstains on an unrelated one", async () => {
     const [user] = await database.db
       .insert(users)
       .values({ email: `${crypto.randomUUID()}@example.com` })
       .returning({ id: users.id });
 
-    const [rule] = await database.db
-      .insert(autoReplyRules)
-      .values({ userId: user.id, name: "Holiday", timezone: "UTC" })
-      .returning({ id: autoReplyRules.id });
-
-    const owner = { userId: user.id, ruleId: rule.id };
+    const owner = { userId: user.id, timezone: "UTC" };
 
     const rows = await database.db
-      .insert(knowledgeItems)
+      .insert(playbooks)
       .values([
         {
           ...owner,
-          approvalStatus: "approved",
           topic: "Office opening hours",
           response: "The office is open Monday to Friday, 9 to 5.",
         },
         {
           ...owner,
-          approvalStatus: "approved",
           topic: "Invoice payment terms",
           response: "Invoices are due within 30 days of the invoice date.",
         },
@@ -247,10 +234,10 @@ describe.skipIf(!embeddingApiKey)("semantic retrieval with the embedding endpoin
     await store.upsert(
       KNOWLEDGE_COLLECTION,
       await Promise.all(
-        rows.map(async (item) => ({
-          id: item.id,
-          vector: (await embedder.embed([toEmbeddingText(item)]))[0],
-          metadata: toVectorMetadata(item),
+        rows.map(async (playbook) => ({
+          id: playbook.id,
+          vector: (await embedder.embed([toEmbeddingText(playbook)]))[0],
+          metadata: toVectorMetadata(playbook),
         })),
       ),
     );
@@ -264,7 +251,7 @@ describe.skipIf(!embeddingApiKey)("semantic retrieval with the embedding endpoin
       { now: NOW },
     );
 
-    expect(found.status === "found" && found.matches[0].item.id).toBe(hours.id);
+    expect(found.status === "found" && found.matches[0].playbook.id).toBe(hours.id);
 
     const report = await measureRecall(
       dependencies,

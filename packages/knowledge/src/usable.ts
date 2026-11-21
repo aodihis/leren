@@ -1,31 +1,26 @@
 /**
- * The approval state of a knowledge item. Only a person changes it, never an agent (decision 0020).
- */
-export type KnowledgeApproval = "draft" | "approved" | "archived";
-
-/**
- * The fields of a knowledge item that decide whether the assistant may use it. `validFrom` and
- * `validUntil` are instants and a missing bound is open.
+ * The fields of a playbook that decide whether the assistant may use it. `startsAt` and
+ * `endsAt` are instants and a missing bound is open.
  */
 export interface KnowledgeUsability {
-  approvalStatus: KnowledgeApproval;
-  validFrom: Date | null;
-  validUntil: Date | null;
+  enabled: boolean;
+  startsAt: Date | null;
+  endsAt: Date | null;
 }
 
 /**
- * Reports whether the assistant may use a knowledge item at `now`. An item is usable only when it
- * is approved and `now` is inside its validity window, and both bounds are inclusive. Code that
+ * Reports whether the assistant may use a playbook at `now`. A playbook is usable only when it
+ * is enabled and `now` is inside its period, and both bounds are inclusive. Code that
  * selects knowledge for a reply calls this function, so the rule is defined in one place.
  */
-export function isKnowledgeUsable(item: KnowledgeUsability, now: Date): boolean {
-  if (item.approvalStatus !== "approved") {
+export function isKnowledgeUsable(playbook: KnowledgeUsability, now: Date): boolean {
+  if (!playbook.enabled) {
     return false;
   }
 
-  if (item.validFrom && now < item.validFrom) {
+  if (playbook.startsAt && now < playbook.startsAt) {
     return false;
   }
 
-  return !item.validUntil || now <= item.validUntil;
+  return !playbook.endsAt || now <= playbook.endsAt;
 }

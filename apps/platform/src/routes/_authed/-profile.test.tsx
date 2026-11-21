@@ -8,10 +8,10 @@ const patchProfile = vi.hoisted(() => vi.fn());
 
 vi.mock("../../modules/auth/auth-client", () => ({ authClient }));
 
-const listRules = vi.hoisted(() => vi.fn());
+const listPlaybooks = vi.hoisted(() => vi.fn());
 
 vi.mock("../../modules/api/api-client", () => ({
-  api: { api: { me: { $patch: patchProfile }, "auto-reply-rules": { $get: listRules } } },
+  api: { api: { me: { $patch: patchProfile }, playbooks: { $get: listPlaybooks } } },
 }));
 
 import { renderApp } from "../../testing";
@@ -26,7 +26,7 @@ function jsonResponse(body: unknown, status: number) {
 describe("profile route", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    listRules.mockImplementation(async () => Response.json({ rules: [] }));
+    listPlaybooks.mockImplementation(async () => Response.json({ playbooks: [] }));
     authClient.getSession.mockResolvedValue({
       data: {
         user: {

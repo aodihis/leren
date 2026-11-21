@@ -6,6 +6,7 @@ dist/
 *.log
 .DS_Store
 apps/platform/src/routeTree.gen.ts
+apps/platform/.tanstack/
 coverage/
 test-results/
 playwright-report/

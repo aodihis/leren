@@ -101,7 +101,7 @@ describe("chat page", () => {
     expect(within(chats).getByRole("link", { name: "Launch dates" })).toBeTruthy();
     expect(open.getAttribute("aria-current")).toBe("page");
     expect(screen.getByRole("link", { name: "New chat" }).getAttribute("aria-current")).toBeNull();
-    expect(screen.getByRole("link", { name: "Rules" }).getAttribute("aria-current")).toBeNull();
+    expect(screen.getByRole("link", { name: "Playbooks" }).getAttribute("aria-current")).toBeNull();
     expect(await screen.findByText("Which rules exist?")).toBeTruthy();
   });
 

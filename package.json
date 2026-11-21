@@ -29,7 +29,9 @@
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "services:up": "podman compose -f docker-compose.dev.yml up -d",
     "services:down": "podman compose -f docker-compose.dev.yml down",
-    "test:e2e": "pnpm --filter @leren/e2e test"
+    "test:e2e": "pnpm --filter @leren/e2e test",
+    "db:migrate": "pnpm --filter @leren/db db:migrate",
+    "db:generate": "pnpm --filter @leren/db db:generate"
   },
   "devDependencies": {
     "@anvia/core": "^1.21.0",

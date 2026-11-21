@@ -9,12 +9,12 @@ const authClient = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 
-const rulesApi = vi.hoisted(() => ({ $get: vi.fn() }));
+const playbooksApi = vi.hoisted(() => ({ $get: vi.fn() }));
 
 vi.mock("../modules/auth/auth-client", () => ({ authClient }));
 
 vi.mock("../modules/api/api-client", () => ({
-  api: { api: { "auto-reply-rules": rulesApi } },
+  api: { api: { playbooks: playbooksApi } },
 }));
 
 import { renderApp } from "../testing";
@@ -33,11 +33,18 @@ async function submitEmail(user: ReturnType<typeof userEvent.setup>, email: stri
   await user.click(screen.getByRole("button", { name: "Send code" }));
 }
 
+async function reachCodeStep(user: ReturnType<typeof userEvent.setup>) {
+  authClient.emailOtp.sendVerificationOtp.mockResolvedValue({ error: null });
+  await renderApp("/login");
+  await submitEmail(user, "ada@example.com");
+  await screen.findByText(/We sent a 6-digit code/);
+}
+
 describe("login route", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     authClient.getSession.mockResolvedValue(NO_SESSION);
-    rulesApi.$get.mockImplementation(async () => Response.json({ rules: [] }));
+    playbooksApi.$get.mockImplementation(async () => Response.json({ playbooks: [] }));
   });
 
   it("redirects a signed-in visitor to the home page", async () => {
@@ -102,13 +109,6 @@ describe("login route", () => {
   });
 
   describe("verifying the code", () => {
-    async function reachCodeStep(user: ReturnType<typeof userEvent.setup>) {
-      authClient.emailOtp.sendVerificationOtp.mockResolvedValue({ error: null });
-      await renderApp("/login");
-      await submitEmail(user, "ada@example.com");
-      await screen.findByText(/We sent a 6-digit code/);
-    }
-
     it("signs in with the entered code and opens the home page for a named user", async () => {
       authClient.signIn.emailOtp.mockResolvedValue({
         data: { user: { firstName: "Ada" } },

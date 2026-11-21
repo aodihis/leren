@@ -47,7 +47,7 @@ describe("MCP sessions", () => {
       id: minted.sessionId,
       userId,
       role: "assistant",
-      scopes: ["knowledge:read", "knowledge:write", "rules:read", "rules:write"],
+      scopes: ["playbooks:read", "playbooks:write"],
       messageId: null,
     });
   });
@@ -56,15 +56,15 @@ describe("MCP sessions", () => {
     const minted = await mintSession(deps, {
       userId,
       role: "assistant",
-      scopes: ["rules:read"],
+      scopes: ["playbooks:read"],
     });
 
-    expect((await verifySession(deps, minted.token))?.scopes).toEqual(["rules:read"]);
+    expect((await verifySession(deps, minted.token))?.scopes).toEqual(["playbooks:read"]);
   });
 
   it("refuses a scope outside the role", async () => {
     await expect(
-      mintSession(deps, { userId, role: "reply", messageId: "m1", scopes: ["knowledge:write"] }),
+      mintSession(deps, { userId, role: "reply", messageId: "m1", scopes: ["playbooks:write"] }),
     ).rejects.toThrow("not allowed");
   });
 
@@ -141,7 +141,7 @@ describe("MCP sessions", () => {
 
     await database.db
       .update(mcpSessions)
-      .set({ scopes: ["rules:read"] })
+      .set({ scopes: ["playbooks:read"] })
       .where(eq(mcpSessions.id, minted.sessionId));
 
     expect(await verifySession(deps, minted.token)).toBeNull();

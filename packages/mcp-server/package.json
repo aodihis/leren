@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@leren/auto-reply": "workspace:*",
     "@leren/db": "workspace:*",
     "@leren/knowledge": "workspace:*",
     "@modelcontextprotocol/server": "^2.4.0",

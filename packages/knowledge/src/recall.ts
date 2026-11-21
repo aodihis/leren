@@ -6,7 +6,7 @@ import type {
 } from "./search";
 
 /**
- * A labelled retrieval case: a search and the ids of the items that a correct search returns.
+ * A labelled retrieval case: a search and the ids of the playbooks that a correct search returns.
  */
 export type RecallCase = {
   query: KnowledgeSearchQuery;
@@ -47,7 +47,9 @@ export async function measureRecall(
 
   for (const { query, relevantIds } of cases) {
     const result = await searchKnowledge(dependencies, query, options);
-    const retrieved = result.status === "found" ? result.matches.map(({ item }) => item.id) : [];
+
+    const retrieved =
+      result.status === "found" ? result.matches.map(({ playbook }) => playbook.id) : [];
 
     reports.push({
       query: query.text,

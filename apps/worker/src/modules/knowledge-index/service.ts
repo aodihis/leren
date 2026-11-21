@@ -1,4 +1,4 @@
-import { knowledgeItems } from "@leren/db";
+import { playbooks } from "@leren/db";
 import type { Db } from "@leren/db";
 import type { Embedder } from "@leren/embedder";
 import {
@@ -20,7 +20,7 @@ export type KnowledgeIndexDependencies = {
 export type SyncOutcome = "indexed" | "removed";
 
 /**
- * The differences between PostgreSQL and the vector index. `missing` lists indexable items with
+ * The differences between PostgreSQL and the vector index. `missing` lists indexable playbooks with
  * no vector, `stale` lists vectors built from an older version of their row, and `orphaned` lists
  * vectors whose row is missing or no longer indexable.
  */
@@ -36,39 +36,40 @@ export type DriftRepair = {
 };
 
 /**
- * Makes the vector index match the current state of one item. The vector id is the item id, so an
- * item has at most one vector. An indexable item is embedded and upserted, and any other state,
- * including a deleted row, removes the vector. The function reads the row and never trusts a
- * message about what changed, so running it again or out of order leaves the same result.
+ * Makes the vector index match the current state of one playbook. The vector id is the playbook
+ * id, so a playbook has at most one vector. An indexable playbook is embedded and upserted, and
+ * any other state, including a deleted row, removes the vector. The function reads the row and
+ * never trusts a message about what changed, so running it again or out of order leaves the same
+ * result.
  */
-export async function syncKnowledgeItem(
+export async function syncPlaybook(
   { db, store, embedder }: KnowledgeIndexDependencies,
-  itemId: string,
+  playbookId: string,
   options: { now?: Date; signal?: AbortSignal } = {},
 ): Promise<SyncOutcome> {
   const now = options.now ?? new Date();
 
   await store.ensureCollection({ name: KNOWLEDGE_COLLECTION, dimensions: embedder.dimensions });
 
-  const [item] = await db.select().from(knowledgeItems).where(eq(knowledgeItems.id, itemId));
+  const [playbook] = await db.select().from(playbooks).where(eq(playbooks.id, playbookId));
 
-  if (!item || !isKnowledgeIndexable(item, now)) {
-    await store.delete(KNOWLEDGE_COLLECTION, [itemId]);
+  if (!playbook || !isKnowledgeIndexable(playbook, now)) {
+    await store.delete(KNOWLEDGE_COLLECTION, [playbookId]);
 
     return "removed";
   }
 
-  const [vector] = await embedder.embed([toEmbeddingText(item)], { signal: options.signal });
+  const [vector] = await embedder.embed([toEmbeddingText(playbook)], { signal: options.signal });
 
   await store.upsert(KNOWLEDGE_COLLECTION, [
-    { id: item.id, vector, metadata: toVectorMetadata(item) },
+    { id: playbook.id, vector, metadata: toVectorMetadata(playbook) },
   ]);
 
   return "indexed";
 }
 
 /**
- * Compares every approved item with every vector. Only approved items can be indexable, so the
+ * Compares every enabled playbook with every vector. Only enabled playbooks can be indexable, so the
  * query reads those rows and any vector outside that set is orphaned. A stale vector is one whose
  * stored `updatedAt` differs from the row's.
  */
@@ -78,15 +79,15 @@ export async function checkKnowledgeDrift(
 ): Promise<KnowledgeDrift> {
   await store.ensureCollection({ name: KNOWLEDGE_COLLECTION, dimensions: embedder.dimensions });
 
-  const [approved, vectors] = await Promise.all([
-    db.select().from(knowledgeItems).where(eq(knowledgeItems.approvalStatus, "approved")),
+  const [enabled, vectors] = await Promise.all([
+    db.select().from(playbooks).where(eq(playbooks.enabled, true)),
     store.list(KNOWLEDGE_COLLECTION),
   ]);
 
   const expected = new Map(
-    approved
-      .filter((item) => isKnowledgeIndexable(item, now))
-      .map((item) => [item.id, item.updatedAt.getTime()]),
+    enabled
+      .filter((playbook) => isKnowledgeIndexable(playbook, now))
+      .map((playbook) => [playbook.id, playbook.updatedAt.getTime()]),
   );
 
   const drift: KnowledgeDrift = { missing: [], stale: [], orphaned: [] };
@@ -111,9 +112,9 @@ export async function checkKnowledgeDrift(
 }
 
 /**
- * Finds the drift and repairs every difference by synchronising the affected items one by one. An
- * item that cannot be synchronised makes the call throw, so the job is retried and the remaining
- * differences are handled on the next attempt.
+ * Finds the drift and repairs every difference by synchronising the affected playbooks one by
+ * one. A playbook that cannot be synchronised makes the call throw, so the job is retried and the
+ * remaining differences are handled on the next attempt.
  */
 export async function repairKnowledgeDrift(
   dependencies: KnowledgeIndexDependencies,
@@ -123,7 +124,7 @@ export async function repairKnowledgeDrift(
   const ids = [...drift.missing, ...drift.stale, ...drift.orphaned];
 
   for (const id of ids) {
-    await syncKnowledgeItem(dependencies, id, options);
+    await syncPlaybook(dependencies, id, options);
   }
 
   return { drift, repaired: ids.length };

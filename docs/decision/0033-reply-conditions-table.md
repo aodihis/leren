@@ -1,8 +1,9 @@
 # 0033. One reply conditions table with a channel
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-21
 - Affects: packages/db, packages/auto-reply, apps/api, apps/platform, packages/assistant-agent, docs/plans/0001-auto-reply-roadmap.md
+- Superseded by: [0035](0035-playbooks.md)
 
 ## Context
 

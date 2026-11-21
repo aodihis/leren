@@ -93,8 +93,8 @@ export async function* runAgent(options: RunAgentOptions): AsyncGenerator<AgentS
 
   try {
     if (options.memory) {
-      const prompt = [...options.messages]
-        .reverse()
+      const prompt = options.messages
+        .toReversed()
         .find((message): message is UserMessage => message.role === "user");
 
       if (!prompt) {

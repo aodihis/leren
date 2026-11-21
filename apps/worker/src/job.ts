@@ -14,7 +14,7 @@ export type JobContext = {
  * A unit of background work. `name` is the name of the queue the job consumes. Delivery is at
  * least once, so a handler must be safe to run again for the same message.
  */
-export type JobDefinition<T = any> = {
+export type JobDefinition<T = unknown> = {
   name: string;
   /** Validates the payload before the handler runs. */
   schema: ZodType<T>;

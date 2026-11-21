@@ -8,9 +8,9 @@ import type { McpConnection, McpOptions } from "@leren/agents";
  * email. The MCP server enforces scopes, and this list is a second, client-side filter.
  */
 export const allowedTools = [
-  "search_knowledge",
+  "search_playbooks",
   "get_message",
-  "list_rules",
+  "list_playbooks",
   "create_draft",
   "request_approval",
 ] as const;
