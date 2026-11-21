@@ -11,6 +11,12 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@leren/db": "workspace:*",
+    "@leren/embedder": "workspace:*",
+    "@leren/vector-db": "workspace:*",
+    "drizzle-orm": "^0.45.4"
+  },
   "devDependencies": {
     "@types/node": "^26.6.6",
     "typescript": "^7.0.2"
