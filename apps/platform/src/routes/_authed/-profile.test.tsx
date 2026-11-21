@@ -8,7 +8,11 @@ const patchProfile = vi.hoisted(() => vi.fn());
 
 vi.mock("../../modules/auth/auth-client", () => ({ authClient }));
 
-vi.mock("../../modules/api/api-client", () => ({ api: { api: { me: { $patch: patchProfile } } } }));
+const listRules = vi.hoisted(() => vi.fn());
+
+vi.mock("../../modules/api/api-client", () => ({
+  api: { api: { me: { $patch: patchProfile }, "auto-reply-rules": { $get: listRules } } },
+}));
 
 import { renderApp } from "../../testing";
 
@@ -22,6 +26,7 @@ function jsonResponse(body: unknown, status: number) {
 describe("profile route", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    listRules.mockImplementation(async () => Response.json({ rules: [] }));
     authClient.getSession.mockResolvedValue({
       data: {
         user: {
@@ -54,7 +59,7 @@ describe("profile route", () => {
     await user.type(await screen.findByLabelText("Last name"), "Lovelace");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText("Welcome to Leren")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Overview" })).toBeTruthy();
     expect(patchProfile).toHaveBeenCalledExactlyOnceWith({
       json: { firstName: "Ada", lastName: "Lovelace" },
     });
