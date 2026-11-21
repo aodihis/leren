@@ -16,6 +16,10 @@ interface RuleStatusBadgeProps {
 /**
  * A status badge for a rule. Following the design system, status colours only carry status, and
  * every badge also has a dot so that the status never depends on colour alone.
+ *
+ * The design system defines status colours for messages, not for rules. Rules follow the closest
+ * pattern: success for an active rule, info for a scheduled rule, and the subtle neutral colour for
+ * a rule that is not in effect.
  */
 export function RuleStatusBadge({ status }: RuleStatusBadgeProps) {
   const { label, className } = STATUS_BADGES[status];

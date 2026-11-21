@@ -39,15 +39,15 @@ function OverviewPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-[17px] leading-6 font-semibold">Overview</h1>
+      <h1 className="text-title font-semibold">Overview</h1>
       <section
         aria-label="Rule summary"
         className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3"
       >
         {STATS.map(({ status, label, meta }) => (
           <Card key={status} className="gap-0 p-4">
-            <div className="text-[13px] leading-[18px] text-ink-muted">{label}</div>
-            <div className="mt-1.5 text-[28px] leading-9 font-semibold tracking-tight tabular-nums">
+            <div className="text-body-sm text-ink-muted">{label}</div>
+            <div className="mt-1.5 text-display font-semibold tabular-nums">
               {rules.filter((rule) => rule.status === status).length}
             </div>
             <div className="mt-0.5 text-xs leading-4 text-ink-muted">{meta}</div>
@@ -56,7 +56,7 @@ function OverviewPage() {
       </section>
       <Card className="gap-0 py-0">
         <div className="flex items-center gap-2 border-b px-4 py-3.5">
-          <h2 className="flex-1 text-[15px] leading-[22px] font-semibold">Your rules</h2>
+          <h2 className="flex-1 text-title-sm font-semibold">Your rules</h2>
           <Button asChild variant="ghost" size="sm">
             <Link to="/auto-reply-rules">View all</Link>
           </Button>

@@ -55,13 +55,13 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-canvas p-6">
-      <div className="flex items-center gap-2.5 text-[15px] leading-[22px] font-semibold">
+      <div className="flex items-center gap-2.5 text-title-sm font-semibold">
         <Logo />
         Leren
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-[17px] leading-6">Sign in to Leren</CardTitle>
+          <CardTitle className="text-title">Sign in to Leren</CardTitle>
           <CardDescription>
             {email === null
               ? "Enter your email and we will send you a sign-in code. If you are new, the same code creates your account."

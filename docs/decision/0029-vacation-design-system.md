@@ -1,4 +1,4 @@
-# 0020. The platform follows the "I'm on Vacation" design system
+# 0029. The platform follows the "I'm on Vacation" design system
 
 - Status: Accepted
 - Date: 2026-11-20

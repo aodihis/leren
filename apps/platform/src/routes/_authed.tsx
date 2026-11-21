@@ -16,18 +16,17 @@ import {
   SlidersHorizontalIcon,
   UserIcon,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 
 import { authClient } from "../modules/auth/auth-client";
 import { Logo } from "../modules/layout/components/logo";
 
-const NAV_ITEMS: { to: string; label: string; icon: LucideIcon }[] = [
+const NAV_ITEMS = [
   { to: "/", label: "Overview", icon: HouseIcon },
   { to: "/auto-reply-rules", label: "Rules", icon: SlidersHorizontalIcon },
   { to: "/profile", label: "Profile", icon: UserIcon },
   { to: "/about", label: "About", icon: InfoIcon },
-];
+] as const;
 
 export const Route = createFileRoute("/_authed")({
   beforeLoad: async () => {
@@ -58,7 +57,7 @@ function AuthedLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-canvas">
       <aside
-        aria-label="Main"
+        aria-label="Sidebar"
         className="hidden w-sidebar-rail flex-none md:flex lg:w-sidebar max-lg:[&_[data-label]]:sr-only"
       >
         <SidebarContent />
@@ -91,7 +90,7 @@ function AuthedLayout() {
 
 function BrandName() {
   return (
-    <div className="flex items-center gap-2.5 px-1.5 text-[15px] leading-[22px] font-semibold">
+    <div className="flex items-center gap-2.5 px-1.5 text-title-sm font-semibold">
       <Logo />
       <span data-label>Leren</span>
     </div>
@@ -147,7 +146,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
         >
           {displayName.slice(0, 2).toUpperCase()}
         </span>
-        <div data-label className="min-w-0 flex-1 text-[13px] leading-[18px]">
+        <div data-label className="min-w-0 flex-1 text-body-sm">
           <div className="truncate font-semibold">{displayName}</div>
           {user.name && <div className="truncate text-ink-muted">{user.email}</div>}
         </div>
