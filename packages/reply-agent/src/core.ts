@@ -1,7 +1,6 @@
 import type { AgentPrompt, MemoryScope } from "@anvia/core";
 import { createAgent } from "@leren/agents";
 import type { CreateAgentOptions, McpOptions } from "@leren/agents";
-import { instructions } from "./instructions";
 import { tools } from "./tools";
 import { connectReplyMcp } from "./utils/mcp";
 
@@ -13,6 +12,7 @@ export interface RunAgentOptions extends Pick<
   CreateAgentOptions,
   "model" | "observer" | "tools" | "memory"
 > {
+  readonly instructions: string;
   readonly prompt: AgentPrompt;
   readonly mcp?: McpOptions | undefined;
   readonly session?: MemoryScope | undefined;
@@ -36,7 +36,7 @@ export async function runAgent(options: RunAgentOptions): Promise<string> {
       id: AGENT_ID,
       maxTurns: MAX_TURNS,
       model: options.model,
-      instructions,
+      instructions: options.instructions,
       observer: options.observer,
       mcpServers: connection?.servers,
       tools: [...tools, ...(options.tools ?? [])],
