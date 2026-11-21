@@ -287,5 +287,13 @@ describe.skipIf(!embeddingApiKey)("semantic retrieval with the embedding endpoin
         { now: NOW },
       ),
     ).toEqual({ status: "no_reliable_result" });
+
+    expect(
+      await searchKnowledge(
+        dependencies,
+        { ...owner, text: "quarterly tax declaration deadline" },
+        { now: NOW },
+      ),
+    ).toEqual({ status: "no_reliable_result" });
   });
 });
