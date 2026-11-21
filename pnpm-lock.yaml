@@ -308,6 +308,19 @@ importers:
         version: 7.0.2
 
   packages/knowledge:
+    dependencies:
+      '@leren/db':
+        specifier: workspace:*
+        version: link:../db
+      '@leren/embedder':
+        specifier: workspace:*
+        version: link:../embedder
+      '@leren/vector-db':
+        specifier: workspace:*
+        version: link:../vector-db
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
     devDependencies:
       '@types/node':
         specifier: ^26.6.6
