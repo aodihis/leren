@@ -36,10 +36,11 @@ export type DriftRepair = {
 };
 
 /**
- * Makes the vector index match the current state of one playbook. The vector id is the playbook id, so an
- * playbook has at most one vector. An indexable playbook is embedded and upserted, and any other state,
- * including a deleted row, removes the vector. The function reads the row and never trusts a
- * message about what changed, so running it again or out of order leaves the same result.
+ * Makes the vector index match the current state of one playbook. The vector id is the playbook
+ * id, so a playbook has at most one vector. An indexable playbook is embedded and upserted, and
+ * any other state, including a deleted row, removes the vector. The function reads the row and
+ * never trusts a message about what changed, so running it again or out of order leaves the same
+ * result.
  */
 export async function syncPlaybook(
   { db, store, embedder }: KnowledgeIndexDependencies,
@@ -111,9 +112,9 @@ export async function checkKnowledgeDrift(
 }
 
 /**
- * Finds the drift and repairs every difference by synchronising the affected playbooks one by one. An
- * playbook that cannot be synchronised makes the call throw, so the job is retried and the remaining
- * differences are handled on the next attempt.
+ * Finds the drift and repairs every difference by synchronising the affected playbooks one by
+ * one. A playbook that cannot be synchronised makes the call throw, so the job is retried and the
+ * remaining differences are handled on the next attempt.
  */
 export async function repairKnowledgeDrift(
   dependencies: KnowledgeIndexDependencies,

@@ -73,7 +73,7 @@ User ─▶ platform chat ─▶ api ─▶ Assistant Agent
                             MCP server (in api) ─▶ services ─▶ PostgreSQL / Qdrant
 ```
 
-The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes playbooks through the same services the UI uses. The assistant asks for confirmation in the chat before it saves anything. Every write needs the user's confirmation in the chat (decisions 0032 and 0034). The chat is a full page that the sidebar opens with New chat. The sidebar lists earlier chats below the menu, and a chat's history is the agent's memory (decision 0034).
+The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes playbooks through the same services the UI uses. The assistant asks for confirmation in the chat before it saves anything. That is a rule in its prompt and code does not enforce it (decisions 0034 and 0036). The chat is a full page that the sidebar opens with New chat. The sidebar lists earlier chats below the menu, and a chat's history is the agent's memory (decision 0034).
 
 ## Flow B: incoming email
 
@@ -127,7 +127,7 @@ The MCP server lives in `api` and exposes tools, resources and prompts. It is th
 
 - **Scopes.** Tools are grouped into scopes such as `playbooks:read`, `playbooks:write` and `reply:draft`. A session receives only the scopes granted to its client. The Assistant Agent and the Reply Agent are built-in clients with fixed scopes.
 - **Neutral tools.** Tool names and schemas do not depend on our prompts or agent framework.
-- **Confirmed writes.** The assistant's write tools need the user's confirmation before they run. No agent can send email.
+- **Confirmed writes.** The assistant asks the user to confirm in the chat before it calls a write tool. This is a prompt rule and not a mechanism, and a playbook it saves takes effect at once. No agent can send email.
 
 ### Sessions and security
 

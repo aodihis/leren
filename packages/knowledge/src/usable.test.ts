@@ -8,7 +8,7 @@ const endsAt = new Date("2026-12-10T00:00:00Z");
 describe("isKnowledgeUsable", () => {
   it.each([
     ["a disabled item inside its window", false, startsAt, endsAt, "2026-12-05T00:00:00Z", false],
-    ["a disabled item inside its window", false, null, null, "2026-12-05T00:00:00Z", false],
+    ["a disabled item with no bounds", false, null, null, "2026-12-05T00:00:00Z", false],
     ["an enabled item before its window", true, startsAt, endsAt, "2026-11-30T23:59:59Z", false],
     ["an enabled item at the start instant", true, startsAt, endsAt, "2026-12-01T00:00:00Z", true],
     ["an enabled item inside its window", true, startsAt, endsAt, "2026-12-05T00:00:00Z", true],

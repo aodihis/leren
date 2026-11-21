@@ -85,10 +85,10 @@ function fromUpdate(result: Awaited<ReturnType<typeof updatePlaybook>>): McpWrit
 /**
  * Builds the tools that let the Assistant Agent create and change playbooks on behalf of the
  * session's user. Each tool validates the complete result with the same schema as the web API and
- * calls the same service, so a playbook saved here is the same as one saved in the interface. Every
- * call of a write tool needs the user's confirmation in the agent runtime (decision 0032).
- * `requestIndex` asks for the vector index of a written playbook to be
- * updated, as the web API does.
+ * calls the same service, so a playbook saved here is the same as one saved in the interface. The
+ * assistant asks for the user's confirmation in the conversation before it calls a write tool, and
+ * nothing in code enforces that (decision 0036). `requestIndex` asks for the vector index of a
+ * written playbook to be updated, as the web API does.
  */
 export function createPlaybookMcpActions(
   db: Db,

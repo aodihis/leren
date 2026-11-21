@@ -1,8 +1,9 @@
 # 0034. The assistant chat uses Anvia's client protocol and Anvia memory, and confirms writes in the conversation
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-21
 - Affects: apps/api, apps/platform, packages/assistant-agent, packages/db, prompts/assistant.md, docs/overview/README.md, docs/rules/backend.md, docs/rules/frontend.md
+- Superseded by: [0036](0036-playbooks-enabled-or-disabled.md)
 
 ## Context
 
