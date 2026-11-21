@@ -116,6 +116,10 @@ Only approved knowledge whose validity window has not ended is searchable. Each 
 
 When the API creates, edits, approves, archives, restores or deletes an item, it publishes the item id to `knowledge.index`. The worker reads the current row and makes the index match it, so a repeated or reordered message does no harm. A periodic `knowledge.drift` job compares PostgreSQL with Qdrant, repairs any difference and removes the vectors of expired items. Embeddings come from an OpenAI-compatible endpoint, which is OpenRouter by default (decision 0024).
 
+## Knowledge retrieval
+
+`searchKnowledge` embeds a message and returns up to five knowledge items for one user and one rule, best match first, or an explicit `no_reliable_result` when nothing usable scores above the threshold. The index only proposes candidates. PostgreSQL decides whether each one exists, is approved and is valid now, and supplies the content that is returned (decision 0028).
+
 ## MCP server
 
 The MCP server lives in `api` and exposes tools, resources and prompts. It is the integration surface of the system. It is not private to the two built-in agents, so a user could later connect their own agent instead of using the assistant.

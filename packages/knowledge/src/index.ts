@@ -15,3 +15,18 @@ export type {
   KnowledgeIndexMessage,
   KnowledgeVectorMetadata,
 } from "./indexing";
+
+export { DEFAULT_MIN_SCORE, KNOWLEDGE_SEARCH_LIMIT, searchKnowledge } from "./search";
+
+export type {
+  KnowledgeItemRow,
+  KnowledgeMatch,
+  KnowledgeSearchDependencies,
+  KnowledgeSearchOptions,
+  KnowledgeSearchQuery,
+  KnowledgeSearchResult,
+} from "./search";
+
+export { measureRecall, recallAtK } from "./recall";
+
+export type { RecallCase, RecallReport } from "./recall";
