@@ -104,12 +104,12 @@ Status: In progress. Branch: `feat/08-retrieval`.
 
 ### F09 MCP server and sessions
 
-Status: Todo. Branch: `feat/09-mcp-server`.
+Status: In progress. Branch: `feat/09-mcp-server`.
 
-- [ ] Add `packages/mcp-server`, mounted by `apps/api`.
-- [ ] Mint user-bound session tokens with scopes, expiry and revocation. Write an audit log.
-- [ ] Add scope-gated tools, resources and prompts with agent-neutral names.
-- [ ] Integration tests for every tool: valid input, invalid input, missing scope, another user's token, expired and replayed tokens.
+- [x] Add `packages/mcp-server`, mounted by `apps/api` (ADR 0031).
+- [x] Mint user-bound session tokens with scopes, expiry and revocation. Write an audit log.
+- [x] Add scope-gated tools, resources and prompts with agent-neutral names.
+- [x] Integration tests for every tool: valid input, invalid input, missing scope, another user's token, expired and replayed tokens.
 
 ### F10 Assistant Agent
 
@@ -209,7 +209,7 @@ F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delaye
 | F06     | Knowledge management         | Todo        |                                                                                              |
 | F07     | Indexing pipeline            | Todo        |                                                                                              |
 | F08     | Retrieval                    | In progress |                                                                                              |
-| F09     | MCP server and sessions      | Todo        |                                                                                              |
+| F09     | MCP server and sessions      | In progress |                                                                                              |
 | F10     | Assistant Agent              | Todo        |                                                                                              |
 | F11     | Routing rules                | Todo        |                                                                                              |
 | F12a    | Channel accounts             | Todo        |                                                                                              |

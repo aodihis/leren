@@ -7,6 +7,8 @@ const validEnv = {
   BETTER_AUTH_SECRET: "x".repeat(32),
   RABBITMQ_URL: "amqp://leren:leren@localhost:56720",
   SMTP_URL: "smtp://localhost:51025",
+  MCP_SESSION_SECRET: "m".repeat(32),
+  VECTOR_STORE_URL: "http://localhost:16333",
 };
 
 describe("loadConfig", () => {
@@ -19,7 +21,7 @@ describe("loadConfig", () => {
 
   it("lists every invalid variable in one error", () => {
     expect(() => loadConfig({ BETTER_AUTH_SECRET: "short" })).toThrow(
-      /DATABASE_URL[\s\S]*BETTER_AUTH_SECRET[\s\S]*RABBITMQ_URL[\s\S]*SMTP_URL/,
+      /DATABASE_URL[\s\S]*BETTER_AUTH_SECRET[\s\S]*MCP_SESSION_SECRET[\s\S]*RABBITMQ_URL[\s\S]*SMTP_URL/,
     );
   });
 });

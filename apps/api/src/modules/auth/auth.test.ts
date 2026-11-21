@@ -12,6 +12,8 @@ import { createAuth, formatDisplayName } from "./service";
 
 const ORIGIN = "http://localhost:5173";
 
+const MCP_SECRET = "an-mcp-test-secret-of-at-least-32-chars";
+
 function createSilentLogger(): Logger {
   const logger: Logger = {
     debug: vi.fn(),
@@ -82,7 +84,13 @@ describe("email code authentication", () => {
       trustedOrigins: [ORIGIN],
     });
 
-    app = createApp({ auth, db: database.db, logger, requestKnowledgeIndex: vi.fn() });
+    app = createApp({
+      auth,
+      db: database.db,
+      logger,
+      requestKnowledgeIndex: vi.fn(),
+      mcp: { secret: MCP_SECRET },
+    });
   });
 
   afterAll(async () => {

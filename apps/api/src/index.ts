@@ -1,9 +1,13 @@
 import { serve } from "@hono/node-server";
+import { resolveEmbeddingModel } from "@leren/agents";
 import { createDb } from "@leren/db";
 import { createSmtpEmailSender } from "@leren/email";
+import { createEmbedder } from "@leren/embedder";
 import { createLogger } from "@leren/logger";
 import { createRabbitMqQueue } from "@leren/queue";
+import { createVectorStore } from "@leren/vector-db";
 
+import harness from "../../../harness.config";
 import { createApp } from "./app";
 import type { AppType } from "./app";
 import { loadConfig } from "./config";
@@ -37,11 +41,36 @@ const auth = createAuth({
   emailSender,
 });
 
+/**
+ * Builds the collaborators of the `search_knowledge` tool. Search is optional, so a deployment
+ * without an embedding key still serves every other tool.
+ */
+function createSearchDependencies() {
+  try {
+    const model = resolveEmbeddingModel(harness);
+
+    return {
+      store: createVectorStore({ url: config.VECTOR_STORE_URL }),
+      embedder: createEmbedder({
+        baseUrl: model.definition.baseUrl,
+        apiKey: model.apiKey,
+        model: model.definition.modelId,
+        dimensions: model.definition.dimensions,
+      }),
+    };
+  } catch (error) {
+    logger.warn("Knowledge search is disabled for MCP", { error });
+
+    return undefined;
+  }
+}
+
 const app = createApp({
   auth,
   db,
   logger,
   requestKnowledgeIndex: createKnowledgeIndexRequester(queue, logger),
+  mcp: { secret: config.MCP_SESSION_SECRET, search: createSearchDependencies() },
 });
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {

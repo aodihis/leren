@@ -40,6 +40,8 @@ export default defineConfig({
         BETTER_AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000",
         RABBITMQ_URL,
         SMTP_URL,
+        MCP_SESSION_SECRET: "e2e-mcp-secret-e2e-mcp-secret-0000",
+        VECTOR_STORE_URL: "http://localhost:16333",
         LOG_LEVEL: "warn",
       },
     },

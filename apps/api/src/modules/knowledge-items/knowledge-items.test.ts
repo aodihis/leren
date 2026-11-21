@@ -15,6 +15,8 @@ const MISSING_ID = "00000000-0000-4000-8000-000000000000";
 const PAST = "2000-01-01T00:00:00.000Z";
 const FUTURE = "2999-01-01T00:00:00.000Z";
 
+const MCP_SECRET = "an-mcp-test-secret-of-at-least-32-chars";
+
 function createSilentLogger(): Logger {
   const logger: Logger = {
     debug: vi.fn(),
@@ -131,7 +133,13 @@ describe("knowledge items API", () => {
       trustedOrigins: [ORIGIN],
     });
 
-    app = createApp({ auth, db: database.db, logger, requestKnowledgeIndex });
+    app = createApp({
+      auth,
+      db: database.db,
+      logger,
+      requestKnowledgeIndex,
+      mcp: { secret: MCP_SECRET },
+    });
   });
 
   afterAll(async () => {

@@ -12,6 +12,8 @@ import type { AutoReplyRuleInput } from "./schema";
 const ORIGIN = "http://localhost:5173";
 const PATH = "/api/auto-reply-rules";
 
+const MCP_SECRET = "an-mcp-test-secret-of-at-least-32-chars";
+
 function createSilentLogger(): Logger {
   const logger: Logger = {
     debug: vi.fn(),
@@ -99,7 +101,13 @@ describe("auto-reply rules API", () => {
       trustedOrigins: [ORIGIN],
     });
 
-    app = createApp({ auth, db: database.db, logger, requestKnowledgeIndex: vi.fn() });
+    app = createApp({
+      auth,
+      db: database.db,
+      logger,
+      requestKnowledgeIndex: vi.fn(),
+      mcp: { secret: MCP_SECRET },
+    });
   });
 
   afterAll(async () => {

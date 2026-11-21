@@ -1,4 +1,14 @@
-import { boolean, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 /**
  * Application users. The shape follows Better Auth's `user` model, with `firstName` and
@@ -173,5 +183,79 @@ export const knowledgeItems = pgTable(
   (table) => [
     index("knowledge_items_user_id_idx").on(table.userId),
     index("knowledge_items_rule_id_idx").on(table.ruleId),
+  ],
+);
+
+export const mcpClientRoleEnum = pgEnum("mcp_client_role", ["assistant", "reply"]);
+
+/**
+ * MCP sessions. The id is the `jti` of the signed token, so a token is valid only while its row
+ * exists, has not expired and is not revoked. `scopes` is the set granted at minting time and
+ * `messageId` is set only for a reply session. A session is removed with its user.
+ */
+export const mcpSessions = pgTable(
+  "mcp_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: mcpClientRoleEnum("role").notNull(),
+    scopes: text("scopes").array().notNull(),
+    messageId: text("message_id"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("mcp_sessions_user_id_idx").on(table.userId)],
+);
+
+/**
+ * One row for each MCP tool call. `summary` holds the redacted arguments and never a token or a
+ * knowledge body. `sessionId` is not a foreign key, so the log outlives its session.
+ */
+export const mcpAuditLog = pgTable(
+  "mcp_audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").notNull(),
+    tool: text("tool").notNull(),
+    outcome: text("outcome").notNull(),
+    summary: jsonb("summary").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("mcp_audit_log_user_id_idx").on(table.userId)],
+);
+
+export const proposalStatusEnum = pgEnum("proposal_status", ["pending", "accepted", "rejected"]);
+
+/**
+ * A suggested change to the knowledge, made through MCP. `itemId` is null for a new item. The
+ * proposal never changes `knowledge_items`. `idempotencyKey` is unique within a session, so a
+ * repeated call returns the same proposal.
+ */
+export const knowledgeProposals = pgTable(
+  "knowledge_proposals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").notNull(),
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => autoReplyRules.id, { onDelete: "cascade" }),
+    itemId: uuid("item_id").references(() => knowledgeItems.id, { onDelete: "cascade" }),
+    idempotencyKey: text("idempotency_key").notNull(),
+    proposal: jsonb("proposal").$type<Record<string, unknown>>().notNull(),
+    status: proposalStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("knowledge_proposals_user_id_idx").on(table.userId),
+    unique("knowledge_proposals_session_key_unique").on(table.sessionId, table.idempotencyKey),
   ],
 );
