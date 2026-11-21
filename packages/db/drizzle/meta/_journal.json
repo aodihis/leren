@@ -64,6 +64,13 @@
       "when": 1795251181649,
       "tag": "0008_drop_email_reply_conditions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795254841031,
+      "tag": "0009_assistant_chat_memory",
+      "breakpoints": true
     }
   ]
 }

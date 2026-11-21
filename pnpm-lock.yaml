@@ -50,6 +50,18 @@ importers:
 
   apps/api:
     dependencies:
+      '@anvia/client':
+        specifier: ^1.9.0
+        version: 1.9.0(@anvia/core@1.21.0(zod@4.6.7))
+      '@anvia/core':
+        specifier: ^1.21.0
+        version: 1.21.0(zod@4.6.7)
+      '@anvia/memory-drizzle':
+        specifier: ^1.2.1
+        version: 1.2.1(@anvia/core@1.21.0(zod@4.6.7))(drizzle-orm@0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))
+      '@anvia/server':
+        specifier: ^1.5.0
+        version: 1.5.0(@anvia/client@1.9.0(@anvia/core@1.21.0(zod@4.6.7)))
       '@hono/node-server':
         specifier: ^2.1.9
         version: 2.1.9(hono@4.13.19)
@@ -59,6 +71,9 @@ importers:
       '@leren/agents':
         specifier: workspace:*
         version: link:../../packages/agents
+      '@leren/assistant-agent':
+        specifier: workspace:*
+        version: link:../../packages/assistant-agent
       '@leren/auto-reply':
         specifier: workspace:*
         version: link:../../packages/auto-reply
@@ -80,6 +95,9 @@ importers:
       '@leren/mcp-server':
         specifier: workspace:*
         version: link:../../packages/mcp-server
+      '@leren/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@leren/queue':
         specifier: workspace:*
         version: link:../../packages/queue
@@ -111,6 +129,15 @@ importers:
 
   apps/platform:
     dependencies:
+      '@anvia/client':
+        specifier: ^1.9.0
+        version: 1.9.0(@anvia/core@1.21.0(zod@4.6.7))
+      '@anvia/core':
+        specifier: ^1.21.0
+        version: 1.21.0(zod@4.6.7)
+      '@anvia/react':
+        specifier: ^1.2.0
+        version: 1.2.0(@anvia/client@1.9.0(@anvia/core@1.21.0(zod@4.6.7)))(@anvia/core@1.21.0(zod@4.6.7))(@anvia/graph@1.2.0(@anvia/core@1.21.0(zod@4.6.7))(zod@4.6.7))(react@19.3.1)
       '@hookform/resolvers':
         specifier: ^7.0.7
         version: 7.0.7(@standard-schema/spec@1.1.0)(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(zod@4.6.7)
@@ -145,6 +172,12 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@anvia/server':
+        specifier: ^1.5.0
+        version: 1.5.0(@anvia/client@1.9.0(@anvia/core@1.21.0(zod@4.6.7)))
+      '@leren/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@tailwindcss/vite':
         specifier: ^4.3.5
         version: 4.3.5(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
@@ -280,6 +313,12 @@ importers:
 
   packages/db:
     dependencies:
+      '@anvia/core':
+        specifier: ^1.21.0
+        version: 1.21.0(zod@4.6.7)
+      '@anvia/memory-drizzle':
+        specifier: ^1.2.1
+        version: 1.2.1(@anvia/core@1.21.0(zod@4.6.7))(drizzle-orm@0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
@@ -624,6 +663,13 @@ packages:
     engines: {node: '>=20'}
     peerDependencies:
       '@anvia/core': ^1.18.0
+
+  '@anvia/memory-drizzle@1.2.1':
+    resolution: {integrity: sha512-RoeFue4A/KerjD4QwC/QcjgJT7wWHKfQcmffEoTrE2A7nnNDI0O6jlldgbnxhKofFmYC6jYRZaHhOb5zE+MdxQ==}
+    hasBin: true
+    peerDependencies:
+      '@anvia/core': ^1.20.0
+      drizzle-orm: '>=0.45.3 <1.0.0'
 
   '@anvia/openai@1.3.8':
     resolution: {integrity: sha512-G6VPoTvivqIs4Liyso6ESxPiGIfA7FQDaIT3OaOJvjjw5DI84MHryLANmxSJjOHvlGfpadzSBcwjJeK/LHaMyg==}
@@ -5061,6 +5107,11 @@ snapshots:
       '@anvia/core': 1.21.0(zod@4.6.7)
       '@modelcontextprotocol/client': 2.4.0
       undici: 8.12.4
+
+  '@anvia/memory-drizzle@1.2.1(@anvia/core@1.21.0(zod@4.6.7))(drizzle-orm@0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))':
+    dependencies:
+      '@anvia/core': 1.21.0(zod@4.6.7)
+      drizzle-orm: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
 
   '@anvia/openai@1.3.8(@anvia/core@1.21.0(zod@4.6.7))(undici@8.12.4)(ws@8.23.0)(zod@4.6.7)':
     dependencies:

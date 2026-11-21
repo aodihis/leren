@@ -1,6 +1,6 @@
 import { loadHarness } from "@leren/agents";
 import { createObserver } from "@leren/observability";
-import { runAgent } from "./core";
+import { runAgent } from "./agent";
 
 /**
  * Runs the Assistant Agent from the command line and prints its answer as it streams.
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
 
   try {
     const events = runAgent({
-      prompt,
+      messages: [{ role: "user", content: prompt }],
       instructions: await harness.readPrompt("assistant"),
       model: harness.createModel("assistant"),
       observer,

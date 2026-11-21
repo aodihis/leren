@@ -7,7 +7,15 @@ import {
   SheetTrigger,
   cn,
 } from "@leren/ui";
-import { Link, Outlet, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  redirect,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 import {
   BookOpenIcon,
   HouseIcon,
@@ -15,10 +23,13 @@ import {
   LogOutIcon,
   MenuIcon,
   SlidersHorizontalIcon,
+  SquarePenIcon,
   UserIcon,
 } from "lucide-react";
 import { useState } from "react";
 
+import { api } from "../modules/api/api-client";
+import { ChatHistory } from "../modules/assistant/components/chat-history";
 import { authClient } from "../modules/auth/auth-client";
 import { Logo } from "../modules/layout/components/logo";
 
@@ -44,6 +55,19 @@ export const Route = createFileRoute("/_authed")({
 
     return { user: data.user };
   },
+  loader: async () => {
+    try {
+      const response = await api.api.assistant.$get();
+
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch {
+      return { available: false, conversations: [] };
+    }
+
+    return { available: false, conversations: [] };
+  },
   component: AuthedLayout,
 });
 
@@ -54,7 +78,9 @@ export const Route = createFileRoute("/_authed")({
  * tree because they are visually hidden, not removed.
  */
 function AuthedLayout() {
+  const pathname = useLocation({ select: (location) => location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
+  const isChat = pathname === "/chat" || pathname.startsWith("/chat/");
 
   return (
     <div className="flex h-screen overflow-hidden bg-canvas">
@@ -80,11 +106,17 @@ function AuthedLayout() {
           </Sheet>
           <BrandName />
         </header>
-        <main className="min-h-0 flex-1 overflow-auto p-6">
-          <div className="mx-auto max-w-280">
+        {isChat ? (
+          <main className="min-h-0 flex-1 overflow-hidden">
             <Outlet />
-          </div>
-        </main>
+          </main>
+        ) : (
+          <main className="min-h-0 flex-1 overflow-auto p-6">
+            <div className="mx-auto max-w-280">
+              <Outlet />
+            </div>
+          </main>
+        )}
       </div>
     </div>
   );
@@ -109,6 +141,8 @@ interface SidebarContentProps {
  */
 function SidebarContent({ onNavigate }: SidebarContentProps) {
   const { user } = Route.useRouteContext();
+  const { conversations } = Route.useLoaderData();
+  const { sessionId } = useParams({ strict: false });
   const navigate = useNavigate();
   const displayName = user.name || user.email;
 
@@ -141,7 +175,23 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
           </Link>
         ))}
       </nav>
-      <div className="mt-auto flex items-center gap-2.5 border-t p-3 max-lg:md:flex-col">
+      <div className="px-3 py-1">
+        <Link
+          to="/chat"
+          activeOptions={{ exact: true }}
+          onClick={onNavigate}
+          className={cn(
+            "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium text-ink outline-none",
+            "hover:bg-subtle focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            "max-lg:md:justify-center",
+          )}
+        >
+          <SquarePenIcon className="size-4.5 flex-none" strokeWidth={1.75} aria-hidden="true" />
+          <span data-label>New chat</span>
+        </Link>
+      </div>
+      <ChatHistory conversations={conversations} activeId={sessionId} onNavigate={onNavigate} />
+      <div className="flex items-center gap-2.5 border-t p-3 max-lg:md:flex-col">
         <span
           className="grid size-8 flex-none place-items-center rounded-full bg-sand text-xs font-semibold text-ink"
           aria-hidden="true"

@@ -1,6 +1,6 @@
 import { loadHarness } from "@leren/agents";
 import { createObserver } from "@leren/observability";
-import { runAgent } from "./core";
+import { runAgent } from "./agent";
 
 /**
  * Runs the Reply Agent from the command line on one email text and prints the answer.

@@ -1,8 +1,9 @@
 # 0032. The Assistant Agent creates and changes rules and knowledge, with confirmation
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-21
 - Affects: packages/mcp-server, packages/agents, packages/assistant-agent, apps/api, prompts/assistant.md, docs/overview/README.md, docs/rules/backend.md
+- Superseded by: [0034](0034-assistant-chat-over-anvia-protocol.md)
 
 ## Context
 

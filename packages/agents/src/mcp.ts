@@ -9,6 +9,13 @@ export interface McpConnectionOptions {
   /** The allowed tools whose every call needs the user's approval before it runs. */
   readonly approvalTools?: readonly string[] | undefined;
   readonly abortSignal?: McpConnectOptions["abortSignal"];
+  /**
+   * Whether the library refuses URLs that resolve to loopback or private addresses. It defaults
+   * to `strict`. Only the address of Leren's own MCP endpoint, which comes from deployment
+   * configuration, may use `disabled`. A server that a user or an administrator supplies must
+   * keep `strict`, so that it cannot be used to reach internal services.
+   */
+  readonly ssrfProtection?: "strict" | "disabled" | undefined;
 }
 
 /** The part of the connection that identifies the server and the user's session. */
@@ -54,6 +61,7 @@ export async function connectMcp(options: McpConnectionOptions): Promise<McpConn
     transport: {
       type: "streamableHttp",
       url: options.url,
+      ssrfProtection: options.ssrfProtection ?? "strict",
       headers: { Authorization: `Bearer ${options.token}` },
     },
   });
