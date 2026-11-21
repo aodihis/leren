@@ -1,8 +1,9 @@
 # 0008. MCP server hosted in the API, with user-bound sessions and scopes
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-19
 - Affects: apps/api, packages/mcp-server, packages/agents, docs/rules/backend.md, docs/overview/README.md
+- Superseded by: [0032](0032-assistant-writes-with-confirmation.md)
 
 ## Context
 

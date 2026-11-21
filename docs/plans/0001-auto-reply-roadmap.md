@@ -68,7 +68,7 @@ Status: Done. Branch: `feat/05-auto-reply-rules`. PR: [#10](https://github.com/a
 
 - [x] Add ADR 0019, which supersedes 0007 and splits channel conditions from the rule.
 - [x] Add the `auto_reply_rules` table: user, name, enabled, `starts_at`, `ends_at`, timezone. No status column.
-- [x] Add the `email_reply_conditions` table: sender, recipient role, sole recipient, mention, thread and bulk mail options.
+- [x] Add the reply conditions table (now `reply_conditions` with a channel, ADR 0033) with the email settings: sender, recipient role, sole recipient, mention, thread and bulk mail options.
 - [x] Add `@leren/auto-reply` with a pure `getAutoReplyStatus(rule, now)` and email condition evaluation, with tests for timezones, open bounds and each condition.
 - [x] Add the API module and the platform form and list, which show the derived status.
 
@@ -115,10 +115,11 @@ Status: In progress. Branch: `feat/09-mcp-server`.
 
 Status: Todo. Branch: `feat/10-assistant-agent`.
 
-- [ ] Add the Anvia agent with read tools, `suggest_questions` and `propose_knowledge_edit`.
+- [x] Add the Anvia agent with read tools and confirmed write tools for rules and knowledge (ADR 0032).
+- [x] Add the `structure-knowledge` skill and the assistant prompt, tried in Anvia Studio (`pnpm studio:assistant`).
 - [ ] Add the chat panel to the knowledge and rules screens, with accept actions that use the normal API.
 - [ ] Confirm the UI works fully without the assistant.
-- [ ] Document upload and extraction (PDF, TXT, DOCX, up to 20 files), in a follow-up pull request if large.
+- [ ] Document upload and extraction (PDF, TXT, DOCX, up to 20 files). Deferred: not part of F10.
 
 ### F11 Routing rules
 
@@ -133,7 +134,7 @@ Status: Todo. Branch: `feat/11-routing-rules`.
 Status: Todo. Branch: `feat/12a-channel-accounts`.
 
 - [ ] Add an ADR for the first OAuth provider, its scopes and the token encryption key.
-- [ ] Add the `channel_accounts` table and a nullable `channel_account_id` on `email_reply_conditions` (ADR 0021).
+- [ ] Add the `channel_accounts` table and a nullable `channel_account_id` on `reply_conditions` (ADRs 0021 and 0033).
 - [ ] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
 - [ ] Add the platform screen to connect and disconnect the account, and let a rule choose it.
 - [ ] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.

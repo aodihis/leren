@@ -46,7 +46,7 @@ interface SwitchFieldProps {
 }
 
 /**
- * The API reports a nested validation failure under its top-level key, so a failure under `email`
+ * The API reports a nested validation failure under its top-level key, so a failure under `conditions`
  * is shown at the only nested field that the user can get wrong, the sender allowlist.
  */
 const ERROR_FIELDS = {
@@ -54,7 +54,7 @@ const ERROR_FIELDS = {
   startsAt: "startsAt",
   endsAt: "endsAt",
   timezone: "timezone",
-  email: "email.senderAllowlist",
+  conditions: "email.senderAllowlist",
 } as const;
 
 /**

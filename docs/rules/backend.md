@@ -19,7 +19,7 @@ Each feature lives in `apps/api/src/modules/:module-name/`:
 - Do not import another module's `router.ts` or `service.ts` internals. Move shared code to a package.
 - Mount each module's router in `createApp` in `src/app.ts`.
 - Protect a route that serves user data with `requireUser` from the `auth` module and scope every query by `c.get("userId")`. See [0013](../decision/0013-better-auth-email-code.md).
-- The `/mcp` route does not use `requireUser`. It accepts only a bearer session token, which `@leren/mcp-server` verifies against `mcp_sessions`. Routes that mint or revoke those sessions use `requireUser`. See [0031](../decision/0031-mcp-sessions-audit-and-proposals.md).
+- The `/mcp` route does not use `requireUser`. It accepts only a bearer session token, which `@leren/mcp-server` verifies against `mcp_sessions`. Routes that mint or revoke those sessions use `requireUser`. See [0031](../decision/0031-mcp-sessions-audit-and-proposals.md) and [0032](../decision/0032-assistant-writes-with-confirmation.md). Tools that change data call the same services as the routes. Each module builds its own in `mcp-actions.ts`, and `createApp` composes them and passes them to `@leren/mcp-server`, so no module imports another module's service.
 
 ## Worker modules
 

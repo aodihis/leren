@@ -36,19 +36,22 @@ const ruleBody = {
   startsAt: null,
   endsAt: null,
   timezone: "Asia/Jakarta",
-  email: {
-    senderMode: "any",
-    senderAllowlist: [],
-    replyWhenTo: true,
-    replyWhenCc: false,
-    replyWhenBcc: false,
-    requireSoleRecipient: false,
-    mentionOverrides: false,
-    mentionDetection: "alias",
-    mentionAliases: [],
-    threadMode: "both",
-    skipBulkMail: true,
-  },
+  conditions: [
+    {
+      channel: "email",
+      senderMode: "any",
+      senderAllowlist: [],
+      replyWhenTo: true,
+      replyWhenCc: false,
+      replyWhenBcc: false,
+      requireSoleRecipient: false,
+      mentionOverrides: false,
+      mentionDetection: "alias",
+      mentionAliases: [],
+      threadMode: "both",
+      skipBulkMail: true,
+    },
+  ],
 };
 
 function itemBody(ruleId: string, overrides: Partial<KnowledgeItemInput> = {}) {

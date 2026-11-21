@@ -11,7 +11,7 @@ vi.mock("@leren/agents", async () => ({
 
 const { connectMcp } = await import("@leren/agents");
 const { runAgent } = await import("./core");
-const { allowedTools } = await import("./utils/mcp");
+const { allowedTools, approvalTools } = await import("./utils/mcp");
 
 const mcp = { url: "http://api.test/mcp", token: "token" };
 
@@ -32,7 +32,7 @@ describe("runAgent", () => {
     close.mockClear();
   });
 
-  it("returns the model answer and connects with the allowed tools", async () => {
+  it("returns the model answer and connects with the allowed and approval tools", async () => {
     const answer = await collectText(
       runAgent({
         instructions: "Be brief.",
@@ -44,7 +44,9 @@ describe("runAgent", () => {
     );
 
     expect(answer).toBe("Hello");
-    expect(connectMcp).toHaveBeenCalledWith(expect.objectContaining({ ...mcp, allowedTools }));
+    expect(connectMcp).toHaveBeenCalledWith(
+      expect.objectContaining({ ...mcp, allowedTools, approvalTools }),
+    );
     expect(close).toHaveBeenCalledOnce();
   });
 
@@ -69,5 +71,23 @@ describe("runAgent", () => {
 describe("allowedTools", () => {
   it("has no tool that sends email", () => {
     expect(allowedTools).not.toContain("send_reply");
+  });
+
+  /**
+   * Guards the boundary that only the user approves knowledge and deletes data: the assistant is
+   * never given a tool for either, whatever the MCP server offers.
+   */
+  it("has no tool that approves or deletes", () => {
+    expect(allowedTools.filter((tool) => /approve|delete|archive/.test(tool))).toEqual([]);
+  });
+
+  /**
+   * Guards the confirmation contract of decision 0032: a tool that is added to the allow-list as a
+   * writer must also be an approval tool, so no write runs without the user's approval.
+   */
+  it("requires approval for every tool that writes and for no tool that reads", () => {
+    expect([...approvalTools].sort()).toEqual(
+      allowedTools.filter((tool) => /^(create|update)_/.test(tool)).sort(),
+    );
   });
 });

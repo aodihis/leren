@@ -33,20 +33,25 @@ const validRule: AutoReplyRuleInput = {
   startsAt: null,
   endsAt: null,
   timezone: "Asia/Jakarta",
-  email: {
-    senderMode: "any",
-    senderAllowlist: [],
-    replyWhenTo: true,
-    replyWhenCc: false,
-    replyWhenBcc: false,
-    requireSoleRecipient: false,
-    mentionOverrides: true,
-    mentionDetection: "alias",
-    mentionAliases: ["Bal"],
-    threadMode: "both",
-    skipBulkMail: true,
-  },
+  conditions: [
+    {
+      channel: "email",
+      senderMode: "any",
+      senderAllowlist: [],
+      replyWhenTo: true,
+      replyWhenCc: false,
+      replyWhenBcc: false,
+      requireSoleRecipient: false,
+      mentionOverrides: true,
+      mentionDetection: "alias",
+      mentionAliases: ["Bal"],
+      threadMode: "both",
+      skipBulkMail: true,
+    },
+  ],
 };
+
+const validEmail = validRule.conditions[0];
 
 describe("auto-reply rules API", () => {
   let database: TestDatabase;
@@ -130,7 +135,7 @@ describe("auto-reply rules API", () => {
     }
   });
 
-  it("creates a rule with its email conditions and returns the derived status", async () => {
+  it("creates a rule with its conditions and returns the derived status", async () => {
     const cookie = await signIn("creator@example.com");
     const response = await call(cookie, "POST", PATH, validRule);
 
@@ -179,7 +184,7 @@ describe("auto-reply rules API", () => {
     const changed = {
       ...validRule,
       name: "Renamed",
-      email: { ...validRule.email, senderMode: "allowlist", senderAllowlist: ["@acme.com"] },
+      conditions: [{ ...validEmail, senderMode: "allowlist", senderAllowlist: ["@acme.com"] }],
     };
 
     const response = await call(cookie, "PUT", `${PATH}/${created.id}`, changed);
@@ -243,17 +248,36 @@ describe("auto-reply rules API", () => {
 
   it("rejects an invalid sender allowlist entry", async () => {
     const cookie = await signIn("allowlist@example.com");
-    const email = { ...validRule.email, senderAllowlist: ["not an address"] };
-    const response = await call(cookie, "POST", PATH, { ...validRule, email });
+    const conditions = [{ ...validEmail, senderAllowlist: ["not an address"] }];
+    const response = await call(cookie, "POST", PATH, { ...validRule, conditions });
 
     expect(response.status).toBe(400);
   });
 
   it("normalizes allowlist entries to lowercase", async () => {
     const cookie = await signIn("normalize@example.com");
-    const email = { ...validRule.email, senderAllowlist: [" Boss@ACME.com "] };
-    const created = await create(cookie, { email });
+    const conditions = [{ ...validEmail, senderAllowlist: [" Boss@ACME.com "] }];
+    const created = await create(cookie, { conditions });
 
-    expect(created.email.senderAllowlist).toEqual(["boss@acme.com"]);
+    expect(created.conditions[0].senderAllowlist).toEqual(["boss@acme.com"]);
+  });
+
+  it("rejects a rule without conditions, a repeated channel and an unknown channel", async () => {
+    const cookie = await signIn("channels@example.com");
+
+    const none = await call(cookie, "POST", PATH, { ...validRule, conditions: [] });
+
+    const repeated = await call(cookie, "POST", PATH, {
+      ...validRule,
+      conditions: [validEmail, validEmail],
+    });
+
+    const unknown = await call(cookie, "POST", PATH, {
+      ...validRule,
+      conditions: [{ ...validEmail, channel: "pigeon" }],
+    });
+
+    expect([none.status, repeated.status, unknown.status]).toEqual([400, 400, 400]);
+    expect(JSON.stringify(await unknown.json())).toContain("Only the email channel is supported");
   });
 });

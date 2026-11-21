@@ -52,13 +52,13 @@ A user has many rules and a rule has many knowledge items. A rule listens on a c
 
 The platform UI is the main way to manage data. The assistant is an optional helper beside it. The two agents never share a prompt, a tool set or a session.
 
-|             | Assistant Agent                                                                    | Reply Agent                                          |
-| ----------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Started by  | The user, from the chat panel in the platform.                                     | A queued email job.                                  |
-| Purpose     | Look up saved data, generate example questions, refine wording and point out gaps. | Decide how to handle one email and draft the output. |
-| Writes      | Proposals only. The user accepts them in the UI.                                   | A draft reply or a decision record. It cannot send.  |
-| Input trust | Written by the user.                                                               | Email content is untrusted data, never instructions. |
-| Step limit  | One interactive turn at a time.                                                    | At most 5 steps.                                     |
+|             | Assistant Agent                                                                                 | Reply Agent                                          |
+| ----------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Started by  | The user, from the chat panel in the platform.                                                  | A queued email job.                                  |
+| Purpose     | Look up saved data, generate example questions, refine wording and point out gaps.              | Decide how to handle one email and draft the output. |
+| Writes      | Creates and changes rules and knowledge after the user confirms. Knowledge it saves is a draft. | A draft reply or a decision record. It cannot send.  |
+| Input trust | Written by the user.                                                                            | Email content is untrusted data, never instructions. |
+| Step limit  | One interactive turn at a time.                                                                 | At most 5 steps.                                     |
 
 ## Flow A: configuration
 
@@ -72,7 +72,7 @@ User ─▶ platform chat ─▶ api ─▶ Assistant Agent
                             MCP server (in api) ─▶ services ─▶ PostgreSQL / Qdrant
 ```
 
-The UI is the primary path. The assistant reads saved data and proposes edits, and the user accepts a proposal through the same API the UI uses.
+The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes rules and knowledge through the same services the UI uses. Only the user approves knowledge in the UI (decision 0032).
 
 ## Flow B: incoming email
 
@@ -124,9 +124,9 @@ When the API creates, edits, approves, archives, restores or deletes an item, it
 
 The MCP server lives in `api` and exposes tools, resources and prompts. It is the integration surface of the system. It is not private to the two built-in agents, so a user could later connect their own agent instead of using the assistant.
 
-- **Scopes.** Tools are grouped into scopes such as `knowledge:read`, `knowledge:propose`, `rules:read` and `reply:draft`. A session receives only the scopes granted to its client. The Assistant Agent and the Reply Agent are built-in clients with fixed scopes.
+- **Scopes.** Tools are grouped into scopes such as `knowledge:read`, `knowledge:write`, `rules:read`, `rules:write` and `reply:draft`. A session receives only the scopes granted to its client. The Assistant Agent and the Reply Agent are built-in clients with fixed scopes.
 - **Neutral tools.** Tool names and schemas do not depend on our prompts or agent framework.
-- **Drafts only.** Mutating tools create drafts or proposals. Approval is a separate action by the user in the UI, so no agent can approve its own writes. No agent can send email.
+- **Confirmed writes.** The assistant's write tools need the user's confirmation, and knowledge they save is a draft. Approval is a separate action by the user in the UI, so no agent can approve its own writes. No agent can send email.
 
 ### Sessions and security
 

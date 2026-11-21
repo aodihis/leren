@@ -9,7 +9,9 @@ import { z } from "zod";
 
 import { createAuthRouter } from "./modules/auth/router";
 import type { Auth } from "./modules/auth/service";
+import { createRuleMcpActions } from "./modules/auto-reply-rules/mcp-actions";
 import { createAutoReplyRulesRouter } from "./modules/auto-reply-rules/router";
+import { createKnowledgeMcpActions } from "./modules/knowledge-items/mcp-actions";
 import { createKnowledgeItemsRouter } from "./modules/knowledge-items/router";
 import { createMcpRouter } from "./modules/mcp/router";
 
@@ -35,7 +37,15 @@ export type AppDependencies = {
  */
 export function createApp({ auth, db, logger, requestKnowledgeIndex, mcp }: AppDependencies) {
   const sessions = { db, secret: mcp.secret };
-  const endpoint = createMcpEndpoint({ ...sessions, search: mcp.search });
+
+  const endpoint = createMcpEndpoint({
+    ...sessions,
+    search: mcp.search,
+    actions: {
+      ...createRuleMcpActions(db),
+      ...createKnowledgeMcpActions(db, requestKnowledgeIndex),
+    },
+  });
 
   return new Hono()
     .use(requestId())

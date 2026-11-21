@@ -12,4 +12,9 @@ export type { McpEndpointDependencies } from "./handler";
 
 export { createMcpServer } from "./tools";
 
-export type { McpToolDependencies } from "./tools";
+export type {
+  McpToolDependencies,
+  McpWriteAction,
+  McpWriteActions,
+  McpWriteOutcome,
+} from "./tools";

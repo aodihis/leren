@@ -1,3 +1,3 @@
-export { runAgent } from "./core";
+export { createAssistantAgent, runAgent } from "./core";
 
-export type { RunAgentOptions } from "./core";
+export type { AssistantAgent, AssistantAgentOptions, RunAgentOptions } from "./core";

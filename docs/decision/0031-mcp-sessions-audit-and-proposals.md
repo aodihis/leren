@@ -1,8 +1,9 @@
 # 0031. MCP session tokens, audit log and knowledge proposals
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-21
 - Affects: apps/api, packages/mcp-server, packages/db, docs/rules/backend.md, docs/rules/packages.md, .env.example
+- Superseded by: [0032](0032-assistant-writes-with-confirmation.md)
 
 ## Context
 
