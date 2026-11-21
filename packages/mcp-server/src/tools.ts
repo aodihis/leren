@@ -1,10 +1,10 @@
-import { autoReplyRules, knowledgeItems } from "@leren/db";
+import { autoReplyRules, knowledgeItems, replyConditions } from "@leren/db";
 import type { Db } from "@leren/db";
 import { isKnowledgeUsable, searchKnowledge } from "@leren/knowledge";
 import type { KnowledgeItemRow, KnowledgeSearchDependencies } from "@leren/knowledge";
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/server";
 import type { CallToolResult } from "@modelcontextprotocol/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { writeAudit } from "./audit";
@@ -79,7 +79,14 @@ function toKnowledgeView(item: KnowledgeItemRow, now: Date) {
   };
 }
 
-function toRuleView(rule: typeof autoReplyRules.$inferSelect) {
+/**
+ * A rule with its reply conditions, one entry for each channel. Each entry has the channel and the
+ * settings of that channel at the same level, the shape that the rule tools accept.
+ */
+function toRuleView(
+  rule: typeof autoReplyRules.$inferSelect,
+  conditions: (typeof replyConditions.$inferSelect)[],
+) {
   return {
     id: rule.id,
     name: rule.name,
@@ -87,6 +94,7 @@ function toRuleView(rule: typeof autoReplyRules.$inferSelect) {
     startsAt: rule.startsAt?.toISOString() ?? null,
     endsAt: rule.endsAt?.toISOString() ?? null,
     timezone: rule.timezone,
+    conditions: conditions.map((row) => ({ ...row.settings, channel: row.channel })),
   };
 }
 
@@ -209,9 +217,29 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
             .where(eq(autoReplyRules.userId, session.userId))
             .orderBy(desc(autoReplyRules.createdAt));
 
+          const conditions =
+            rules.length === 0
+              ? []
+              : await db
+                  .select()
+                  .from(replyConditions)
+                  .where(
+                    inArray(
+                      replyConditions.ruleId,
+                      rules.map((rule) => rule.id),
+                    ),
+                  );
+
           return {
             outcome: "ok",
-            data: { rules: rules.map(toRuleView) },
+            data: {
+              rules: rules.map((rule) =>
+                toRuleView(
+                  rule,
+                  conditions.filter((row) => row.ruleId === rule.id),
+                ),
+              ),
+            },
             summary: { count: rules.length },
           };
         }),
@@ -224,9 +252,16 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
         run("get_rule", async () => {
           const rule = await findOwnedRule(db, session.userId, ruleId);
 
-          return rule
-            ? { outcome: "ok", data: toRuleView(rule), summary: { ruleId } }
-            : notFound({ ruleId });
+          if (!rule) {
+            return notFound({ ruleId });
+          }
+
+          const conditions = await db
+            .select()
+            .from(replyConditions)
+            .where(eq(replyConditions.ruleId, ruleId));
+
+          return { outcome: "ok", data: toRuleView(rule, conditions), summary: { ruleId } };
         }),
     );
   }

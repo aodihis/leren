@@ -9,9 +9,10 @@ import { z } from "zod";
 
 import { createAuthRouter } from "./modules/auth/router";
 import type { Auth } from "./modules/auth/service";
+import { createRuleMcpActions } from "./modules/auto-reply-rules/mcp-actions";
 import { createAutoReplyRulesRouter } from "./modules/auto-reply-rules/router";
+import { createKnowledgeMcpActions } from "./modules/knowledge-items/mcp-actions";
 import { createKnowledgeItemsRouter } from "./modules/knowledge-items/router";
-import { createMcpWriteActions } from "./modules/mcp/actions";
 import { createMcpRouter } from "./modules/mcp/router";
 
 const echoSchema = z.object({ message: z.string().min(1) });
@@ -40,7 +41,10 @@ export function createApp({ auth, db, logger, requestKnowledgeIndex, mcp }: AppD
   const endpoint = createMcpEndpoint({
     ...sessions,
     search: mcp.search,
-    actions: createMcpWriteActions(db, requestKnowledgeIndex),
+    actions: {
+      ...createRuleMcpActions(db),
+      ...createKnowledgeMcpActions(db, requestKnowledgeIndex),
+    },
   });
 
   return new Hono()

@@ -1,4 +1,4 @@
-import { autoReplyRules, knowledgeItems, mcpAuditLog, users } from "@leren/db";
+import { autoReplyRules, knowledgeItems, mcpAuditLog, replyConditions, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createFakeEmbedder } from "@leren/embedder/testing";
@@ -84,6 +84,12 @@ describe("MCP endpoint", () => {
       .insert(autoReplyRules)
       .values({ userId: user.id, name: `Rule of ${email}`, timezone: "UTC" })
       .returning({ id: autoReplyRules.id });
+
+    await database.db.insert(replyConditions).values({
+      ruleId: rule.id,
+      channel: "email",
+      settings: { senderMode: "allowlist", senderAllowlist: [`${email}-friend@x.com`] },
+    });
 
     const [item] = await database.db
       .insert(knowledgeItems)
@@ -275,6 +281,24 @@ describe("MCP endpoint", () => {
       const result = await call(await tokenFor(), "list_rules");
 
       expect(parsed(result).rules.map((rule: { id: string }) => rule.id)).toEqual([ruleId]);
+    });
+
+    it("returns the conditions of each rule with its channel, for the user's rules only", async () => {
+      const token = await tokenFor();
+
+      const expected = [
+        {
+          channel: "email",
+          senderMode: "allowlist",
+          senderAllowlist: ["a@example.com-friend@x.com"],
+        },
+      ];
+
+      const listed = parsed(await call(token, "list_rules")).rules;
+      const single = parsed(await call(token, "get_rule", { ruleId }));
+
+      expect(listed.map((rule: { conditions: unknown }) => rule.conditions)).toEqual([expected]);
+      expect(single.conditions).toEqual(expected);
     });
 
     it("gets a rule, and treats another user's rule as missing", async () => {
