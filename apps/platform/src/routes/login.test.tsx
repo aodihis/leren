@@ -9,7 +9,13 @@ const authClient = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 
+const rulesApi = vi.hoisted(() => ({ $get: vi.fn() }));
+
 vi.mock("../modules/auth/auth-client", () => ({ authClient }));
+
+vi.mock("../modules/api/api-client", () => ({
+  api: { api: { "auto-reply-rules": rulesApi } },
+}));
 
 import { renderApp } from "../testing";
 
@@ -31,6 +37,7 @@ describe("login route", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     authClient.getSession.mockResolvedValue(NO_SESSION);
+    rulesApi.$get.mockImplementation(async () => Response.json({ rules: [] }));
   });
 
   it("redirects a signed-in visitor to the home page", async () => {
@@ -39,7 +46,7 @@ describe("login route", () => {
     const router = await renderApp("/login");
 
     expect(router.state.location.pathname).toBe("/");
-    expect(await screen.findByText("Welcome to Leren")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Overview" })).toBeTruthy();
   });
 
   it("does not send a code for an email without a domain suffix", async () => {
@@ -113,7 +120,7 @@ describe("login route", () => {
 
       await user.keyboard("123456");
 
-      expect(await screen.findByText("Welcome to Leren")).toBeTruthy();
+      expect(await screen.findByRole("heading", { name: "Overview" })).toBeTruthy();
       expect(authClient.signIn.emailOtp).toHaveBeenCalledExactlyOnceWith({
         email: "ada@example.com",
         otp: "123456",

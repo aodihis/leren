@@ -1,7 +1,6 @@
 import {
   Alert,
   AlertDescription,
-  Badge,
   Button,
   Table,
   TableBody,
@@ -14,14 +13,8 @@ import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { api } from "../../../modules/api/api-client";
+import { RuleStatusBadge } from "../../../modules/auto-reply-rules/components/rule-status-badge";
 import type { Rule } from "../../../modules/auto-reply-rules/types";
-
-const STATUS_BADGES = {
-  active: { label: "Active", variant: "default" },
-  scheduled: { label: "Scheduled", variant: "secondary" },
-  expired: { label: "Expired", variant: "outline" },
-  disabled: { label: "Disabled", variant: "outline" },
-} as const;
 
 export const Route = createFileRoute("/_authed/auto-reply-rules/")({
   loader: async () => {
@@ -105,9 +98,7 @@ function RulesPage() {
               <TableRow key={rule.id}>
                 <TableCell className="font-medium">{rule.name}</TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_BADGES[rule.status].variant}>
-                    {STATUS_BADGES[rule.status].label}
-                  </Badge>
+                  <RuleStatusBadge status={rule.status} />
                 </TableCell>
                 <TableCell className="text-muted-foreground">{describePeriod(rule)}</TableCell>
                 <TableCell className="space-x-2 text-right">

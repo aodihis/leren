@@ -1,0 +1,82 @@
+/* I'm on Vacation — generated from tokens.json. Light is default; add data-theme="dark" on <html> for dark. */
+:root, [data-theme="light"] {
+  --bg-canvas: #f7f6f4;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f1efec;
+  --bg-sidebar: #fbfaf9;
+  --border: #e7e4e0;
+  --border-strong: #cbc5be;
+  --ink: #1c1917;
+  --ink-muted: #5f5851;
+  --brand: #6f4e37;
+  --brand-hover: #573c2a;
+  --brand-soft: #f3ece5;
+  --on-brand: #ffffff;
+  --focus: var(--brand);
+  --sand: #f6eedf;
+  --sand-border: #e8dac2;
+  --roast: #3a2a20;
+  --sun: #e0a458;
+  --success: #166534;
+  --success-soft: #e7f5ec;
+  --warning: #9a4a07;
+  --warning-soft: #fdf2e1;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --info: #1d4ed8;
+  --info-soft: #e9effd;
+  --shadow-sm: 0 1px 2px rgba(28,25,23,0.06);
+  --shadow-lg: 0 12px 32px rgba(28,25,23,0.14);
+}
+[data-theme="dark"] {
+  --bg-canvas: #121110;
+  --bg-surface: #1a1817;
+  --bg-subtle: #24211f;
+  --bg-sidebar: #161413;
+  --border: #2f2b28;
+  --border-strong: #47403a;
+  --ink: #eeeae6;
+  --ink-muted: #a89f96;
+  --brand: #d2ae8a;
+  --brand-hover: #e2c6a8;
+  --brand-soft: #2e241c;
+  --on-brand: #1f150e;
+  --sand: #2b2419;
+  --sand-border: #40352a;
+  --roast: #4a3628;
+  --sun: #e0a458;
+  --success: #4ade80;
+  --success-soft: #12271a;
+  --warning: #fbbf24;
+  --warning-soft: #2b2110;
+  --danger: #f87171;
+  --danger-soft: #2e1615;
+  --info: #7ea6ff;
+  --info-soft: #141e36;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.55);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --sidebar-width: 264px;
+  --sidebar-rail: 72px;
+  --chat-width: 400px;
+  --chat-min: 360px;
+  --chat-max: 520px;
+  --content-min: 640px;
+  --content-max: 1120px;
+  --chat-reading: 760px;
+  --header-height: 56px;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
