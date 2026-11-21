@@ -207,14 +207,14 @@ describe("playbooks routes", () => {
 
     it("shows the errors of the API and opens the tab of the first rejected field", async () => {
       playbooksApi.$post.mockResolvedValue(
-        jsonResponse({ fieldErrors: { endsAt: ["The end must not be before the start"] } }, 400),
+        jsonResponse({ fieldErrors: { conditions: ["Enter at least one sender"] } }, 400),
       );
       const user = userEvent.setup();
       const router = await renderApp("/playbooks/new");
 
       await user.click(await screen.findByRole("button", { name: "Create playbook" }));
 
-      expect(await screen.findByText("The end must not be before the start")).toBeTruthy();
+      expect(await screen.findByText("Enter at least one sender")).toBeTruthy();
       expect(screen.getByRole("tab", { name: "Rules" }).getAttribute("data-state")).toBe("active");
       expect(router.state.location.pathname).toBe("/playbooks/new");
     });

@@ -72,16 +72,19 @@ export const Route = createFileRoute("/_authed")({
 /**
  * The dashboard shell from the design system. The sidebar is expanded from 1024px, a rail of icons
  * from 768px, and a sheet behind a menu button below that. The sidebar and the content scroll
- * independently, so the page itself never scrolls. Labels in the rail stay in the accessibility
+ * independently, so the page itself never scrolls. The shell is positioned so that its
+ * `overflow-hidden` also clips absolutely positioned descendants, such as the hidden inputs of
+ * switches, which would otherwise extend the height of the document. Labels in the rail stay in the accessibility
  * tree because they are visually hidden, not removed.
  */
 function AuthedLayout() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
   const isChat = pathname === "/chat" || pathname.startsWith("/chat/");
+  const isEditor = pathname.startsWith("/playbooks/");
 
   return (
-    <div className="flex h-screen overflow-hidden bg-canvas">
+    <div className="relative flex h-screen overflow-hidden bg-canvas">
       <aside
         aria-label="Sidebar"
         className="hidden w-sidebar-rail flex-none md:flex lg:w-sidebar max-lg:[&_[data-label]]:sr-only"
@@ -110,7 +113,7 @@ function AuthedLayout() {
           </main>
         ) : (
           <main className="min-h-0 flex-1 overflow-auto p-6">
-            <div className="mx-auto max-w-280">
+            <div className={isEditor ? undefined : "mx-auto max-w-280"}>
               <Outlet />
             </div>
           </main>

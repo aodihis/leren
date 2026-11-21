@@ -26,10 +26,5 @@ export const Route = createFileRoute("/_authed/playbooks/$playbookId")({
 function EditPlaybookPage() {
   const playbook = Route.useLoaderData();
 
-  return (
-    <div className="space-y-4">
-      <h1 className="mx-auto max-w-2xl text-2xl font-semibold">Edit {playbook.topic}</h1>
-      <PlaybookForm key={playbook.id} playbook={playbook} />
-    </div>
-  );
+  return <PlaybookForm key={playbook.id} playbook={playbook} />;
 }
