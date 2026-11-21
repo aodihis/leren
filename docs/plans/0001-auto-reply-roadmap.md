@@ -100,7 +100,7 @@ Status: In progress. Branch: `feat/08-retrieval`.
 - [x] Test cross-user leakage and exclusion of expired and unapproved items.
 - [x] Add a Recall@5 harness stub.
 - [x] Add integration tests against real Qdrant. They also run against the embedding endpoint when `EMBEDDING_API_KEY` is set.
-- [ ] Run the embedding endpoint tests with a working key and tune `DEFAULT_MIN_SCORE`.
+- [x] Run the embedding endpoint tests with a working key and tune `DEFAULT_MIN_SCORE`.
 
 ### F09 MCP server and sessions
 

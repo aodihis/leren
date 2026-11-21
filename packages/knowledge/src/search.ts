@@ -13,9 +13,11 @@ export const KNOWLEDGE_SEARCH_LIMIT = 5;
 
 /**
  * The cosine similarity below which a vector is not considered a match. Scores depend on the
- * embedding model, so a deployment that changes the model should revisit this value.
+ * embedding model, so a deployment that changes the model should revisit this value. The value
+ * lies between the highest score of an unrelated query and the lowest score of a paraphrased
+ * question, as measured with `openai/text-embedding-3-small`.
  */
-export const DEFAULT_MIN_SCORE = 0.3;
+export const DEFAULT_MIN_SCORE = 0.36;
 
 /**
  * The number of vectors read from the index before validity is applied. It is larger than the
