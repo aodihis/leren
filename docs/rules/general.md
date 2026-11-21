@@ -14,7 +14,7 @@
 | `pnpm test:coverage`   | Run tests with coverage    |
 | `pnpm test:e2e`        | Run the end-to-end tests   |
 
-Lint and formatting must pass before committing. `pnpm check` runs lint, format check, typecheck and tests in one command.
+Lint and formatting must pass before committing. `pnpm check` runs lint, format check, typecheck and tests in one command. The `pre-commit` hook in `.githooks/` runs lint, the format check and the unit tests, and `pnpm install` enables it. The tests need the services from `pnpm services:up`.
 
 ## Lint rules
 

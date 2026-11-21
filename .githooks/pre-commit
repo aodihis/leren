@@ -1,0 +1,8 @@
+#!/bin/sh
+# Blocks a commit when linting, the formatting check or the unit tests fail.
+# The tests need the services from `pnpm services:up`.
+set -e
+
+pnpm lint
+pnpm format:check
+pnpm test
