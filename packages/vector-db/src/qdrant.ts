@@ -5,6 +5,15 @@ import type { StoredRecord, VectorMetadata, VectorStore } from "./types";
 const SCROLL_OPTIONS = { limit: 256, with_payload: true, with_vector: false };
 
 /**
+ * Reports whether Qdrant rejected a request with HTTP 409, which it answers when a collection
+ * already exists. Concurrent callers of `ensureCollection` can both observe a missing collection,
+ * so the loser of the creation race receives this status and the collection it wanted exists.
+ */
+function isConflict(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "status" in error && error.status === 409;
+}
+
+/**
  * Creates a `VectorStore` backed by Qdrant, using cosine distance.
  */
 export function createQdrantStore(url: string): VectorStore {
@@ -18,7 +27,13 @@ export function createQdrantStore(url: string): VectorStore {
         return;
       }
 
-      await client.createCollection(name, { vectors: { size: dimensions, distance: "Cosine" } });
+      try {
+        await client.createCollection(name, { vectors: { size: dimensions, distance: "Cosine" } });
+      } catch (error) {
+        if (!isConflict(error)) {
+          throw error;
+        }
+      }
     },
 
     async upsert(collection, records) {

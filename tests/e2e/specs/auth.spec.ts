@@ -1,23 +1,6 @@
 import { expect, test } from "@playwright/test";
-import type { Page } from "@playwright/test";
 
-import { clearInbox, readSignInCode } from "../support/mailpit";
-
-function uniqueEmail(): string {
-  return `user-${crypto.randomUUID()}@example.com`;
-}
-
-async function signIn(page: Page, email: string): Promise<void> {
-  await clearInbox(email);
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByRole("button", { name: "Send code" }).click();
-  await expect(page.getByText(`We sent a 6-digit code to ${email}`)).toBeVisible();
-
-  const code = await readSignInCode(email);
-
-  await page.getByLabel("Sign-in code").fill(code);
-}
+import { signIn, uniqueEmail } from "../support/auth";
 
 test("redirects a signed-out visitor to the login page", async ({ page }) => {
   await page.goto("/");

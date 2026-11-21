@@ -8,6 +8,7 @@ For how the system fits together, read the [high-level design](docs/overview/REA
 
 - Node.js 20 or later
 - pnpm 11
+- [Podman](https://podman.io/) with a Compose provider, to run the local services
 
 ## Getting started
 
