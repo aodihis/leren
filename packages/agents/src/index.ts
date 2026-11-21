@@ -1,6 +1,22 @@
-export { defineHarnessConfig } from "./config";
+export {
+  EMBEDDING_MODEL_ENV,
+  MODEL_TASK_ENV,
+  defineHarnessConfig,
+  resolveEmbeddingModel,
+  resolveTaskModel,
+} from "./config";
 
-export type { AgentName, HarnessConfig, ModelDefinition, ReasoningEffort } from "./config";
+export type {
+  AgentName,
+  EmbeddingModelDefinition,
+  HarnessConfig,
+  ModelApi,
+  ModelDefinition,
+  ModelTask,
+  ReasoningEffort,
+  ResolvedEmbeddingModel,
+  ResolvedModel,
+} from "./config";
 
 export { createAgent } from "./factory";
 

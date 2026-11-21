@@ -22,6 +22,20 @@
       "when": 1795143132511,
       "tag": "0002_auto_reply_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795175032829,
+      "tag": "0003_knowledge",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795179406647,
+      "tag": "0004_knowledge_contacts_list",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ const client = vi.hoisted(() => ({
   createCollection: vi.fn(),
   upsert: vi.fn(),
   query: vi.fn(),
+  scroll: vi.fn(),
   delete: vi.fn(),
   deleteCollection: vi.fn(),
 }));
@@ -120,6 +121,31 @@ describe("createQdrantStore", () => {
         wait: true,
         points: ["a", "b"],
       });
+    });
+  });
+
+  describe("list", () => {
+    it("follows the offset until every page is read and returns ids with metadata", async () => {
+      client.scroll
+        .mockResolvedValueOnce({
+          points: [{ id: "a", payload: { userId: "u1" } }],
+          next_page_offset: "b",
+        })
+        .mockResolvedValueOnce({ points: [{ id: "b", payload: null }], next_page_offset: null });
+      const store = createQdrantStore("http://qdrant");
+
+      const records = await store.list("docs");
+
+      expect(records).toEqual([
+        { id: "a", metadata: { userId: "u1" } },
+        { id: "b", metadata: {} },
+      ]);
+      expect(client.scroll).toHaveBeenCalledTimes(2);
+      expect(client.scroll).toHaveBeenNthCalledWith(
+        2,
+        "docs",
+        expect.objectContaining({ offset: "b", with_vector: false }),
+      );
     });
   });
 });

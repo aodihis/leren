@@ -9,6 +9,7 @@ import {
 } from "@leren/ui";
 import { Link, Outlet, createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import {
+  BookOpenIcon,
   HouseIcon,
   InfoIcon,
   LogOutIcon,
@@ -24,6 +25,7 @@ import { Logo } from "../modules/layout/components/logo";
 const NAV_ITEMS = [
   { to: "/", label: "Overview", icon: HouseIcon },
   { to: "/auto-reply-rules", label: "Rules", icon: SlidersHorizontalIcon },
+  { to: "/knowledge", label: "Knowledge", icon: BookOpenIcon },
   { to: "/profile", label: "Profile", icon: UserIcon },
   { to: "/about", label: "About", icon: InfoIcon },
 ] as const;

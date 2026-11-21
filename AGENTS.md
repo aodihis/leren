@@ -41,6 +41,7 @@ Constraints for working in this repository. Details live in `docs/`. This file d
 - Use complete sentences. Do not drop words or use sentence fragments to save space.
 - Use established, standard terminology. Do not coin new terms or shorthand.
 - Write comments and docs as statements of current truth. Never narrate corrections, prior framings or what changed.
+- Keep comments general. Explain what the code is, the idea behind it and how it is used. Do not describe a specific bug, scenario, input or request that motivated it. That detail belongs in the commit message or in a test.
 
 ### User-facing documentation
 

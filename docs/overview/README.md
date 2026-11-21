@@ -36,6 +36,18 @@ A rule has a name that identifies it in the list. It also has conditions for eac
 - Whether new threads, replies in an existing thread, or both are answered.
 - Whether mailing lists and automatically generated messages are skipped.
 
+## Knowledge and approval
+
+Knowledge is a set of **knowledge items**. Each belongs to one auto-reply rule and has a topic, a response that the assistant may give, optional example messages that help find the item, restrictions on what must not be said, an optional validity window and optional **contacts**, the email addresses or handles of the people a reply may point to.
+
+An item is a `draft`, `approved` or `archived`. The assistant may use an item only when it is approved and the current time is inside its validity window. Only the user approves, archives or restores an item. Editing an approved item returns it to draft, so a changed text is reviewed again.
+
+## Channels and accounts
+
+A **channel** is a kind of medium that messages arrive on, such as email or Slack. A user connects a **channel account** with OAuth, for example a Gmail mailbox. A message belongs to the user who owns the account it was fetched through. The address the user signs in with is not used to match messages, and it can differ from every connected address.
+
+A user has many rules and a rule has many knowledge items. A rule listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. Channels and channel accounts are specified in decision 0021 and are not built yet.
+
 ## Agents
 
 The platform UI is the main way to manage data. The assistant is an optional helper beside it. The two agents never share a prompt, a tool set or a session.
@@ -98,6 +110,16 @@ Whether an email is handled at all is decided by the gate, in code, from stored 
 
 The queues are `email.received`, `email.process`, `email.send` and `knowledge.index`, each with a dead-letter queue named `<queue>.dlq`. A failed message is retried with exponential backoff and moved to the dead-letter queue when its attempts are used up. A consumer acknowledges a message only after its work is durable. Every message carries an idempotency key, and every handler is safe to retry.
 
+## Knowledge indexing
+
+Only approved knowledge whose validity window has not ended is searchable. Each such item has one vector in the Qdrant collection `knowledge`, and the vector id is the item id. The text that is embedded is the topic, the response and the examples. The payload holds the item, user and rule ids, the type, the window and the `updatedAt` of the row that the vector was built from.
+
+When the API creates, edits, approves, archives, restores or deletes an item, it publishes the item id to `knowledge.index`. The worker reads the current row and makes the index match it, so a repeated or reordered message does no harm. A periodic `knowledge.drift` job compares PostgreSQL with Qdrant, repairs any difference and removes the vectors of expired items. Embeddings come from an OpenAI-compatible endpoint, which is OpenRouter by default (decision 0024).
+
+## Knowledge retrieval
+
+`searchKnowledge` embeds a message and returns up to five knowledge items for one user and one rule, best match first, or an explicit `no_reliable_result` when nothing usable scores above the threshold. The index only proposes candidates. PostgreSQL decides whether each one exists, is approved and is valid now, and supplies the content that is returned (decision 0028).
+
 ## MCP server
 
 The MCP server lives in `api` and exposes tools, resources and prompts. It is the integration surface of the system. It is not private to the two built-in agents, so a user could later connect their own agent instead of using the assistant.
@@ -141,4 +163,4 @@ Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a s
 
 ## Current limitations
 
-Jobs run on RabbitMQ and survive worker restarts, but only the worker uses the queue so far. The API does not publish jobs yet, and the idempotency helper has only an in-memory store until the pipeline tables exist. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.
+Jobs run on RabbitMQ and survive worker restarts. The API publishes only `knowledge.index` so far, and the idempotency helper has only an in-memory store until the pipeline tables exist. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.

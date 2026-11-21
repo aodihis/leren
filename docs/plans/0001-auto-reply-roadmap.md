@@ -54,7 +54,7 @@ Status: Done. Branch: `feat/03-rabbitmq-queue`. PR: [#6](https://github.com/aodi
 
 ### F04 Authentication and user isolation
 
-Status: In progress. Branch: `feat/04-auth`.
+Status: Done. Branch: `feat/04-auth`. PR: [#7](https://github.com/aodihis/leren/pull/7).
 
 - [x] Extend `users` and add sessions, accounts and verifications.
 - [x] Add the API `auth` module and middleware that sets `userId`. Sign-in and registration use an emailed one-time code with Better Auth (ADR 0013).
@@ -64,41 +64,43 @@ Status: In progress. Branch: `feat/04-auth`.
 
 ### F05 Auto-reply rules
 
-Status: In progress. Branch: `feat/05-auto-reply-rules`.
+Status: Done. Branch: `feat/05-auto-reply-rules`. PR: [#10](https://github.com/aodihis/leren/pull/10).
 
 - [x] Add ADR 0019, which supersedes 0007 and splits channel conditions from the rule.
-- [ ] Add the `auto_reply_rules` table: user, name, enabled, `starts_at`, `ends_at`, timezone. No status column.
-- [ ] Add the `email_reply_conditions` table: sender, recipient role, sole recipient, mention, thread and bulk mail options.
-- [ ] Add `@leren/auto-reply` with a pure `getAutoReplyStatus(rule, now)` and email condition evaluation, with tests for timezones, open bounds and each condition.
-- [ ] Add the API module and the platform form and list, which show the derived status.
+- [x] Add the `auto_reply_rules` table: user, name, enabled, `starts_at`, `ends_at`, timezone. No status column.
+- [x] Add the `email_reply_conditions` table: sender, recipient role, sole recipient, mention, thread and bulk mail options.
+- [x] Add `@leren/auto-reply` with a pure `getAutoReplyStatus(rule, now)` and email condition evaluation, with tests for timezones, open bounds and each condition.
+- [x] Add the API module and the platform form and list, which show the derived status.
 
 ### F06 Knowledge management
 
-Status: Todo. Branch: `feat/06-knowledge`.
+Status: In progress. Branch: `feat/06-knowledge`.
 
-- [ ] Add `knowledge_items` (topic, questions, answer, contacts, restrictions, validity, approval `draft|approved|archived`) and `contacts`.
-- [ ] Add the API modules.
-- [ ] Add the platform screens to create, edit, approve and archive.
-- [ ] Test that only approved and currently valid items are usable.
+- [x] Add `knowledge_items` (topic, response, examples, contacts, restrictions, validity, approval `draft|approved|archived`). Contacts are a list of text on the item (ADR 0020).
+- [x] Add the API modules.
+- [x] Add the platform screens to create, edit, approve and archive.
+- [x] Test that only approved and currently valid items are usable.
 
 ### F07 Indexing pipeline
 
-Status: Todo. Branch: `feat/07-indexing`.
+Status: In progress. Branch: `feat/07-indexing`.
 
-- [ ] Add an `Embedder` interface, an ADR for the provider and a deterministic fake.
-- [ ] Index approved knowledge in Qdrant with knowledge id, user id, rule id, type and validity in the payload.
-- [ ] Add a `knowledge.index` consumer for create, edit, archive and expiry.
-- [ ] Add a drift check between PostgreSQL and Qdrant.
-- [ ] Test that every vector references an existing PostgreSQL row.
+- [x] Add an `Embedder` interface, an ADR for the provider (ADR 0024) and a deterministic fake.
+- [x] Index approved knowledge in Qdrant with knowledge id, user id, rule id, type and validity in the payload.
+- [x] Add a `knowledge.index` consumer for create, edit, archive and expiry.
+- [x] Add a drift check between PostgreSQL and Qdrant.
+- [x] Test that every vector references an existing PostgreSQL row.
 
 ### F08 Retrieval
 
-Status: Todo. Branch: `feat/08-retrieval`.
+Status: In progress. Branch: `feat/08-retrieval`.
 
-- [ ] Add `searchKnowledge` with mandatory filters: user, rule, approved, valid now.
-- [ ] Return the top 5 above a score threshold, or an explicit "no reliable result".
-- [ ] Test cross-user leakage and exclusion of expired and unapproved items.
-- [ ] Add a Recall@5 harness stub.
+- [x] Add `searchKnowledge` with mandatory filters: user, rule, approved, valid now (ADR 0028).
+- [x] Return the top 5 above a score threshold, or an explicit "no reliable result".
+- [x] Test cross-user leakage and exclusion of expired and unapproved items.
+- [x] Add a Recall@5 harness stub.
+- [x] Add integration tests against real Qdrant. They also run against the embedding endpoint when `EMBEDDING_API_KEY` is set.
+- [ ] Run the embedding endpoint tests with a working key and tune `DEFAULT_MIN_SCORE`.
 
 ### F09 MCP server and sessions
 
@@ -125,6 +127,16 @@ Status: Todo. Branch: `feat/11-routing-rules`.
 - [ ] Add the schema: conditions, action `answer|delegate|ignore|escalate`, priority, validity, designated contact. Automatic sending is not available.
 - [ ] Add a deterministic evaluator with unit tests.
 - [ ] Add the API module, the editor and templates for the five PRD example rules.
+
+### F12a Channel accounts
+
+Status: Todo. Branch: `feat/12a-channel-accounts`.
+
+- [ ] Add an ADR for the first OAuth provider, its scopes and the token encryption key.
+- [ ] Add the `channel_accounts` table and a nullable `channel_account_id` on `email_reply_conditions` (ADR 0021).
+- [ ] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
+- [ ] Add the platform screen to connect and disconnect the account, and let a rule choose it.
+- [ ] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.
 
 ### F12 Email ingestion and gate
 
@@ -180,7 +192,7 @@ Status: Todo. Branch: `feat/17-hardening-docs`.
 
 ## Order
 
-F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F11 → F12 → F13 → F14 → F15 → F16 → F17.
+F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F11 → F12a → F12 → F13 → F14 → F15 → F16 → F17.
 
 F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delayed.
 
@@ -192,14 +204,15 @@ F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delaye
 | F01     | Test foundation              | Done        | [#3](https://github.com/aodihis/leren/pull/3)                                                |
 | F02     | Anvia foundation             | Done        | [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5) |
 | F03     | RabbitMQ queue               | Done        | [#6](https://github.com/aodihis/leren/pull/6)                                                |
-| F04     | Authentication and isolation | Todo        |                                                                                              |
-| F05     | Auto-reply rules             | In progress |                                                                                              |
+| F04     | Authentication and isolation | Done        | [#7](https://github.com/aodihis/leren/pull/7)                                                |
+| F05     | Auto-reply rules             | Done        | [#10](https://github.com/aodihis/leren/pull/10)                                              |
 | F06     | Knowledge management         | Todo        |                                                                                              |
 | F07     | Indexing pipeline            | Todo        |                                                                                              |
-| F08     | Retrieval                    | Todo        |                                                                                              |
+| F08     | Retrieval                    | In progress |                                                                                              |
 | F09     | MCP server and sessions      | Todo        |                                                                                              |
 | F10     | Assistant Agent              | Todo        |                                                                                              |
 | F11     | Routing rules                | Todo        |                                                                                              |
+| F12a    | Channel accounts             | Todo        |                                                                                              |
 | F12     | Email ingestion and gate     | Todo        |                                                                                              |
 | F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
 | F14     | Approval and sending         | Todo        |                                                                                              |

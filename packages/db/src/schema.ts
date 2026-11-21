@@ -136,3 +136,42 @@ export const emailReplyConditions = pgTable("email_reply_conditions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const approvalStatusEnum = pgEnum("approval_status", ["draft", "approved", "archived"]);
+
+/**
+ * Knowledge that the assistant may use while an auto-reply rule is in effect, one topic for each
+ * row. `response` is what the assistant may say about the topic and `restrictions` is what it must
+ * not say. `examples` are optional sample messages that help retrieval find the item, and
+ * `contacts` lists the people a reply may point to, as email addresses or channel handles.
+ * `validFrom` and `validUntil` are instants and a null bound is open. An item is usable only when
+ * it is `approved` and the current time is inside its window. `userId` repeats the owner of the
+ * rule so that every query can filter by user without a join.
+ */
+export const knowledgeItems = pgTable(
+  "knowledge_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => autoReplyRules.id, { onDelete: "cascade" }),
+    topic: text("topic").notNull(),
+    examples: text("examples").array().notNull().default([]),
+    response: text("response").notNull(),
+    restrictions: text("restrictions").notNull().default(""),
+    contacts: text("contacts").array().notNull().default([]),
+    validFrom: timestamp("valid_from", { withTimezone: true }),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    approvalStatus: approvalStatusEnum("approval_status").notNull().default("draft"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("knowledge_items_user_id_idx").on(table.userId),
+    index("knowledge_items_rule_id_idx").on(table.ruleId),
+  ],
+);

@@ -11,6 +11,9 @@ importers:
       '@anvia/core':
         specifier: ^1.19.2
         version: 1.19.2(zod@4.6.7)
+      '@dotenvx/dotenvx':
+        specifier: ^2.38.2
+        version: 2.38.2
       '@leren/agents':
         specifier: workspace:*
         version: link:packages/agents
@@ -62,9 +65,15 @@ importers:
       '@leren/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@leren/knowledge':
+        specifier: workspace:*
+        version: link:../../packages/knowledge
       '@leren/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@leren/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
       better-auth:
         specifier: ^1.7.26
         version: 1.7.26(@opentelemetry/api@1.10.0)(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.1.1)
@@ -163,12 +172,30 @@ importers:
 
   apps/worker:
     dependencies:
+      '@leren/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
+      '@leren/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@leren/embedder':
+        specifier: workspace:*
+        version: link:../../packages/embedder
+      '@leren/knowledge':
+        specifier: workspace:*
+        version: link:../../packages/knowledge
       '@leren/logger':
         specifier: workspace:*
         version: link:../../packages/logger
       '@leren/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@leren/vector-db':
+        specifier: workspace:*
+        version: link:../../packages/vector-db
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -270,6 +297,37 @@ importers:
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.2
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/embedder:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/knowledge:
+    dependencies:
+      '@leren/db':
+        specifier: workspace:*
+        version: link:../db
+      '@leren/embedder':
+        specifier: workspace:*
+        version: link:../embedder
+      '@leren/vector-db':
+        specifier: workspace:*
+        version: link:../vector-db
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -693,6 +751,22 @@ packages:
 
   '@date-fns/tz@1.5.0':
     resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
+
+  '@dotenvx/dotenvx@2.38.2':
+    resolution: {integrity: sha512-+tjy8o//H+ZkRfRWLh08UkLHCw/e74uIV27QOZ3RxKwXvGrxjEcQMfUvQJzkvK/qNTk/OsE1MlGiDB6iL+1X0g==}
+    hasBin: true
+
+  '@dotenvx/primitives@3.3.1':
+    resolution: {integrity: sha512-ykX29rVnHwwV6m3AMmvR+niFSwhOG2TYttJjURz3n/3iHtpWC8gEptojYY+eHgBAV4fkaGRM1Rf0wgQ6/DeUYQ==}
+
+  '@dotenvx/primitives@4.4.0':
+    resolution: {integrity: sha512-swvcX4CxhlgE5G56r6pHYg7LgiKvBZ+cHz/2zk/AyrBxm6eig//oMYnK9IgQ8Jds9DSKIJ88G8RvvANgx7Qv0Q==}
+
+  '@dotenvx/providers@0.3.13':
+    resolution: {integrity: sha512-fF39zRYFyukQtjZJ8VyrAl6zsZo7t20ZD55QK+yN7VPS5gmEVHoIHwzNZGQHJDNA5A3evWiGM6547egI/sWahQ==}
+
+  '@dotenvx/tooling@1.0.6':
+    resolution: {integrity: sha512-d1AhKqlprzjR7+/7YTYbf9lTjeIUxr2WN+gYL5jf9O25wymlVWzuwOujq9IWJOt33sGWcLjr1eswSOmqm4SRMg==}
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -3396,6 +3470,10 @@ packages:
   immer@11.2.10:
     resolution: {integrity: sha512-pzANBj+0A9u+prdhBJ14DVi44vCvVUQzBa8DKt6I0AMCokPHtt722BK9IX5bFC70xUSU9TnzLRIJLTGqIzjEFw==}
 
+  imurmurhash@0.1.4:
+    resolution: {integrity: sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==}
+    engines: {node: '>=0.8.19'}
+
   input-otp@1.5.0:
     resolution: {integrity: sha512-3AcfdW1sNG0FmSA5hHMBXG7jNW5CdcdKs8ln8JOmn6S2SRkoXoJx+2UwC+ZvjflfnOdHJx0SfQ9/YjlxVYLtGQ==}
     peerDependencies:
@@ -3967,6 +4045,10 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
+  signal-exit@4.1.0:
+    resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
+    engines: {node: '>=14'}
+
   sonic-boom@4.2.1:
     resolution: {integrity: sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q==}
 
@@ -4075,6 +4157,10 @@ packages:
 
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
+
+  undici@6.29.1:
+    resolution: {integrity: sha512-EvRlUt/QqAEvXdQeRMYUfwOQsfzpDztykrG2owGEE/rBOBoYv9uF39ZzsNDh4lTFHhTr2XOZjKkYgueD12ZmGA==}
+    engines: {node: '>=18.17'}
 
   undici@7.29.1:
     resolution: {integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==}
@@ -4276,6 +4362,10 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
+  write-file-atomic@5.0.1:
+    resolution: {integrity: sha512-+QU2zd6OTD8XWIJCbffaiQeH9U73qIqafo1x6V1snCWYGJf6cVE0cDR4D8xRzcEnfI21IFrUPzPGtcPf8AC+Rw==}
+    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
+
   xml-name-validator@5.0.0:
     resolution: {integrity: sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==}
     engines: {node: '>=18'}
@@ -4294,6 +4384,14 @@ packages:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
     engines: {node: '>= 14.6'}
     hasBin: true
+
+  yocto-spinner@1.2.2:
+    resolution: {integrity: sha512-DODGl1wJjA/s5pnJFKau9lIYHT81lnhob1i3e1TjxZRxEhWRKl74nTbWE6H5KlkViQQTo/Z29YFdxzTZAMY3ng==}
+    engines: {node: '>=18.19'}
+
+  yoctocolors@2.2.0:
+    resolution: {integrity: sha512-xYqdZFUK/VYazNl/oCDYN+3WloWQwMfZxBoiNt6qNyk+xfOdi598muWE42rNZFp1kNOiqW936q5RhUdnpqElSg==}
+    engines: {node: '>=18'}
 
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
@@ -4529,6 +4627,26 @@ snapshots:
   '@better-fetch/fetch@1.3.3': {}
 
   '@date-fns/tz@1.5.0': {}
+
+  '@dotenvx/dotenvx@2.38.2':
+    dependencies:
+      '@dotenvx/primitives': 3.3.1
+      '@dotenvx/providers': 0.3.13
+      '@dotenvx/tooling': 1.0.6
+      undici: 6.29.1
+      write-file-atomic: 5.0.1
+      yocto-spinner: 1.2.2
+
+  '@dotenvx/primitives@3.3.1': {}
+
+  '@dotenvx/primitives@4.4.0': {}
+
+  '@dotenvx/providers@0.3.13':
+    dependencies:
+      '@dotenvx/primitives': 4.4.0
+      '@dotenvx/tooling': 1.0.6
+
+  '@dotenvx/tooling@1.0.6': {}
 
   '@drizzle-team/brocli@0.10.2': {}
 
@@ -6646,6 +6764,8 @@ snapshots:
 
   immer@11.2.10: {}
 
+  imurmurhash@0.1.4: {}
+
   input-otp@1.5.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
@@ -7207,6 +7327,8 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
+  signal-exit@4.1.0: {}
+
   sonic-boom@4.2.1:
     dependencies:
       atomic-sleep: 1.0.0
@@ -7310,6 +7432,8 @@ snapshots:
       '@typescript/typescript-win32-x64': 7.0.2
 
   undici-types@8.9.0: {}
+
+  undici@6.29.1: {}
 
   undici@7.29.1: {}
 
@@ -7442,6 +7566,11 @@ snapshots:
 
   wrappy@1.0.2: {}
 
+  write-file-atomic@5.0.1:
+    dependencies:
+      imurmurhash: 0.1.4
+      signal-exit: 4.1.0
+
   xml-name-validator@5.0.0: {}
 
   xmlchars@2.2.0: {}
@@ -7451,5 +7580,11 @@ snapshots:
   yallist@3.1.1: {}
 
   yaml@2.9.1: {}
+
+  yocto-spinner@1.2.2:
+    dependencies:
+      yoctocolors: 2.2.0
+
+  yoctocolors@2.2.0: {}
 
   zod@4.6.7: {}
