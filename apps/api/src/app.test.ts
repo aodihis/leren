@@ -9,6 +9,8 @@ import type { Auth } from "./modules/auth/service";
  * The routes under test never touch the auth service or the database, so inert stand-ins are enough.
  * The request logger is a spy because logging each completed request is part of the app's contract.
  */
+const MCP_SECRET = "an-mcp-test-secret-of-at-least-32-chars";
+
 function createTestApp() {
   const requestLogger: Logger = {
     debug: vi.fn(),
@@ -33,6 +35,7 @@ function createTestApp() {
     db: {} as Db,
     logger,
     requestKnowledgeIndex: vi.fn(),
+    mcp: { secret: MCP_SECRET },
   });
 
   return { app, logger, requestLogger };

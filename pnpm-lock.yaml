@@ -56,6 +56,9 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.9.1
         version: 0.9.1(hono@4.13.19)(zod@4.6.7)
+      '@leren/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@leren/auto-reply':
         specifier: workspace:*
         version: link:../../packages/auto-reply
@@ -65,15 +68,24 @@ importers:
       '@leren/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@leren/embedder':
+        specifier: workspace:*
+        version: link:../../packages/embedder
       '@leren/knowledge':
         specifier: workspace:*
         version: link:../../packages/knowledge
       '@leren/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@leren/mcp-server':
+        specifier: workspace:*
+        version: link:../../packages/mcp-server
       '@leren/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@leren/vector-db':
+        specifier: workspace:*
+        version: link:../../packages/vector-db
       better-auth:
         specifier: ^1.7.26
         version: 1.7.26(@opentelemetry/api@1.10.0)(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.1.1)
@@ -341,6 +353,40 @@ importers:
         specifier: ^13.0.0
         version: 13.2.0
     devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/mcp-server:
+    dependencies:
+      '@leren/db':
+        specifier: workspace:*
+        version: link:../db
+      '@leren/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
+      '@modelcontextprotocol/server':
+        specifier: ^2.4.0
+        version: 2.4.0
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.9)(pg@8.23.1)
+      jose:
+        specifier: ^6.2.17
+        version: 6.2.17
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@leren/embedder':
+        specifier: workspace:*
+        version: link:../embedder
+      '@leren/vector-db':
+        specifier: workspace:*
+        version: link:../vector-db
       '@types/node':
         specifier: ^26.6.6
         version: 26.6.6
@@ -1368,6 +1414,10 @@ packages:
 
   '@modelcontextprotocol/core@2.4.0':
     resolution: {integrity: sha512-z8QBKqdfXLPzkLQuG4xp8hrVEMm1PZ1IgxMN2sMbJiFiAKOWXnAzogXn2W4aqIBlP1ea6U5yiqVquvUNM1Cj6Q==}
+    engines: {node: '>=20'}
+
+  '@modelcontextprotocol/server@2.4.0':
+    resolution: {integrity: sha512-rgR9yxSaAJ+bcsi/XroT/S2AfPiIWloXAnrdfYSCms9ivVju0ishu/wW0J21Ho6+ZOR1r7RyeRbjiRuF87ix5Q==}
     engines: {node: '>=20'}
 
   '@napi-rs/wasm-runtime@1.2.6':
@@ -4970,6 +5020,11 @@ snapshots:
 
   '@modelcontextprotocol/core@2.4.0':
     dependencies:
+      zod: 4.6.7
+
+  '@modelcontextprotocol/server@2.4.0':
+    dependencies:
+      '@modelcontextprotocol/core': 2.4.0
       zod: 4.6.7
 
   '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)':
