@@ -22,7 +22,11 @@ function readBearerToken(request: Request): string | null {
   return scheme?.toLowerCase() === "bearer" && token ? token : null;
 }
 
-type RequestContext = { session: McpSession; requestId: string };
+/**
+ * The state of one request to the endpoint. It is created per request, so nothing in it outlives
+ * the request.
+ */
+type RequestContext = { session: McpSession; toolBodyRan: boolean };
 
 function readContext(extra: Record<string, unknown> | undefined): RequestContext | undefined {
   return extra?.context as RequestContext | undefined;
@@ -52,8 +56,6 @@ async function readToolCallName(request: Request): Promise<string | null> {
  * denied and invalid calls appear in the log without their arguments.
  */
 export function createMcpEndpoint(deps: McpEndpointDependencies) {
-  const requestsWithToolBody = new Set<string>();
-
   const handler = createMcpHandler(({ authInfo }) => {
     const context = readContext(authInfo?.extra);
 
@@ -64,7 +66,7 @@ export function createMcpEndpoint(deps: McpEndpointDependencies) {
     return createMcpServer(context.session, {
       ...deps,
       onToolAudited: () => {
-        requestsWithToolBody.add(context.requestId);
+        context.toolBodyRan = true;
       },
     });
   });
@@ -80,7 +82,7 @@ export function createMcpEndpoint(deps: McpEndpointDependencies) {
 
       const toolName = await readToolCallName(request);
 
-      const context: RequestContext = { session, requestId: crypto.randomUUID() };
+      const context: RequestContext = { session, toolBodyRan: false };
 
       const response = await handler.fetch(request, {
         authInfo: {
@@ -97,7 +99,7 @@ export function createMcpEndpoint(deps: McpEndpointDependencies) {
 
       await response.clone().text();
 
-      if (!requestsWithToolBody.delete(context.requestId)) {
+      if (!context.toolBodyRan) {
         await writeAudit(deps.db, session, toolName, "rejected", {});
       }
 
