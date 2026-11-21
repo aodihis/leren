@@ -1,11 +1,25 @@
 import { isoToZonedLocal, zonedLocalToIso } from "./time";
-import type { Rule, RuleFormValues, RuleInput } from "./types";
+import type { EmailConditions, Rule, RuleFormValues, RuleInput } from "./types";
 
 /**
  * Splits text that the user separated with new lines or commas into trimmed, non-empty items.
  */
 function splitList(text: string): string[] {
   return text.split(/[\n,]/).flatMap((item) => item.trim() || []);
+}
+
+/**
+ * Returns the email conditions of a rule. The form edits only the `email` channel, so the
+ * conditions of any other channel are left to the API.
+ */
+function findEmailConditions(rule: Rule): EmailConditions {
+  const email = rule.conditions.find((entry) => entry.channel === "email");
+
+  if (!email) {
+    throw new Error("The rule has no email conditions");
+  }
+
+  return email;
 }
 
 /**
@@ -39,6 +53,8 @@ export function getNewRuleValues(timezone: string): RuleFormValues {
  * timezone.
  */
 export function toFormValues(rule: Rule): RuleFormValues {
+  const { channel: _channel, ...email } = findEmailConditions(rule);
+
   return {
     name: rule.name,
     enabled: rule.enabled,
@@ -46,9 +62,9 @@ export function toFormValues(rule: Rule): RuleFormValues {
     startsAt: isoToZonedLocal(rule.startsAt, rule.timezone),
     endsAt: isoToZonedLocal(rule.endsAt, rule.timezone),
     email: {
-      ...rule.email,
-      senderAllowlist: rule.email.senderAllowlist.join("\n"),
-      mentionAliases: rule.email.mentionAliases.join(", "),
+      ...email,
+      senderAllowlist: email.senderAllowlist.join("\n"),
+      mentionAliases: email.mentionAliases.join(", "),
     },
   };
 }
@@ -64,10 +80,13 @@ export function toRequestBody(values: RuleFormValues): RuleInput {
     timezone: values.timezone,
     startsAt: zonedLocalToIso(values.startsAt, values.timezone),
     endsAt: zonedLocalToIso(values.endsAt, values.timezone),
-    email: {
-      ...values.email,
-      senderAllowlist: splitList(values.email.senderAllowlist),
-      mentionAliases: splitList(values.email.mentionAliases),
-    },
+    conditions: [
+      {
+        ...values.email,
+        channel: "email",
+        senderAllowlist: splitList(values.email.senderAllowlist),
+        mentionAliases: splitList(values.email.mentionAliases),
+      },
+    ],
   };
 }

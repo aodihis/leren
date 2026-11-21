@@ -1,4 +1,4 @@
-import { autoReplyRules, knowledgeItems, knowledgeProposals } from "@leren/db";
+import { autoReplyRules, knowledgeItems } from "@leren/db";
 import type { Db } from "@leren/db";
 import { isKnowledgeUsable, searchKnowledge } from "@leren/knowledge";
 import type { KnowledgeItemRow, KnowledgeSearchDependencies } from "@leren/knowledge";
@@ -17,8 +17,38 @@ export type McpToolDependencies = {
   /** The retrieval collaborators. Without them `search_knowledge` reports that it is unavailable. */
   search?: Pick<KnowledgeSearchDependencies, "store" | "embedder">;
   now?: () => Date;
+  /**
+   * The tools that create and change rules and knowledge. The API supplies them, because the
+   * business rules for saving live there and a package cannot import an app. Without them the
+   * write tools are not registered, whatever scopes the session holds.
+   */
+  actions?: McpWriteActions;
   /** Called after a tool body has run and been audited. */
   onToolAudited?: () => void;
+};
+
+/** The outcome of a write action. `saved` carries the id of the rule or item that was written. */
+export type McpWriteOutcome =
+  | { status: "saved"; id: string; data: unknown }
+  | { status: "invalid"; message: string }
+  | { status: "not_found" };
+
+/**
+ * One tool that changes data. `run` receives the session's user id and the validated arguments, so
+ * the user is never an argument, and it must scope every query by that user.
+ */
+export type McpWriteAction = {
+  description: string;
+  inputSchema: z.ZodObject;
+  run: (userId: string, input: never) => Promise<McpWriteOutcome>;
+};
+
+/** The write actions, keyed by what they do. */
+export type McpWriteActions = {
+  createRule: McpWriteAction;
+  updateRule: McpWriteAction;
+  createKnowledge: McpWriteAction;
+  updateKnowledge: McpWriteAction;
 };
 
 type ToolOutcome =
@@ -89,25 +119,55 @@ const listKnowledgeArgs = z.object({
 
 const searchKnowledgeArgs = z.object({ ruleId: z.uuid(), query: z.string().min(1).max(2000) });
 
-const proposeKnowledgeEditArgs = z.object({
-  ruleId: z.uuid(),
-  itemId: z.uuid().optional(),
-  idempotencyKey: z.string().min(1).max(200),
-  topic: z.string().min(1).max(200).optional(),
-  response: z.string().min(1).max(10_000).optional(),
-  examples: z.array(z.string().min(1).max(500)).max(20).optional(),
-  restrictions: z.string().max(5000).optional(),
-  contacts: z.array(z.string().min(1).max(200)).max(20).optional(),
-});
+type RunTool = (tool: string, body: () => Promise<ToolOutcome>) => Promise<CallToolResult>;
 
-type ProposeKnowledgeEditArgs = z.infer<typeof proposeKnowledgeEditArgs>;
+/**
+ * The ids in the arguments of a write call. They are the only part of the arguments that is
+ * audited, so a rule name or a knowledge text never reaches the log.
+ */
+function pickIds(args: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    ["ruleId", "itemId"].flatMap((key) => (args[key] === undefined ? [] : [[key, args[key]]])),
+  );
+}
+
+/**
+ * Registers a tool that changes data. The call is audited with the ids it names and the id it
+ * saved, and an unknown id and an invalid change are reported without internals.
+ */
+function registerWriteTool(
+  server: McpServer,
+  name: string,
+  action: McpWriteAction,
+  run: RunTool,
+  userId: string,
+): void {
+  server.registerTool(
+    name,
+    { description: action.description, inputSchema: action.inputSchema },
+    (args: Record<string, unknown>) =>
+      run(name, async () => {
+        const summary = pickIds(args);
+        const result = await action.run(userId, args as never);
+
+        if (result.status === "saved") {
+          return { outcome: "ok", data: result.data, summary: { ...summary, savedId: result.id } };
+        }
+
+        return result.status === "invalid"
+          ? { outcome: "invalid", message: result.message, summary }
+          : notFound(summary);
+      }),
+  );
+}
 
 /**
  * Builds the MCP server of one request for one verified session. A tool, resource or prompt is
  * registered only when the session holds its scope, so a call outside the granted scopes is
  * rejected as an unknown name. The user is the session's user, and no tool takes a user id.
  * Every call that reaches a tool body writes an audit row, and the endpoint audits the calls that
- * the SDK rejects first. The one tool that changes data only records a proposal.
+ * the SDK rejects first. The tools that change data are the actions that the caller supplies, and
+ * each is registered only for a session that holds its write scope.
  */
 export function createMcpServer(session: McpSession, deps: McpToolDependencies): McpServer {
   const { db } = deps;
@@ -317,84 +377,20 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
     );
   }
 
-  if (holds("knowledge:propose")) {
-    server.registerTool(
-      "propose_knowledge_edit",
-      {
-        description:
-          "Suggest a new knowledge item, or a change to an existing one. The suggestion is saved for the user to review and changes nothing until the user accepts it. Repeating a call with the same idempotencyKey returns the first proposal.",
-        inputSchema: proposeKnowledgeEditArgs,
-      },
-      (args) => run("propose_knowledge_edit", () => proposeKnowledgeEdit(db, session, args)),
-    );
-  }
+  if (deps.actions) {
+    const writeTools = [
+      ["rules:write", "create_rule", deps.actions.createRule],
+      ["rules:write", "update_rule", deps.actions.updateRule],
+      ["knowledge:write", "create_knowledge", deps.actions.createKnowledge],
+      ["knowledge:write", "update_knowledge", deps.actions.updateKnowledge],
+    ] as const;
 
-  return server;
-}
-
-/**
- * Saves a proposal without touching `knowledge_items`. The rule, and the item when one is named,
- * must belong to the session's user. The unique key on the session and the idempotency key makes
- * a repeated call return the first proposal.
- */
-async function proposeKnowledgeEdit(
-  db: Db,
-  session: McpSession,
-  args: ProposeKnowledgeEditArgs,
-): Promise<ToolOutcome> {
-  const { ruleId, itemId, idempotencyKey, ...fields } = args;
-  const summary = { ruleId, itemId: itemId ?? null, idempotencyKey };
-
-  if (!(await findOwnedRule(db, session.userId, ruleId))) {
-    return notFound(summary);
-  }
-
-  if (itemId) {
-    const item = await findOwnedItem(db, session.userId, itemId);
-
-    if (!item || item.ruleId !== ruleId) {
-      return notFound(summary);
+    for (const [scope, name, action] of writeTools) {
+      if (holds(scope)) {
+        registerWriteTool(server, name, action, run, session.userId);
+      }
     }
   }
 
-  const proposal = Object.fromEntries(
-    Object.entries(fields).filter(([, value]) => value !== undefined),
-  );
-
-  if (Object.keys(proposal).length === 0) {
-    return { outcome: "invalid", message: "Propose at least one field", summary };
-  }
-
-  if (!itemId && (!proposal.topic || !proposal.response)) {
-    return { outcome: "invalid", message: "A new item needs a topic and a response", summary };
-  }
-
-  await db
-    .insert(knowledgeProposals)
-    .values({
-      userId: session.userId,
-      sessionId: session.id,
-      ruleId,
-      itemId: itemId ?? null,
-      idempotencyKey,
-      proposal,
-    })
-    .onConflictDoNothing();
-
-  const [saved] = await db
-    .select()
-    .from(knowledgeProposals)
-    .where(
-      and(
-        eq(knowledgeProposals.sessionId, session.id),
-        eq(knowledgeProposals.idempotencyKey, idempotencyKey),
-        eq(knowledgeProposals.userId, session.userId),
-      ),
-    );
-
-  return {
-    outcome: "ok",
-    data: { proposalId: saved.id, status: saved.status },
-    summary: { ...summary, proposalId: saved.id },
-  };
+  return server;
 }

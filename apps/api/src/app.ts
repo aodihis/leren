@@ -11,6 +11,7 @@ import { createAuthRouter } from "./modules/auth/router";
 import type { Auth } from "./modules/auth/service";
 import { createAutoReplyRulesRouter } from "./modules/auto-reply-rules/router";
 import { createKnowledgeItemsRouter } from "./modules/knowledge-items/router";
+import { createMcpWriteActions } from "./modules/mcp/actions";
 import { createMcpRouter } from "./modules/mcp/router";
 
 const echoSchema = z.object({ message: z.string().min(1) });
@@ -35,7 +36,12 @@ export type AppDependencies = {
  */
 export function createApp({ auth, db, logger, requestKnowledgeIndex, mcp }: AppDependencies) {
   const sessions = { db, secret: mcp.secret };
-  const endpoint = createMcpEndpoint({ ...sessions, search: mcp.search });
+
+  const endpoint = createMcpEndpoint({
+    ...sessions,
+    search: mcp.search,
+    actions: createMcpWriteActions(db, requestKnowledgeIndex),
+  });
 
   return new Hono()
     .use(requestId())

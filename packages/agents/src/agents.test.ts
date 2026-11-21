@@ -88,4 +88,17 @@ describe("restrictTools", () => {
 
     expect(restricted.tools.map((tool) => tool.mcp.remoteName)).toEqual(["search_knowledge"]);
   });
+
+  it("requires approval only for the tools named as approval tools", () => {
+    const server: McpServer = {
+      name: "leren",
+      tools: [mcpTool("search_knowledge"), mcpTool("create_rule")],
+    };
+
+    const restricted = restrictTools(server, ["search_knowledge", "create_rule"], ["create_rule"]);
+    const byName = Object.fromEntries(restricted.tools.map((tool) => [tool.mcp.remoteName, tool]));
+
+    expect(byName.create_rule?.requiresApproval).toBe(true);
+    expect(byName.search_knowledge?.requiresApproval).toBeUndefined();
+  });
 });

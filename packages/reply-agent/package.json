@@ -13,7 +13,7 @@
     "runner:run": "tsx --env-file-if-exists=../../.env src/runner.ts"
   },
   "dependencies": {
-    "@anvia/core": "^1.19.2",
+    "@anvia/core": "^1.21.0",
     "@anvia/mcp": "^1.2.7",
     "@leren/agents": "workspace:*",
     "@leren/observability": "workspace:*"

@@ -11,19 +11,22 @@ const rule: Rule = {
   endsAt: null,
   timezone: "Asia/Jakarta",
   status: "scheduled",
-  email: {
-    senderMode: "allowlist",
-    senderAllowlist: ["boss@acme.com", "@partner.org"],
-    replyWhenTo: true,
-    replyWhenCc: false,
-    replyWhenBcc: false,
-    requireSoleRecipient: false,
-    mentionOverrides: true,
-    mentionDetection: "alias",
-    mentionAliases: ["Bal", "Mr. Iqbal"],
-    threadMode: "both",
-    skipBulkMail: true,
-  },
+  conditions: [
+    {
+      channel: "email",
+      senderMode: "allowlist",
+      senderAllowlist: ["boss@acme.com", "@partner.org"],
+      replyWhenTo: true,
+      replyWhenCc: false,
+      replyWhenBcc: false,
+      requireSoleRecipient: false,
+      mentionOverrides: true,
+      mentionDetection: "alias",
+      mentionAliases: ["Bal", "Mr. Iqbal"],
+      threadMode: "both",
+      skipBulkMail: true,
+    },
+  ],
 };
 
 describe("toRequestBody", () => {
@@ -45,8 +48,8 @@ describe("toRequestBody", () => {
       },
     });
 
-    expect(body.email.senderAllowlist).toEqual(["a@x.com", "@y.org"]);
-    expect(body.email.mentionAliases).toEqual(["Bal", "Iqbal", "Ik"]);
+    expect(body.conditions[0]?.senderAllowlist).toEqual(["a@x.com", "@y.org"]);
+    expect(body.conditions[0]?.mentionAliases).toEqual(["Bal", "Iqbal", "Ik"]);
   });
 
   it("reads the dates in the chosen timezone and leaves empty ones open", () => {

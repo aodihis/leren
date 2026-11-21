@@ -1,8 +1,9 @@
 # 0019. Channel-specific reply conditions and the auto-reply package
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-20
 - Affects: packages/db, packages/auto-reply, apps/api, apps/worker, apps/platform, docs/overview/README.md, docs/rules/packages.md
+- Superseded by: [0033](0033-reply-conditions-table.md)
 
 ## Context
 

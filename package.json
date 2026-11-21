@@ -12,6 +12,7 @@
     "format:check": "oxfmt --check",
     "runner:assistant": "pnpm --filter @leren/assistant-agent runner:run",
     "runner:reply": "pnpm --filter @leren/reply-agent runner:run",
+    "studio:assistant": "dotenvx run -f .env -- pnpm --filter @leren/assistant-agent studio",
     "api:dev:secure": "dotenvx run -f .env -- pnpm --filter @leren/api dev",
     "api:start:secure": "dotenvx run -f .env -- pnpm --filter @leren/api start",
     "worker:dev:secure": "dotenvx run -f .env -- pnpm --filter @leren/worker dev",
@@ -30,7 +31,7 @@
     "test:e2e": "pnpm --filter @leren/e2e test"
   },
   "devDependencies": {
-    "@anvia/core": "^1.19.2",
+    "@anvia/core": "^1.21.0",
     "@dotenvx/dotenvx": "^2.38.2",
     "@leren/agents": "workspace:*",
     "@leren/plugin-client": "workspace:*",

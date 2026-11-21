@@ -1,19 +1,36 @@
-import { autoReplyRules, knowledgeItems, knowledgeProposals, mcpAuditLog, users } from "@leren/db";
+import { autoReplyRules, knowledgeItems, mcpAuditLog, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createFakeEmbedder } from "@leren/embedder/testing";
 import { KNOWLEDGE_COLLECTION, toEmbeddingText, toVectorMetadata } from "@leren/knowledge";
 import { createInMemoryVectorStore } from "@leren/vector-db";
-import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
 import { createMcpEndpoint } from "./handler";
 import { mintSession, revokeSession } from "./sessions";
 import type { MintSessionInput } from "./sessions";
+import type { McpWriteAction, McpWriteActions, McpWriteOutcome } from "./tools";
 
 const SECRET = "a-test-secret-that-is-at-least-32-characters";
 const NOW = new Date("2026-06-15T12:00:00Z");
 const MISSING_ID = "00000000-0000-4000-8000-000000000000";
+
+const NEW_ID = "11111111-1111-4111-8111-111111111111";
+
+/**
+ * A write action that saves nothing and records how it was called, so these tests cover the
+ * endpoint's scopes, user binding and audit and not the business rules of the API.
+ */
+function stubAction(
+  fields: z.ZodRawShape,
+  outcome: McpWriteOutcome = { status: "saved", id: NEW_ID, data: { id: NEW_ID } },
+) {
+  const run = vi.fn(async (_userId: string, _input: never): Promise<McpWriteOutcome> => outcome);
+  const action: McpWriteAction = { description: "A stub", inputSchema: z.object(fields), run };
+
+  return { action, run };
+}
 
 type RpcBody = {
   error?: unknown;
@@ -48,6 +65,8 @@ describe("MCP endpoint", () => {
   let otherUserId: string;
   let otherRuleId: string;
   let otherItemId: string;
+  let actions: McpWriteActions;
+  let createKnowledge: ReturnType<typeof stubAction>;
 
   beforeAll(async () => {
     database = await createTestDatabase();
@@ -94,11 +113,21 @@ describe("MCP endpoint", () => {
 
     clock = NOW;
     store = createInMemoryVectorStore();
+    createKnowledge = stubAction({ ruleId: z.uuid(), topic: z.string(), response: z.string() });
+
+    actions = {
+      createRule: stubAction({ name: z.string() }).action,
+      updateRule: stubAction({ ruleId: z.uuid() }).action,
+      createKnowledge: createKnowledge.action,
+      updateKnowledge: stubAction({ itemId: z.uuid() }).action,
+    };
+
     endpoint = createMcpEndpoint({
       db: database.db,
       secret: SECRET,
       now: () => clock,
       search: { store, embedder },
+      actions,
     });
 
     ({ userId, ruleId, itemId } = await seedUser("a@example.com"));
@@ -194,7 +223,14 @@ describe("MCP endpoint", () => {
         "tools/list",
       );
 
-      expect(toolNames(full)).toContain("propose_knowledge_edit");
+      expect(toolNames(full)).toEqual(
+        expect.arrayContaining([
+          "create_rule",
+          "update_rule",
+          "create_knowledge",
+          "update_knowledge",
+        ]),
+      );
       expect(toolNames(restricted)).toEqual(
         expect.arrayContaining([
           "list_rules",
@@ -204,7 +240,8 @@ describe("MCP endpoint", () => {
           "search_knowledge",
         ]),
       );
-      expect(toolNames(restricted)).not.toContain("propose_knowledge_edit");
+      expect(toolNames(restricted)).not.toContain("create_knowledge");
+      expect(toolNames(restricted)).not.toContain("create_rule");
     });
 
     it("rejects a call to a tool outside the granted scopes", async () => {
@@ -215,18 +252,21 @@ describe("MCP endpoint", () => {
       expect(result.data ?? "").not.toContain("Opening hours");
     });
 
-    it("rejects a proposal from a session without the propose scope", async () => {
+    it("rejects a write from a session without the write scope", async () => {
       const token = await tokenFor({ role: "reply", messageId: "m1" });
 
-      const result = await call(token, "propose_knowledge_edit", {
-        ruleId,
-        idempotencyKey: "k",
-        topic: "T",
-        response: "R",
-      });
+      const result = await call(token, "create_knowledge", { ruleId, topic: "T", response: "R" });
 
       expect(result.error ?? result.isError).toBeTruthy();
-      expect(await database.db.select().from(knowledgeProposals)).toHaveLength(0);
+      expect(createKnowledge.run).not.toHaveBeenCalled();
+    });
+
+    it("grants rule writes and knowledge writes separately", async () => {
+      const knowledgeOnly = toolNames(
+        await rpc(await tokenFor({ scopes: ["knowledge:write"] }), "tools/list"),
+      );
+
+      expect(knowledgeOnly).toEqual(["create_knowledge", "update_knowledge"]);
     });
   });
 
@@ -335,100 +375,60 @@ describe("MCP endpoint", () => {
     });
   });
 
-  describe("propose_knowledge_edit", () => {
-    const newItem = { idempotencyKey: "k1", topic: "Parking", response: "Free parking" };
+  describe("write tools", () => {
+    const newItem = { topic: "Parking", response: "Free parking" };
 
-    it("saves a pending proposal and leaves the knowledge unchanged", async () => {
-      const result = await call(await tokenFor(), "propose_knowledge_edit", { ruleId, ...newItem });
-      const [saved] = await database.db.select().from(knowledgeProposals);
+    it("runs the action for the session's user and returns its result", async () => {
+      const result = await call(await tokenFor(), "create_knowledge", { ruleId, ...newItem });
 
-      expect(parsed(result)).toEqual({ proposalId: saved.id, status: "pending" });
-      expect(saved).toMatchObject({ userId, ruleId, itemId: null, status: "pending" });
-      expect(saved.proposal).toEqual({ topic: "Parking", response: "Free parking" });
-      expect(await database.db.select().from(knowledgeItems)).toHaveLength(2);
+      expect(createKnowledge.run).toHaveBeenCalledWith(userId, { ruleId, ...newItem });
+      expect(parsed(result)).toEqual({ id: NEW_ID });
     });
 
-    it("proposes a change to an existing item", async () => {
-      const result = await call(await tokenFor(), "propose_knowledge_edit", {
-        ruleId,
-        itemId,
-        idempotencyKey: "k2",
-        response: "We open at ten",
-      });
-
-      expect(result.isError).toBe(false);
-
-      const [item] = await database.db
-        .select()
-        .from(knowledgeItems)
-        .where(eq(knowledgeItems.id, itemId));
-
-      expect(item.response).toBe("We open at nine");
-    });
-
-    it("returns the first proposal when the idempotency key repeats", async () => {
-      const token = await tokenFor();
-      const first = parsed(await call(token, "propose_knowledge_edit", { ruleId, ...newItem }));
-
-      const second = parsed(
-        await call(token, "propose_knowledge_edit", { ruleId, ...newItem, response: "Other" }),
-      );
-
-      expect(second.proposalId).toBe(first.proposalId);
-      expect(await database.db.select().from(knowledgeProposals)).toHaveLength(1);
-    });
-
-    it("rejects an empty proposal and a new item without a topic and response", async () => {
-      const token = await tokenFor();
-
-      const empty = await call(token, "propose_knowledge_edit", {
-        ruleId,
-        itemId,
-        idempotencyKey: "a",
-      });
-
-      const partial = await call(token, "propose_knowledge_edit", {
-        ruleId,
-        idempotencyKey: "b",
-        topic: "Only a topic",
-      });
-
-      expect(empty.isError).toBe(true);
-      expect(partial.isError).toBe(true);
-      expect(await database.db.select().from(knowledgeProposals)).toHaveLength(0);
-    });
-
-    it("refuses another user's rule and another user's item", async () => {
-      const token = await tokenFor();
-
-      const foreignRule = await call(token, "propose_knowledge_edit", {
+    it("binds the call to the token's user and not to any argument", async () => {
+      await call(await tokenFor({}, otherUserId), "create_knowledge", {
         ruleId: otherRuleId,
         ...newItem,
+        userId,
       });
 
-      const foreignItem = await call(token, "propose_knowledge_edit", {
-        ruleId: otherRuleId,
-        itemId: otherItemId,
-        idempotencyKey: "x",
-        response: "Changed",
-      });
-
-      const mismatched = await call(token, "propose_knowledge_edit", {
-        ruleId,
-        itemId: otherItemId,
-        idempotencyKey: "y",
-        response: "Changed",
-      });
-
-      expect([foreignRule, foreignItem, mismatched].every((result) => result.isError)).toBe(true);
-      expect(await database.db.select().from(knowledgeProposals)).toHaveLength(0);
+      expect(createKnowledge.run.mock.calls[0]?.[0]).toBe(otherUserId);
     });
 
-    it("keeps one idempotency key separate between sessions", async () => {
-      await call(await tokenFor(), "propose_knowledge_edit", { ruleId, ...newItem });
-      await call(await tokenFor(), "propose_knowledge_edit", { ruleId, ...newItem });
+    it("rejects arguments that fail validation without running the action", async () => {
+      const result = await call(await tokenFor(), "create_knowledge", { ruleId: "no" });
 
-      expect(await database.db.select().from(knowledgeProposals)).toHaveLength(2);
+      expect(result.error ?? result.isError).toBeTruthy();
+      expect(createKnowledge.run).not.toHaveBeenCalled();
+    });
+
+    it("reports an invalid change and an unknown id as errors", async () => {
+      const invalid = stubAction(
+        { ruleId: z.uuid() },
+        { status: "invalid", message: "Enter a topic" },
+      );
+
+      const missing = stubAction({ itemId: z.uuid() }, { status: "not_found" });
+
+      endpoint = createMcpEndpoint({
+        db: database.db,
+        secret: SECRET,
+        now: () => clock,
+        actions: { ...actions, createRule: invalid.action, updateKnowledge: missing.action },
+      });
+
+      const token = await tokenFor();
+      const first = await call(token, "create_rule", { ruleId });
+      const second = await call(token, "update_knowledge", { itemId: MISSING_ID });
+
+      expect(first).toMatchObject({ isError: true, data: "Enter a topic" });
+      expect(second).toMatchObject({ isError: true, data: "Not found" });
+    });
+
+    it("does not register the write tools without actions", async () => {
+      endpoint = createMcpEndpoint({ db: database.db, secret: SECRET, now: () => clock });
+
+      expect(toolNames(await rpc(await tokenFor(), "tools/list"))).not.toContain("create_rule");
     });
   });
 
@@ -463,9 +463,8 @@ describe("MCP endpoint", () => {
 
       await call(token, "get_knowledge", { itemId });
       await call(token, "get_knowledge", { itemId: otherItemId });
-      await call(token, "propose_knowledge_edit", {
+      await call(token, "create_knowledge", {
         ruleId,
-        idempotencyKey: "k",
         topic: "Secret topic",
         response: "Secret response",
       });
@@ -473,9 +472,9 @@ describe("MCP endpoint", () => {
       const rows = await database.db.select().from(mcpAuditLog);
 
       expect(rows.map((row) => [row.tool, row.outcome]).toSorted()).toEqual([
+        ["create_knowledge", "ok"],
         ["get_knowledge", "not_found"],
         ["get_knowledge", "ok"],
-        ["propose_knowledge_edit", "ok"],
       ]);
       expect(rows.every((row) => row.userId === userId)).toBe(true);
       expect(JSON.stringify(rows)).not.toContain("Secret");

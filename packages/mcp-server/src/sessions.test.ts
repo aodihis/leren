@@ -47,7 +47,7 @@ describe("MCP sessions", () => {
       id: minted.sessionId,
       userId,
       role: "assistant",
-      scopes: ["knowledge:read", "knowledge:propose", "rules:read"],
+      scopes: ["knowledge:read", "knowledge:write", "rules:read", "rules:write"],
       messageId: null,
     });
   });
@@ -64,7 +64,7 @@ describe("MCP sessions", () => {
 
   it("refuses a scope outside the role", async () => {
     await expect(
-      mintSession(deps, { userId, role: "reply", messageId: "m1", scopes: ["knowledge:propose"] }),
+      mintSession(deps, { userId, role: "reply", messageId: "m1", scopes: ["knowledge:write"] }),
     ).rejects.toThrow("not allowed");
   });
 

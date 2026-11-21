@@ -1,8 +1,9 @@
 # 0006. Two separate agents, with the UI as the primary interface
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-19
 - Affects: packages/agents, apps/api, apps/worker, apps/platform, docs/overview/README.md
+- Superseded by: [0032](0032-assistant-writes-with-confirmation.md)
 
 ## Context
 

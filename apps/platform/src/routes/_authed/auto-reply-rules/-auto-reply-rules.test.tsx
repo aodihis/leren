@@ -26,6 +26,7 @@ function jsonResponse(body: unknown, status: number) {
 }
 
 const email = {
+  channel: "email",
   senderMode: "any",
   senderAllowlist: [],
   replyWhenTo: true,
@@ -47,7 +48,7 @@ const holiday = {
   endsAt: null,
   timezone: "Asia/Jakarta",
   status: "scheduled",
-  email,
+  conditions: [email],
 };
 
 const always = {
@@ -133,7 +134,7 @@ describe("auto-reply rules routes", () => {
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           startsAt: null,
           endsAt: null,
-          email,
+          conditions: [email],
         },
       });
     });
@@ -191,7 +192,7 @@ describe("auto-reply rules routes", () => {
           timezone: "Asia/Jakarta",
           startsAt: "2026-12-01T02:00:00.000Z",
           endsAt: null,
-          email,
+          conditions: [email],
         },
       });
     });

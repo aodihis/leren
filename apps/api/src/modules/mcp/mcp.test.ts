@@ -135,7 +135,7 @@ describe("MCP API", () => {
     const text = await response.text();
 
     expect(response.status).toBe(200);
-    expect(text).toContain("propose_knowledge_edit");
+    expect(text).toContain("create_knowledge");
   });
 
   it("revokes a session, and the token stops working", async () => {

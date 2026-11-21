@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anvia/core": "^1.19.2",
+    "@anvia/core": "^1.21.0",
     "@anvia/lens": "^1.2.5"
   },
   "devDependencies": {
