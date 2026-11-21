@@ -1,4 +1,4 @@
-import { autoReplyRules, knowledgeItems, users } from "@leren/db";
+import { playbooks, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createFakeEmbedder } from "@leren/embedder/testing";
@@ -21,7 +21,6 @@ describe("knowledge retrieval", () => {
   let store: VectorStore;
   let dependencies: KnowledgeSearchDependencies;
   let userId: string;
-  let ruleId: string;
 
   beforeAll(async () => {
     database = await createTestDatabase();
@@ -37,12 +36,7 @@ describe("knowledge retrieval", () => {
       .values({ email: `${crypto.randomUUID()}@example.com` })
       .returning({ id: users.id });
 
-    const [rule] = await database.db
-      .insert(autoReplyRules)
-      .values({ userId: user.id, name: "Holiday", timezone: "UTC" })
-      .returning({ id: autoReplyRules.id });
-
-    return { userId: user.id, ruleId: rule.id };
+    return { userId: user.id };
   }
 
   beforeEach(async () => {
@@ -50,21 +44,22 @@ describe("knowledge retrieval", () => {
 
     store = createInMemoryVectorStore();
     dependencies = { db: database.db, store, embedder: createFakeEmbedder() };
-    ({ userId, ruleId } = await createUser());
+    ({ userId } = await createUser());
   });
 
   /**
    * Inserts a row and indexes it the way the worker does, so a test can then change the row or
    * the vector independently.
    */
-  async function createIndexedItem(
-    values: Partial<typeof knowledgeItems.$inferInsert> = {},
-    owner: { userId: string; ruleId: string } = { userId, ruleId },
+  async function createIndexedPlaybook(
+    values: Partial<typeof playbooks.$inferInsert> = {},
+    owner: { userId: string } = { userId },
   ) {
-    const [item] = await database.db
-      .insert(knowledgeItems)
+    const [playbook] = await database.db
+      .insert(playbooks)
       .values({
         ...owner,
+        timezone: "UTC",
         topic: "Opening hours",
         response: "We are open from 9 to 5.",
         approvalStatus: "approved",
@@ -75,38 +70,38 @@ describe("knowledge retrieval", () => {
     await store.ensureCollection({ name: KNOWLEDGE_COLLECTION, dimensions: 64 });
     await store.upsert(KNOWLEDGE_COLLECTION, [
       {
-        id: item.id,
-        vector: (await dependencies.embedder.embed([toEmbeddingText(item)]))[0],
-        metadata: toVectorMetadata(item),
+        id: playbook.id,
+        vector: (await dependencies.embedder.embed([toEmbeddingText(playbook)]))[0],
+        metadata: toVectorMetadata(playbook),
       },
     ]);
 
-    return item;
+    return playbook;
   }
 
   function search(text: string, options = {}) {
-    return searchKnowledge(dependencies, { userId, ruleId, text }, { now: NOW, ...options });
+    return searchKnowledge(dependencies, { userId, text }, { now: NOW, ...options });
   }
 
-  it("returns the usable item that matches the query with its score", async () => {
-    const item = await createIndexedItem();
+  it("returns the usable playbook that matches the query with its score", async () => {
+    const playbook = await createIndexedPlaybook();
 
     const result = await search("opening hours");
 
     expect(result).toEqual({
       status: "found",
-      matches: [{ item, score: expect.any(Number) }],
+      matches: [{ playbook, score: expect.any(Number) }],
     });
   });
 
   it("ranks matches by descending score and returns at most the top 5", async () => {
-    const exact = await createIndexedItem({
+    const exact = await createIndexedPlaybook({
       topic: "Parking permit",
       response: "Parking permit.",
     });
 
     for (let index = 0; index < 6; index += 1) {
-      await createIndexedItem({
+      await createIndexedPlaybook({
         topic: `Visitor parking ${index}`,
         response: `Ask reception about parking option ${index} for visitors.`,
       });
@@ -120,13 +115,13 @@ describe("knowledge retrieval", () => {
       const scores = result.matches.map((match) => match.score);
 
       expect(result.matches).toHaveLength(5);
-      expect(result.matches[0].item.id).toBe(exact.id);
+      expect(result.matches[0].playbook.id).toBe(exact.id);
       expect(scores).toEqual(scores.toSorted((a, b) => b - a));
     }
   });
 
   it("reports no reliable result when no score reaches the threshold", async () => {
-    await createIndexedItem();
+    await createIndexedPlaybook();
 
     expect(await search("quarterly tax declaration")).toEqual({ status: "no_reliable_result" });
     expect(await search("opening hours", { minScore: 1.01 })).toEqual({
@@ -142,31 +137,20 @@ describe("knowledge retrieval", () => {
   it("never returns the knowledge of another user", async () => {
     const other = await createUser();
 
-    await createIndexedItem({ topic: "Salary details", response: "Private." }, other);
+    await createIndexedPlaybook({ topic: "Salary details", response: "Private." }, other);
 
     expect(await search("salary details")).toEqual({ status: "no_reliable_result" });
   });
 
-  it("does not return an item of another rule of the same user", async () => {
-    const [otherRule] = await database.db
-      .insert(autoReplyRules)
-      .values({ userId, name: "Other", timezone: "UTC" })
-      .returning({ id: autoReplyRules.id });
-
-    await createIndexedItem({ topic: "Refunds" }, { userId, ruleId: otherRule.id });
-
-    expect(await search("refunds")).toEqual({ status: "no_reliable_result" });
-  });
-
   it("does not return the row of another user even when its vector claims to be the caller's", async () => {
     const other = await createUser();
-    const foreign = await createIndexedItem({ topic: "Salary details" }, other);
+    const foreign = await createIndexedPlaybook({ topic: "Salary details" }, other);
 
     await store.upsert(KNOWLEDGE_COLLECTION, [
       {
         id: foreign.id,
         vector: (await dependencies.embedder.embed([toEmbeddingText(foreign)]))[0],
-        metadata: { ...toVectorMetadata(foreign), userId, ruleId },
+        metadata: { ...toVectorMetadata(foreign), userId },
       },
     ]);
 
@@ -175,68 +159,68 @@ describe("knowledge retrieval", () => {
 
   describe("usability is decided by PostgreSQL", () => {
     it.each([
-      ["a draft item", { approvalStatus: "draft" as const }],
-      ["an archived item", { approvalStatus: "archived" as const }],
-      ["an expired item", { validUntil: PAST }],
-      ["an item that is not valid yet", { validFrom: FUTURE }],
+      ["a draft playbook", { approvalStatus: "draft" as const }],
+      ["an archived playbook", { approvalStatus: "archived" as const }],
+      ["an expired playbook", { endsAt: PAST }],
+      ["a playbook that is not valid yet", { startsAt: FUTURE }],
     ])("excludes %s even when its vector is still indexed", async (_name, values) => {
-      await createIndexedItem(values);
+      await createIndexedPlaybook(values);
 
       expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });
     });
 
-    it("includes an item whose window contains now", async () => {
-      await createIndexedItem({ validFrom: PAST, validUntil: FUTURE });
+    it("includes a playbook whose window contains now", async () => {
+      await createIndexedPlaybook({ startsAt: PAST, endsAt: FUTURE });
 
       expect((await search("opening hours")).status).toBe("found");
     });
 
-    it("excludes an item that was archived after it was indexed", async () => {
-      const item = await createIndexedItem();
+    it("excludes a playbook that was archived after it was indexed", async () => {
+      const playbook = await createIndexedPlaybook();
 
       await database.db
-        .update(knowledgeItems)
+        .update(playbooks)
         .set({ approvalStatus: "archived" })
-        .where(eq(knowledgeItems.id, item.id));
+        .where(eq(playbooks.id, playbook.id));
 
       expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });
     });
 
     it("excludes a vector whose row was deleted", async () => {
-      const item = await createIndexedItem();
+      const playbook = await createIndexedPlaybook();
 
-      await database.db.delete(knowledgeItems).where(eq(knowledgeItems.id, item.id));
+      await database.db.delete(playbooks).where(eq(playbooks.id, playbook.id));
 
       expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });
     });
 
     it("returns the current content of the row and not the content that was indexed", async () => {
-      const item = await createIndexedItem();
+      const playbook = await createIndexedPlaybook();
 
       await database.db
-        .update(knowledgeItems)
+        .update(playbooks)
         .set({ response: "We are open from 10 to 6." })
-        .where(eq(knowledgeItems.id, item.id));
+        .where(eq(playbooks.id, playbook.id));
 
       const result = await search("opening hours");
 
-      expect(result.status === "found" && result.matches[0].item.response).toBe(
+      expect(result.status === "found" && result.matches[0].playbook.response).toBe(
         "We are open from 10 to 6.",
       );
     });
 
-    it("still fills the result when unusable items rank above usable ones", async () => {
+    it("still fills the result when unusable playbooks rank above usable ones", async () => {
       for (let index = 0; index < 8; index += 1) {
-        await createIndexedItem({ topic: "Opening hours hours hours", validUntil: PAST });
+        await createIndexedPlaybook({ topic: "Opening hours hours hours", endsAt: PAST });
       }
 
-      const usable = await createIndexedItem({ topic: "Opening hours", response: "Open." });
+      const usable = await createIndexedPlaybook({ topic: "Opening hours", response: "Open." });
 
       const result = await search("opening hours hours hours");
 
-      expect(result.status === "found" && result.matches.map((match) => match.item.id)).toEqual([
-        usable.id,
-      ]);
+      expect(result.status === "found" && result.matches.map((match) => match.playbook.id)).toEqual(
+        [usable.id],
+      );
     });
   });
 
@@ -248,15 +232,19 @@ describe("knowledge retrieval", () => {
     });
 
     it("averages the recall of labelled cases", async () => {
-      const hours = await createIndexedItem();
-      const parking = await createIndexedItem({ topic: "Parking", response: "Use the garage." });
+      const hours = await createIndexedPlaybook();
+
+      const parking = await createIndexedPlaybook({
+        topic: "Parking",
+        response: "Use the garage.",
+      });
 
       const report = await measureRecall(
         dependencies,
         [
-          { query: { userId, ruleId, text: "opening hours" }, relevantIds: [hours.id] },
-          { query: { userId, ruleId, text: "parking garage" }, relevantIds: [parking.id] },
-          { query: { userId, ruleId, text: "tax declaration" }, relevantIds: [hours.id] },
+          { query: { userId, text: "opening hours" }, relevantIds: [hours.id] },
+          { query: { userId, text: "parking garage" }, relevantIds: [parking.id] },
+          { query: { userId, text: "tax declaration" }, relevantIds: [hours.id] },
         ],
         { now: NOW },
       );

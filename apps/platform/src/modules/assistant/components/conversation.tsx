@@ -78,6 +78,10 @@ export function Conversation({
   const empty = chat.messages.length === 0;
 
   useEffect(() => {
+    if (chat.messages.length === 0) {
+      return;
+    }
+
     endRef.current?.scrollIntoView?.({ block: "end" });
   }, [chat.messages]);
 
@@ -143,8 +147,7 @@ export function Conversation({
   const unavailable = !available && (
     <Alert>
       <AlertDescription>
-        The assistant is not available right now. You can still manage everything in Rules and
-        Knowledge.
+        The assistant is not available right now. You can still manage everything in Playbooks.
       </AlertDescription>
     </Alert>
   );

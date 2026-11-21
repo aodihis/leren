@@ -12,11 +12,9 @@ import { createAssistantRouter } from "./modules/assistant/router";
 import type { Agent } from "./modules/assistant/agent";
 import { createAuthRouter } from "./modules/auth/router";
 import type { Auth } from "./modules/auth/service";
-import { createRuleMcpActions } from "./modules/auto-reply-rules/mcp-actions";
-import { createAutoReplyRulesRouter } from "./modules/auto-reply-rules/router";
-import { createKnowledgeMcpActions } from "./modules/knowledge-items/mcp-actions";
-import { createKnowledgeItemsRouter } from "./modules/knowledge-items/router";
 import { createMcpRouter } from "./modules/mcp/router";
+import { createPlaybookMcpActions } from "./modules/playbooks/mcp-actions";
+import { createPlaybooksRouter } from "./modules/playbooks/router";
 
 const echoSchema = z.object({ message: z.string().min(1) });
 
@@ -24,14 +22,14 @@ export type AppDependencies = {
   auth: Auth;
   db: Db;
   logger: Logger;
-  /** Asks the worker to bring the vector index of a knowledge item up to date. Must not throw. */
-  requestKnowledgeIndex: (itemId: string) => Promise<void>;
+  /** Asks the worker to bring the vector index of a playbook up to date. Must not throw. */
+  requestKnowledgeIndex: (playbookId: string) => Promise<void>;
   /** Runs the Assistant Agent for the chat. Without it, the chat reports that it is unavailable. */
   assistant?: Agent | undefined;
   mcp: {
     /** Signs MCP session tokens. At least 32 characters. */
     secret: string;
-    /** The retrieval collaborators of the `search_knowledge` tool. */
+    /** The retrieval collaborators of the `search_playbooks` tool. */
     search?: McpToolDependencies["search"];
   };
 };
@@ -54,8 +52,7 @@ export function createApp({
     ...sessions,
     search: mcp.search,
     actions: {
-      ...createRuleMcpActions(db),
-      ...createKnowledgeMcpActions(db, requestKnowledgeIndex),
+      ...createPlaybookMcpActions(db, requestKnowledgeIndex),
     },
   });
 
@@ -85,8 +82,7 @@ export function createApp({
       return c.json({ message });
     })
     .route("/", createAuthRouter(auth, db))
-    .route("/", createAutoReplyRulesRouter(auth, db))
-    .route("/", createKnowledgeItemsRouter(auth, db, requestKnowledgeIndex))
+    .route("/", createPlaybooksRouter(auth, db, requestKnowledgeIndex))
     .route("/", createMcpRouter({ auth, db, sessions, endpoint }))
     .route("/", createAssistantRouter({ auth, db, logger, agent: assistant }))
     .onError((error, c) => {

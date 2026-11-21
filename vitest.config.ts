@@ -13,6 +13,7 @@ export default defineConfig({
   test: {
     passWithNoTests: true,
     clearMocks: true,
+    hookTimeout: 30_000,
     projects: [
       {
         extends: true,

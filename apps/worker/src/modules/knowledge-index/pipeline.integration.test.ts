@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { autoReplyRules, knowledgeItems, users } from "@leren/db";
+import { playbooks, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createFakeEmbedder } from "@leren/embedder/testing";
@@ -64,7 +64,6 @@ describe("knowledge indexing pipeline", () => {
   let indexQueue: string;
   let driftQueue: string;
   let userId: string;
-  let ruleId: string;
 
   beforeAll(async () => {
     database = await createTestDatabase();
@@ -90,10 +89,6 @@ describe("knowledge indexing pipeline", () => {
       .insert(users)
       .values({ email: `${randomUUID()}@example.com` })
       .returning({ id: users.id });
-    [{ id: ruleId }] = await database.db
-      .insert(autoReplyRules)
-      .values({ userId, name: "Holiday", timezone: "UTC" })
-      .returning({ id: autoReplyRules.id });
 
     indexQueue = `knowledge.index.test.${randomUUID()}`;
     driftQueue = `knowledge.drift.test.${randomUUID()}`;
@@ -111,12 +106,12 @@ describe("knowledge indexing pipeline", () => {
     await worker?.stop();
   });
 
-  async function createItem(values: Partial<typeof knowledgeItems.$inferInsert> = {}) {
-    const [item] = await database.db
-      .insert(knowledgeItems)
+  async function createPlaybook(values: Partial<typeof playbooks.$inferInsert> = {}) {
+    const [playbook] = await database.db
+      .insert(playbooks)
       .values({
         userId,
-        ruleId,
+        timezone: "UTC",
         topic: "Opening hours",
         response: "We are open from 9 to 5.",
         approvalStatus: "approved",
@@ -124,11 +119,11 @@ describe("knowledge indexing pipeline", () => {
       })
       .returning();
 
-    return item;
+    return playbook;
   }
 
-  async function requestIndex(itemId: string): Promise<void> {
-    const message: KnowledgeIndexMessage = { itemId };
+  async function requestIndex(playbookId: string): Promise<void> {
+    const message: KnowledgeIndexMessage = { playbookId };
 
     await queue.publish(indexQueue, message);
   }
@@ -143,39 +138,39 @@ describe("knowledge indexing pipeline", () => {
   }
 
   function search(text: string) {
-    return searchKnowledge(dependencies, { userId, ruleId, text });
+    return searchKnowledge(dependencies, { userId, text });
   }
 
-  it("makes an approved item searchable once its message is consumed", async () => {
-    const item = await createItem();
+  it("makes an approved playbook searchable once its message is consumed", async () => {
+    const playbook = await createPlaybook();
 
-    await requestIndex(item.id);
-    await waitFor(async () => (await indexedIds()).includes(item.id));
+    await requestIndex(playbook.id);
+    await waitFor(async () => (await indexedIds()).includes(playbook.id));
 
     expect(await search("opening hours")).toMatchObject({
       status: "found",
-      matches: [{ item: { id: item.id } }],
+      matches: [{ playbook: { id: playbook.id } }],
     });
   });
 
-  it("stops returning an item after it is archived and its message is consumed", async () => {
-    const item = await createItem();
+  it("stops returning a playbook after it is archived and its message is consumed", async () => {
+    const playbook = await createPlaybook();
 
-    await requestIndex(item.id);
-    await waitFor(async () => (await indexedIds()).includes(item.id));
+    await requestIndex(playbook.id);
+    await waitFor(async () => (await indexedIds()).includes(playbook.id));
 
     await database.db
-      .update(knowledgeItems)
+      .update(playbooks)
       .set({ approvalStatus: "archived" })
-      .where(eq(knowledgeItems.id, item.id));
-    await requestIndex(item.id);
-    await waitFor(async () => !(await indexedIds()).includes(item.id));
+      .where(eq(playbooks.id, playbook.id));
+    await requestIndex(playbook.id);
+    await waitFor(async () => !(await indexedIds()).includes(playbook.id));
 
     expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });
   });
 
   it("repairs a missing vector and removes an orphaned one when the drift message is consumed", async () => {
-    const missing = await createItem({ topic: "Parking" });
+    const missing = await createPlaybook({ topic: "Parking" });
     const orphan = randomUUID();
 
     await store.ensureCollection({

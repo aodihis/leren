@@ -1,4 +1,4 @@
-import { autoReplyRules, knowledgeItems, mcpAuditLog, replyConditions, users } from "@leren/db";
+import { mcpAuditLog, playbooks, replyConditions, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createFakeEmbedder } from "@leren/embedder/testing";
@@ -60,13 +60,11 @@ describe("MCP endpoint", () => {
   let store = createInMemoryVectorStore();
   const embedder = createFakeEmbedder();
   let userId: string;
-  let ruleId: string;
-  let itemId: string;
+  let playbookId: string;
   let otherUserId: string;
-  let otherRuleId: string;
-  let otherItemId: string;
+  let otherPlaybookId: string;
   let actions: McpWriteActions;
-  let createKnowledge: ReturnType<typeof stubAction>;
+  let createPlaybook: ReturnType<typeof stubAction>;
 
   beforeAll(async () => {
     database = await createTestDatabase();
@@ -80,38 +78,33 @@ describe("MCP endpoint", () => {
   async function seedUser(email: string) {
     const [user] = await database.db.insert(users).values({ email }).returning({ id: users.id });
 
-    const [rule] = await database.db
-      .insert(autoReplyRules)
-      .values({ userId: user.id, name: `Rule of ${email}`, timezone: "UTC" })
-      .returning({ id: autoReplyRules.id });
-
-    await database.db.insert(replyConditions).values({
-      ruleId: rule.id,
-      channel: "email",
-      settings: { senderMode: "allowlist", senderAllowlist: [`${email}-friend@x.com`] },
-    });
-
-    const [item] = await database.db
-      .insert(knowledgeItems)
+    const [playbook] = await database.db
+      .insert(playbooks)
       .values({
         userId: user.id,
-        ruleId: rule.id,
         topic: "Opening hours",
         response: "We open at nine",
+        timezone: "UTC",
         approvalStatus: "approved",
         approvedAt: NOW,
       })
       .returning();
 
+    await database.db.insert(replyConditions).values({
+      playbookId: playbook.id,
+      channel: "email",
+      settings: { senderMode: "allowlist", senderAllowlist: [`${email}-friend@x.com`] },
+    });
+
     await store.ensureCollection({ name: KNOWLEDGE_COLLECTION, dimensions: embedder.dimensions });
 
-    const [vector] = await embedder.embed([toEmbeddingText(item)]);
+    const [vector] = await embedder.embed([toEmbeddingText(playbook)]);
 
     await store.upsert(KNOWLEDGE_COLLECTION, [
-      { id: item.id, vector, metadata: toVectorMetadata(item) },
+      { id: playbook.id, vector, metadata: toVectorMetadata(playbook) },
     ]);
 
-    return { userId: user.id, ruleId: rule.id, itemId: item.id };
+    return { userId: user.id, playbookId: playbook.id };
   }
 
   beforeEach(async () => {
@@ -119,13 +112,11 @@ describe("MCP endpoint", () => {
 
     clock = NOW;
     store = createInMemoryVectorStore();
-    createKnowledge = stubAction({ ruleId: z.uuid(), topic: z.string(), response: z.string() });
+    createPlaybook = stubAction({ topic: z.string(), response: z.string() });
 
     actions = {
-      createRule: stubAction({ name: z.string() }).action,
-      updateRule: stubAction({ ruleId: z.uuid() }).action,
-      createKnowledge: createKnowledge.action,
-      updateKnowledge: stubAction({ itemId: z.uuid() }).action,
+      createPlaybook: createPlaybook.action,
+      updatePlaybook: stubAction({ playbookId: z.uuid() }).action,
     };
 
     endpoint = createMcpEndpoint({
@@ -136,12 +127,8 @@ describe("MCP endpoint", () => {
       actions,
     });
 
-    ({ userId, ruleId, itemId } = await seedUser("a@example.com"));
-    ({
-      userId: otherUserId,
-      ruleId: otherRuleId,
-      itemId: otherItemId,
-    } = await seedUser("b@example.com"));
+    ({ userId, playbookId } = await seedUser("a@example.com"));
+    ({ userId: otherUserId, playbookId: otherPlaybookId } = await seedUser("b@example.com"));
   });
 
   async function tokenFor(input: Partial<MintSessionInput> = {}, owner = userId) {
@@ -230,29 +217,17 @@ describe("MCP endpoint", () => {
       );
 
       expect(toolNames(full)).toEqual(
-        expect.arrayContaining([
-          "create_rule",
-          "update_rule",
-          "create_knowledge",
-          "update_knowledge",
-        ]),
+        expect.arrayContaining(["create_playbook", "update_playbook"]),
       );
       expect(toolNames(restricted)).toEqual(
-        expect.arrayContaining([
-          "list_rules",
-          "get_rule",
-          "list_knowledge",
-          "get_knowledge",
-          "search_knowledge",
-        ]),
+        expect.arrayContaining(["list_playbooks", "get_playbook", "search_playbooks"]),
       );
-      expect(toolNames(restricted)).not.toContain("create_knowledge");
-      expect(toolNames(restricted)).not.toContain("create_rule");
+      expect(toolNames(restricted)).not.toContain("create_playbook");
     });
 
     it("rejects a call to a tool outside the granted scopes", async () => {
-      const token = await tokenFor({ scopes: ["rules:read"] });
-      const result = await call(token, "get_knowledge", { itemId });
+      const token = await tokenFor({ scopes: ["playbooks:write"] });
+      const result = await call(token, "get_playbook", { playbookId });
 
       expect(result.error ?? result.isError).toBeTruthy();
       expect(result.data ?? "").not.toContain("Opening hours");
@@ -261,138 +236,112 @@ describe("MCP endpoint", () => {
     it("rejects a write from a session without the write scope", async () => {
       const token = await tokenFor({ role: "reply", messageId: "m1" });
 
-      const result = await call(token, "create_knowledge", { ruleId, topic: "T", response: "R" });
+      const result = await call(token, "create_playbook", { topic: "T", response: "R" });
 
       expect(result.error ?? result.isError).toBeTruthy();
-      expect(createKnowledge.run).not.toHaveBeenCalled();
+      expect(createPlaybook.run).not.toHaveBeenCalled();
     });
 
-    it("grants rule writes and knowledge writes separately", async () => {
-      const knowledgeOnly = toolNames(
-        await rpc(await tokenFor({ scopes: ["knowledge:write"] }), "tools/list"),
+    it("offers only the write tools to a session that holds only the write scope", async () => {
+      const writeOnly = toolNames(
+        await rpc(await tokenFor({ scopes: ["playbooks:write"] }), "tools/list"),
       );
 
-      expect(knowledgeOnly).toEqual(["create_knowledge", "update_knowledge"]);
+      expect(writeOnly).toEqual(["create_playbook", "update_playbook"]);
     });
   });
 
   describe("read tools", () => {
-    it("lists the rules of the session's user only", async () => {
-      const result = await call(await tokenFor(), "list_rules");
+    it("lists the playbooks of the session's user only, with their conditions", async () => {
+      const result = parsed(await call(await tokenFor(), "list_playbooks"));
 
-      expect(parsed(result).rules.map((rule: { id: string }) => rule.id)).toEqual([ruleId]);
-    });
-
-    it("returns the conditions of each rule with its channel, for the user's rules only", async () => {
-      const token = await tokenFor();
-
-      const expected = [
+      expect(result.playbooks.map((playbook: { id: string }) => playbook.id)).toEqual([playbookId]);
+      expect(result.playbooks[0].conditions).toEqual([
         {
           channel: "email",
           senderMode: "allowlist",
           senderAllowlist: ["a@example.com-friend@x.com"],
         },
-      ];
-
-      const listed = parsed(await call(token, "list_rules")).rules;
-      const single = parsed(await call(token, "get_rule", { ruleId }));
-
-      expect(listed.map((rule: { conditions: unknown }) => rule.conditions)).toEqual([expected]);
-      expect(single.conditions).toEqual(expected);
+      ]);
     });
 
-    it("gets a rule, and treats another user's rule as missing", async () => {
+    it("filters the list by status and by usability", async () => {
       const token = await tokenFor();
 
-      expect(parsed(await call(token, "get_rule", { ruleId })).id).toBe(ruleId);
+      await database.db
+        .insert(playbooks)
+        .values({ userId, topic: "Draft", response: "r", timezone: "UTC" });
 
-      const foreign = await call(token, "get_rule", { ruleId: otherRuleId });
+      const all = parsed(await call(token, "list_playbooks"));
+      const usable = parsed(await call(token, "list_playbooks", { usableOnly: true }));
+      const drafts = parsed(await call(token, "list_playbooks", { status: "draft" }));
+
+      expect(all.playbooks).toHaveLength(2);
+      expect(usable.playbooks.map((playbook: { id: string }) => playbook.id)).toEqual([playbookId]);
+      expect(drafts.playbooks.map((playbook: { topic: string }) => playbook.topic)).toEqual([
+        "Draft",
+      ]);
+    });
+
+    it("gets a playbook, and treats another user's playbook as missing", async () => {
+      const token = await tokenFor();
+      const own = parsed(await call(token, "get_playbook", { playbookId }));
+
+      expect(own).toMatchObject({ topic: "Opening hours", usable: true, periodStatus: "active" });
+
+      const foreign = await call(token, "get_playbook", { playbookId: otherPlaybookId });
 
       expect(foreign.isError).toBe(true);
       expect(foreign.data).toBe("Not found");
+      expect((await call(token, "get_playbook", { playbookId: MISSING_ID })).isError).toBe(true);
     });
 
     it("rejects invalid input", async () => {
-      const result = await call(await tokenFor(), "get_rule", { ruleId: "not-a-uuid" });
+      const result = await call(await tokenFor(), "get_playbook", { playbookId: "not-a-uuid" });
 
       expect(result.error ?? result.isError).toBeTruthy();
     });
 
-    it("lists knowledge of the session's user and filters by status and usability", async () => {
-      const token = await tokenFor();
-
-      await database.db
-        .insert(knowledgeItems)
-        .values({ userId, ruleId, topic: "Draft", response: "r" });
-
-      const all = parsed(await call(token, "list_knowledge"));
-      const usable = parsed(await call(token, "list_knowledge", { usableOnly: true }));
-      const drafts = parsed(await call(token, "list_knowledge", { status: "draft" }));
-
-      expect(all.items).toHaveLength(2);
-      expect(usable.items.map((item: { id: string }) => item.id)).toEqual([itemId]);
-      expect(drafts.items.map((item: { topic: string }) => item.topic)).toEqual(["Draft"]);
-      expect(all.items.every((item: { id: string }) => item.id !== otherItemId)).toBe(true);
-    });
-
-    it("gets a knowledge item, and treats another user's item as missing", async () => {
-      const token = await tokenFor();
-
-      expect(parsed(await call(token, "get_knowledge", { itemId })).topic).toBe("Opening hours");
-      expect((await call(token, "get_knowledge", { itemId: otherItemId })).isError).toBe(true);
-      expect((await call(token, "get_knowledge", { itemId: MISSING_ID })).isError).toBe(true);
-    });
-
-    it("searches the user's approved knowledge", async () => {
+    it("searches the user's approved playbooks and returns their conditions", async () => {
       const found = parsed(
-        await call(await tokenFor(), "search_knowledge", {
-          ruleId,
+        await call(await tokenFor(), "search_playbooks", {
           query: "Opening hours We open at nine",
         }),
       );
 
       expect(found.status).toBe("found");
-      expect(found.matches.map((match: { item: { id: string } }) => match.item.id)).toEqual([
-        itemId,
-      ]);
-    });
-
-    it("does not search the rule of another user", async () => {
-      const result = await call(await tokenFor(), "search_knowledge", {
-        ruleId: otherRuleId,
-        query: "Opening hours",
-      });
-
-      expect(result.isError).toBe(true);
-      expect(result.data).toBe("Not found");
+      expect(found.matches.map((match: { playbook: { id: string } }) => match.playbook.id)).toEqual(
+        [playbookId],
+      );
+      expect(found.matches[0].playbook.conditions).toHaveLength(1);
     });
 
     it("reports that search is unavailable when it is not configured", async () => {
       endpoint = createMcpEndpoint({ db: database.db, secret: SECRET, now: () => clock });
 
-      const result = await call(await tokenFor(), "search_knowledge", { ruleId, query: "hours" });
+      const result = await call(await tokenFor(), "search_playbooks", { query: "hours" });
 
       expect(result.isError).toBe(true);
       expect(result.data).toBe("Search is not configured");
     });
 
-    it("reads a knowledge item as a resource and refuses another user's", async () => {
+    it("reads a playbook as a resource and refuses another user's", async () => {
       const token = await tokenFor();
-      const own = await rpc(token, "resources/read", { uri: `leren://knowledge/${itemId}` });
+      const own = await rpc(token, "resources/read", { uri: `leren://playbooks/${playbookId}` });
 
       const foreign = await rpc(token, "resources/read", {
-        uri: `leren://knowledge/${otherItemId}`,
+        uri: `leren://playbooks/${otherPlaybookId}`,
       });
 
-      expect(JSON.parse(own.body?.result?.contents?.[0]?.text ?? "").id).toBe(itemId);
+      expect(JSON.parse(own.body?.result?.contents?.[0]?.text ?? "").id).toBe(playbookId);
       expect(foreign.body?.error).toBeDefined();
       expect(JSON.stringify(foreign.body)).not.toContain("Opening hours");
     });
 
     it("serves the answer prompt", async () => {
       const reply = await rpc(await tokenFor(), "prompts/get", {
-        name: "answer_from_knowledge",
-        arguments: { ruleId, question: "When do you open?" },
+        name: "answer_from_playbooks",
+        arguments: { question: "When do you open?" },
       });
 
       expect(reply.body?.result?.messages?.[0]?.content.text).toContain("When do you open?");
@@ -400,50 +349,46 @@ describe("MCP endpoint", () => {
   });
 
   describe("write tools", () => {
-    const newItem = { topic: "Parking", response: "Free parking" };
+    const newPlaybook = { topic: "Parking", response: "Free parking" };
 
     it("runs the action for the session's user and returns its result", async () => {
-      const result = await call(await tokenFor(), "create_knowledge", { ruleId, ...newItem });
+      const result = await call(await tokenFor(), "create_playbook", newPlaybook);
 
-      expect(createKnowledge.run).toHaveBeenCalledWith(userId, { ruleId, ...newItem });
+      expect(createPlaybook.run).toHaveBeenCalledWith(userId, newPlaybook);
       expect(parsed(result)).toEqual({ id: NEW_ID });
     });
 
     it("binds the call to the token's user and not to any argument", async () => {
-      await call(await tokenFor({}, otherUserId), "create_knowledge", {
-        ruleId: otherRuleId,
-        ...newItem,
-        userId,
-      });
+      await call(await tokenFor({}, otherUserId), "create_playbook", { ...newPlaybook, userId });
 
-      expect(createKnowledge.run.mock.calls[0]?.[0]).toBe(otherUserId);
+      expect(createPlaybook.run.mock.calls[0]?.[0]).toBe(otherUserId);
     });
 
     it("rejects arguments that fail validation without running the action", async () => {
-      const result = await call(await tokenFor(), "create_knowledge", { ruleId: "no" });
+      const result = await call(await tokenFor(), "create_playbook", { topic: 1 });
 
       expect(result.error ?? result.isError).toBeTruthy();
-      expect(createKnowledge.run).not.toHaveBeenCalled();
+      expect(createPlaybook.run).not.toHaveBeenCalled();
     });
 
     it("reports an invalid change and an unknown id as errors", async () => {
       const invalid = stubAction(
-        { ruleId: z.uuid() },
+        { topic: z.string() },
         { status: "invalid", message: "Enter a topic" },
       );
 
-      const missing = stubAction({ itemId: z.uuid() }, { status: "not_found" });
+      const missing = stubAction({ playbookId: z.uuid() }, { status: "not_found" });
 
       endpoint = createMcpEndpoint({
         db: database.db,
         secret: SECRET,
         now: () => clock,
-        actions: { ...actions, createRule: invalid.action, updateKnowledge: missing.action },
+        actions: { createPlaybook: invalid.action, updatePlaybook: missing.action },
       });
 
       const token = await tokenFor();
-      const first = await call(token, "create_rule", { ruleId });
-      const second = await call(token, "update_knowledge", { itemId: MISSING_ID });
+      const first = await call(token, "create_playbook", { topic: "x" });
+      const second = await call(token, "update_playbook", { playbookId: MISSING_ID });
 
       expect(first).toMatchObject({ isError: true, data: "Enter a topic" });
       expect(second).toMatchObject({ isError: true, data: "Not found" });
@@ -452,43 +397,44 @@ describe("MCP endpoint", () => {
     it("does not register the write tools without actions", async () => {
       endpoint = createMcpEndpoint({ db: database.db, secret: SECRET, now: () => clock });
 
-      expect(toolNames(await rpc(await tokenFor(), "tools/list"))).not.toContain("create_rule");
+      expect(toolNames(await rpc(await tokenFor(), "tools/list"))).not.toContain("create_playbook");
     });
   });
 
   describe("another user's token", () => {
     it("acts only for its own user", async () => {
       const token = await tokenFor({}, otherUserId);
-      const list = parsed(await call(token, "list_knowledge"));
+      const list = parsed(await call(token, "list_playbooks"));
 
-      expect(list.items.map((item: { id: string }) => item.id)).toEqual([otherItemId]);
-      expect((await call(token, "get_knowledge", { itemId })).isError).toBe(true);
+      expect(list.playbooks.map((playbook: { id: string }) => playbook.id)).toEqual([
+        otherPlaybookId,
+      ]);
+      expect((await call(token, "get_playbook", { playbookId })).isError).toBe(true);
     });
   });
 
   describe("audit log", () => {
     it("records calls rejected before a tool body runs, without their arguments", async () => {
-      const limited = await tokenFor({ scopes: ["rules:read"] });
+      const limited = await tokenFor({ scopes: ["playbooks:write"] });
 
-      await call(limited, "get_knowledge", { itemId });
-      await call(await tokenFor(), "get_rule", { ruleId: "not-a-uuid" });
+      await call(limited, "get_playbook", { playbookId });
+      await call(await tokenFor(), "get_playbook", { playbookId: "not-a-uuid" });
 
       const rows = await database.db.select().from(mcpAuditLog);
 
       expect(rows.map((row) => [row.tool, row.outcome]).toSorted()).toEqual([
-        ["get_knowledge", "rejected"],
-        ["get_rule", "rejected"],
+        ["get_playbook", "rejected"],
+        ["get_playbook", "rejected"],
       ]);
       expect(rows.every((row) => Object.keys(row.summary).length === 0)).toBe(true);
     });
 
-    it("records each call with its outcome and no knowledge text", async () => {
+    it("records each call with its outcome and no playbook text", async () => {
       const token = await tokenFor();
 
-      await call(token, "get_knowledge", { itemId });
-      await call(token, "get_knowledge", { itemId: otherItemId });
-      await call(token, "create_knowledge", {
-        ruleId,
+      await call(token, "get_playbook", { playbookId });
+      await call(token, "get_playbook", { playbookId: otherPlaybookId });
+      await call(token, "create_playbook", {
         topic: "Secret topic",
         response: "Secret response",
       });
@@ -496,9 +442,9 @@ describe("MCP endpoint", () => {
       const rows = await database.db.select().from(mcpAuditLog);
 
       expect(rows.map((row) => [row.tool, row.outcome]).toSorted()).toEqual([
-        ["create_knowledge", "ok"],
-        ["get_knowledge", "not_found"],
-        ["get_knowledge", "ok"],
+        ["create_playbook", "ok"],
+        ["get_playbook", "not_found"],
+        ["get_playbook", "ok"],
       ]);
       expect(rows.every((row) => row.userId === userId)).toBe(true);
       expect(JSON.stringify(rows)).not.toContain("Secret");

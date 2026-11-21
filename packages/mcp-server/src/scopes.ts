@@ -1,5 +1,5 @@
 /** The scopes that gate MCP tools, resources and prompts. */
-export const SCOPES = ["knowledge:read", "knowledge:write", "rules:read", "rules:write"] as const;
+export const SCOPES = ["playbooks:read", "playbooks:write"] as const;
 
 export type Scope = (typeof SCOPES)[number];
 
@@ -13,8 +13,8 @@ export type ClientRole = (typeof CLIENT_ROLES)[number];
  * the reply role has no scope that changes data.
  */
 export const ROLE_SCOPES: Record<ClientRole, readonly Scope[]> = {
-  assistant: ["knowledge:read", "knowledge:write", "rules:read", "rules:write"],
-  reply: ["knowledge:read", "rules:read"],
+  assistant: ["playbooks:read", "playbooks:write"],
+  reply: ["playbooks:read"],
 };
 
 export function isScope(value: string): value is Scope {

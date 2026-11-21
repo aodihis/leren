@@ -14,7 +14,7 @@ import type { AppType } from "./app";
 import { loadConfig } from "./config";
 import { createAgent } from "./modules/assistant/agent";
 import { createAuth } from "./modules/auth/service";
-import { createKnowledgeIndexRequester } from "./modules/knowledge-items/indexing";
+import { createKnowledgeIndexRequester } from "./modules/playbooks/indexing";
 
 const logger = createLogger({ name: "api" });
 const config = loadConfig();
@@ -44,7 +44,7 @@ const auth = createAuth({
 });
 
 /**
- * Builds the collaborators of the `search_knowledge` tool. Search is optional, so a deployment
+ * Builds the collaborators of the `search_playbooks` tool. Search is optional, so a deployment
  * without an embedding key still serves every other tool.
  */
 function createSearchDependencies() {
@@ -73,14 +73,14 @@ function createSearchDependencies() {
  */
 async function createAssistant() {
   try {
-    const harness = await loadHarness();
+    const loaded = await loadHarness();
 
     return createAgent({
       sessions: { db, secret: config.MCP_SESSION_SECRET },
       mcpUrl: `http://127.0.0.1:${config.PORT}/mcp`,
       logger,
-      instructions: await harness.readPrompt("assistant"),
-      model: harness.createModel("assistant"),
+      instructions: await loaded.readPrompt("assistant"),
+      model: loaded.createModel("assistant"),
       observer: createObserver(),
     });
   } catch (error) {

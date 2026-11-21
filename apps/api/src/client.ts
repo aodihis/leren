@@ -7,6 +7,4 @@ export type { AppType } from "./app";
 
 export type { Auth } from "./modules/auth/service";
 
-export type { AutoReplyRuleInput } from "./modules/auto-reply-rules/schema";
-
-export type { KnowledgeItemInput } from "./modules/knowledge-items/schema";
+export type { PlaybookInput } from "./modules/playbooks/schema";

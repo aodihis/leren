@@ -1,8 +1,9 @@
 # 0020. Knowledge items and approval
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-20
 - Affects: packages/db, packages/knowledge, apps/api, apps/platform, docs/overview/README.md, docs/rules/packages.md
+- Superseded by: [0035](0035-playbooks.md)
 
 ## Context
 

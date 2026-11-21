@@ -3,14 +3,14 @@ import { KNOWLEDGE_INDEX_QUEUE } from "@leren/knowledge";
 import { defineJob } from "../../job";
 import { logger } from "../../logger";
 import { knowledgeDriftPayloadSchema, knowledgeIndexPayloadSchema } from "./schema";
-import { repairKnowledgeDrift, syncKnowledgeItem } from "./service";
+import { repairKnowledgeDrift, syncPlaybook } from "./service";
 import type { KnowledgeIndexDependencies } from "./service";
 
 /** The name of the queue that triggers a drift check and repair. */
 export const KNOWLEDGE_DRIFT_QUEUE = "knowledge.drift";
 
 /**
- * Brings the vector index of one knowledge item up to date. Every failure is retried, because the
+ * Brings the vector index of one playbook up to date. Every failure is retried, because the
  * database and the vector store may be briefly unavailable and a retry reads the current row.
  */
 export function createKnowledgeIndexJob(dependencies: KnowledgeIndexDependencies) {
@@ -18,20 +18,22 @@ export function createKnowledgeIndexJob(dependencies: KnowledgeIndexDependencies
     name: KNOWLEDGE_INDEX_QUEUE,
     schema: knowledgeIndexPayloadSchema,
     maxAttempts: 5,
-    async handler({ itemId }, context) {
-      const outcome = await syncKnowledgeItem(dependencies, itemId, { signal: context.signal });
+    async handler({ playbookId }, context) {
+      const outcome = await syncPlaybook(dependencies, playbookId, { signal: context.signal });
 
-      logger.child({ job: KNOWLEDGE_INDEX_QUEUE, jobId: context.jobId }).info("Item synchronised", {
-        itemId,
-        outcome,
-      });
+      logger
+        .child({ job: KNOWLEDGE_INDEX_QUEUE, jobId: context.jobId })
+        .info("Playbook synchronised", {
+          playbookId,
+          outcome,
+        });
     },
   });
 }
 
 /**
  * Compares PostgreSQL with the vector index and repairs the differences. It also removes the
- * vectors of items whose validity window has ended, because nothing else reacts to time passing.
+ * vectors of playbooks whose period has ended, because nothing else reacts to time passing.
  */
 export function createKnowledgeDriftJob(dependencies: KnowledgeIndexDependencies) {
   return defineJob({

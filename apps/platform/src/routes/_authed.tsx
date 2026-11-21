@@ -22,7 +22,6 @@ import {
   InfoIcon,
   LogOutIcon,
   MenuIcon,
-  SlidersHorizontalIcon,
   SquarePenIcon,
   UserIcon,
 } from "lucide-react";
@@ -35,8 +34,7 @@ import { Logo } from "../modules/layout/components/logo";
 
 const NAV_ITEMS = [
   { to: "/", label: "Overview", icon: HouseIcon },
-  { to: "/auto-reply-rules", label: "Rules", icon: SlidersHorizontalIcon },
-  { to: "/knowledge", label: "Knowledge", icon: BookOpenIcon },
+  { to: "/playbooks", label: "Playbooks", icon: BookOpenIcon },
   { to: "/profile", label: "Profile", icon: UserIcon },
   { to: "/about", label: "About", icon: InfoIcon },
 ] as const;
@@ -152,7 +150,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col border-r bg-sidebar">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r bg-sidebar">
       <div className="px-3 pt-4 pb-2 max-lg:md:flex max-lg:md:justify-center">
         <BrandName />
       </div>

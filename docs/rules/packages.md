@@ -13,23 +13,23 @@ Applies to everything in `packages/`.
 
 ## Current packages
 
-| Package                  | Purpose                     |
-| ------------------------ | --------------------------- |
-| `@leren/agents`          | Shared agent runtime        |
-| `@leren/assistant-agent` | Assistant Agent             |
-| `@leren/reply-agent`     | Reply Agent                 |
-| `@leren/plugin-client`   | Plugin manifest and loader  |
-| `@leren/ui`              | Shared React components     |
-| `@leren/observability`   | Logging and tracing         |
-| `@leren/db`              | Database client and schema  |
-| `@leren/vector-db`       | Vector store abstraction    |
-| `@leren/embedder`        | Text embedding provider     |
-| `@leren/queue`           | RabbitMQ queues and retries |
-| `@leren/mcp-server`      | MCP server and sessions     |
-| `@leren/logger`          | Library-agnostic logging    |
-| `@leren/email`           | Email sending over SMTP     |
-| `@leren/auto-reply`      | Rule status and conditions  |
-| `@leren/knowledge`       | Knowledge rules, retrieval  |
+| Package                  | Purpose                       |
+| ------------------------ | ----------------------------- |
+| `@leren/agents`          | Shared agent runtime          |
+| `@leren/assistant-agent` | Assistant Agent               |
+| `@leren/reply-agent`     | Reply Agent                   |
+| `@leren/plugin-client`   | Plugin manifest and loader    |
+| `@leren/ui`              | Shared React components       |
+| `@leren/observability`   | Logging and tracing           |
+| `@leren/db`              | Database client and schema    |
+| `@leren/vector-db`       | Vector store abstraction      |
+| `@leren/embedder`        | Text embedding provider       |
+| `@leren/queue`           | RabbitMQ queues and retries   |
+| `@leren/mcp-server`      | MCP server and sessions       |
+| `@leren/logger`          | Library-agnostic logging      |
+| `@leren/email`           | Email sending over SMTP       |
+| `@leren/auto-reply`      | Period status and conditions  |
+| `@leren/knowledge`       | Playbook usability, retrieval |
 
 ## Observability
 

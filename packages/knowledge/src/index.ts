@@ -19,7 +19,7 @@ export type {
 export { DEFAULT_MIN_SCORE, KNOWLEDGE_SEARCH_LIMIT, searchKnowledge } from "./search";
 
 export type {
-  KnowledgeItemRow,
+  PlaybookRow,
   KnowledgeMatch,
   KnowledgeSearchDependencies,
   KnowledgeSearchOptions,

@@ -404,6 +404,9 @@ importers:
 
   packages/mcp-server:
     dependencies:
+      '@leren/auto-reply':
+        specifier: workspace:*
+        version: link:../auto-reply
       '@leren/db':
         specifier: workspace:*
         version: link:../db

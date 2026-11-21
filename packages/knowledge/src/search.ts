@@ -1,4 +1,4 @@
-import { knowledgeItems } from "@leren/db";
+import { playbooks } from "@leren/db";
 import type { Db } from "@leren/db";
 import type { Embedder } from "@leren/embedder";
 import type { VectorStore } from "@leren/vector-db";
@@ -32,12 +32,11 @@ export type KnowledgeSearchDependencies = {
 };
 
 /**
- * What a search is for. `userId` and `ruleId` are mandatory, so a search can never read the
- * knowledge of another user or of another rule.
+ * What a search is for. `userId` is mandatory, so a search can never read the playbooks of another
+ * user.
  */
 export type KnowledgeSearchQuery = {
   userId: string;
-  ruleId: string;
   text: string;
 };
 
@@ -48,10 +47,10 @@ export type KnowledgeSearchOptions = {
   signal?: AbortSignal;
 };
 
-export type KnowledgeItemRow = typeof knowledgeItems.$inferSelect;
+export type PlaybookRow = typeof playbooks.$inferSelect;
 
 export type KnowledgeMatch = {
-  item: KnowledgeItemRow;
+  playbook: PlaybookRow;
   score: number;
 };
 
@@ -66,10 +65,10 @@ export type KnowledgeSearchResult =
 const NO_RELIABLE_RESULT: KnowledgeSearchResult = { status: "no_reliable_result" };
 
 /**
- * Finds the knowledge items that are closest in meaning to a text. The index narrows the search
- * to the user and the rule, and drops vectors below `minScore`. The index is then checked against
+ * Finds the playbooks that are closest in meaning to a text. The index narrows the search
+ * to the user and drops vectors below `minScore`. The index is then checked against
  * PostgreSQL, which is the source of truth: only rows that still exist, still belong to the user
- * and the rule, and satisfy `isKnowledgeUsable` at `now` are returned, with the content of the
+ * and satisfy `isKnowledgeUsable` at `now` are returned, with the content of the
  * row and not of the vector. Matches are ordered by descending score.
  */
 export async function searchKnowledge(
@@ -91,9 +90,8 @@ export async function searchKnowledge(
 
   const [vector] = await embedder.embed([query.text], { signal: options.signal });
 
-  const filter: Pick<KnowledgeVectorMetadata, "userId" | "ruleId" | "type"> = {
+  const filter: Pick<KnowledgeVectorMetadata, "userId" | "type"> = {
     userId: query.userId,
-    ruleId: query.ruleId,
     type: "knowledge",
   };
 
@@ -112,15 +110,14 @@ export async function searchKnowledge(
 
   const rows = await db
     .select()
-    .from(knowledgeItems)
+    .from(playbooks)
     .where(
       and(
         inArray(
-          knowledgeItems.id,
+          playbooks.id,
           candidates.map((candidate) => candidate.id),
         ),
-        eq(knowledgeItems.userId, query.userId),
-        eq(knowledgeItems.ruleId, query.ruleId),
+        eq(playbooks.userId, query.userId),
       ),
     );
 
@@ -128,10 +125,10 @@ export async function searchKnowledge(
   const matches: KnowledgeMatch[] = [];
 
   for (const candidate of candidates) {
-    const item = rowsById.get(candidate.id);
+    const playbook = rowsById.get(candidate.id);
 
-    if (item && isKnowledgeUsable(item, now)) {
-      matches.push({ item, score: candidate.score });
+    if (playbook && isKnowledgeUsable(playbook, now)) {
+      matches.push({ playbook, score: candidate.score });
     }
   }
 
