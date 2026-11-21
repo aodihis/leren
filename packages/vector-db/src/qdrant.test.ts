@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const client = vi.hoisted(() => ({
   collectionExists: vi.fn(),
+  getCollection: vi.fn(),
   createCollection: vi.fn(),
   upsert: vi.fn(),
   query: vi.fn(),
@@ -26,6 +27,7 @@ describe("createQdrantStore", () => {
   describe("ensureCollection", () => {
     it("creates a cosine collection of the given size when it is missing", async () => {
       client.collectionExists.mockResolvedValue({ exists: false });
+      client.getCollection.mockResolvedValue({ status: "green" });
       const store = createQdrantStore("http://qdrant");
 
       await store.ensureCollection({ name: "docs", dimensions: 3 });
@@ -37,11 +39,46 @@ describe("createQdrantStore", () => {
 
     it("leaves an existing collection untouched", async () => {
       client.collectionExists.mockResolvedValue({ exists: true });
+      client.getCollection.mockResolvedValue({ status: "green" });
       const store = createQdrantStore("http://qdrant");
 
       await store.ensureCollection({ name: "docs", dimensions: 3 });
 
       expect(client.createCollection).not.toHaveBeenCalled();
+    });
+
+    it("waits until a collection that is still being created is ready", async () => {
+      client.collectionExists.mockResolvedValue({ exists: true });
+      client.getCollection
+        .mockRejectedValueOnce({ status: 500 })
+        .mockResolvedValueOnce({ status: "yellow" })
+        .mockResolvedValue({ status: "green" });
+      const store = createQdrantStore("http://qdrant");
+
+      await store.ensureCollection({ name: "docs", dimensions: 3 });
+
+      expect(client.getCollection).toHaveBeenCalledTimes(3);
+    });
+
+    it("accepts the conflict that the loser of a creation race receives", async () => {
+      client.collectionExists.mockResolvedValue({ exists: false });
+      client.createCollection.mockRejectedValue({ status: 409 });
+      client.getCollection.mockResolvedValue({ status: "green" });
+      const store = createQdrantStore("http://qdrant");
+
+      await expect(
+        store.ensureCollection({ name: "docs", dimensions: 3 }),
+      ).resolves.toBeUndefined();
+    });
+
+    it("does not hide an error that is not a sign of a collection under construction", async () => {
+      client.collectionExists.mockResolvedValue({ exists: true });
+      client.getCollection.mockRejectedValue({ status: 401 });
+      const store = createQdrantStore("http://qdrant");
+
+      await expect(store.ensureCollection({ name: "docs", dimensions: 3 })).rejects.toEqual({
+        status: 401,
+      });
     });
   });
 

@@ -27,21 +27,24 @@ describe("Qdrant vector store", () => {
     await store.deleteCollection(collection);
   });
 
-  it("creates a collection once when ensureCollection runs concurrently", async () => {
-    const concurrent = `vector_test_${randomUUID().replaceAll("-", "")}`;
+  it("accepts writes as soon as ensureCollection returns, even when callers race to create it", async () => {
+    for (let round = 0; round < 5; round++) {
+      const concurrent = `vector_test_${randomUUID().replaceAll("-", "")}`;
 
-    try {
-      await expect(
-        Promise.all(
-          Array.from({ length: 8 }, () =>
-            store.ensureCollection({ name: concurrent, dimensions: 2 }),
+      try {
+        await expect(
+          Promise.all(
+            Array.from({ length: 4 }, async () => {
+              await store.ensureCollection({ name: concurrent, dimensions: 2 });
+              await store.upsert(concurrent, [{ id: randomUUID(), vector: [1, 0] }]);
+            }),
           ),
-        ),
-      ).resolves.toHaveLength(8);
-    } finally {
-      await store.deleteCollection(concurrent);
+        ).resolves.toHaveLength(4);
+      } finally {
+        await store.deleteCollection(concurrent);
+      }
     }
-  });
+  }, 30_000);
 
   it("returns records ordered by cosine similarity and applies the limit", async () => {
     const [a, b, c] = [randomUUID(), randomUUID(), randomUUID()];
