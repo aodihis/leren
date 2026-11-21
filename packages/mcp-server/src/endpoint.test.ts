@@ -443,6 +443,21 @@ describe("MCP endpoint", () => {
   });
 
   describe("audit log", () => {
+    it("records calls rejected before a tool body runs, without their arguments", async () => {
+      const limited = await tokenFor({ scopes: ["rules:read"] });
+
+      await call(limited, "get_knowledge", { itemId });
+      await call(await tokenFor(), "get_rule", { ruleId: "not-a-uuid" });
+
+      const rows = await database.db.select().from(mcpAuditLog);
+
+      expect(rows.map((row) => [row.tool, row.outcome]).toSorted()).toEqual([
+        ["get_knowledge", "rejected"],
+        ["get_rule", "rejected"],
+      ]);
+      expect(rows.every((row) => Object.keys(row.summary).length === 0)).toBe(true);
+    });
+
     it("records each call with its outcome and no knowledge text", async () => {
       const token = await tokenFor();
 

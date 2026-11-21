@@ -17,11 +17,17 @@ export type McpToolDependencies = {
   /** The retrieval collaborators. Without them `search_knowledge` reports that it is unavailable. */
   search?: Pick<KnowledgeSearchDependencies, "store" | "embedder">;
   now?: () => Date;
+  /** Called after a tool body has run and been audited. */
+  onToolAudited?: () => void;
 };
 
 type ToolOutcome =
   | { outcome: "ok"; data: unknown; summary: Record<string, unknown> }
-  | { outcome: Exclude<AuditOutcome, "ok">; message: string; summary: Record<string, unknown> };
+  | {
+      outcome: Exclude<AuditOutcome, "ok" | "rejected">;
+      message: string;
+      summary: Record<string, unknown>;
+    };
 
 function notFound(summary: Record<string, unknown>): ToolOutcome {
   return { outcome: "not_found", message: "Not found", summary };
@@ -100,7 +106,8 @@ type ProposeKnowledgeEditArgs = z.infer<typeof proposeKnowledgeEditArgs>;
  * Builds the MCP server of one request for one verified session. A tool, resource or prompt is
  * registered only when the session holds its scope, so a call outside the granted scopes is
  * rejected as an unknown name. The user is the session's user, and no tool takes a user id.
- * Every tool call writes an audit row, and the one tool that changes data only records a proposal.
+ * Every call that reaches a tool body writes an audit row, and the endpoint audits the calls that
+ * the SDK rejects first. The one tool that changes data only records a proposal.
  */
 export function createMcpServer(session: McpSession, deps: McpToolDependencies): McpServer {
   const { db } = deps;
@@ -121,6 +128,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
     }));
 
     await writeAudit(db, session, tool, result.outcome, result.summary);
+    deps.onToolAudited?.();
 
     if (result.outcome === "ok") {
       return { content: [{ type: "text", text: JSON.stringify(result.data) }] };
