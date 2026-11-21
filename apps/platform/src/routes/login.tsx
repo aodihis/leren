@@ -25,6 +25,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { authClient } from "../modules/auth/auth-client";
+import { Logo } from "../modules/layout/components/logo";
 
 const CODE_LENGTH = 6;
 
@@ -53,10 +54,14 @@ function LoginPage() {
   const [email, setEmail] = useState<string | null>(null);
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-canvas p-6">
+      <div className="flex items-center gap-2.5 text-title-sm font-semibold">
+        <Logo />
+        Leren
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Sign in to Leren</CardTitle>
+          <CardTitle className="text-title">Sign in to Leren</CardTitle>
           <CardDescription>
             {email === null
               ? "Enter your email and we will send you a sign-in code. If you are new, the same code creates your account."
@@ -169,6 +174,7 @@ function CodeStep({ email, onChangeEmail }: CodeStepProps) {
               <FormControl>
                 <InputOTP
                   maxLength={CODE_LENGTH}
+                  containerClassName="justify-center"
                   inputMode="numeric"
                   autoFocus
                   onComplete={() => {

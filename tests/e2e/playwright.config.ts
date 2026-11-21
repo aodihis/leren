@@ -1,6 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { API_PORT, API_URL, PLATFORM_PORT, PLATFORM_URL, SMTP_URL } from "./support/config";
+import {
+  API_PORT,
+  API_URL,
+  PLATFORM_PORT,
+  PLATFORM_URL,
+  RABBITMQ_URL,
+  SMTP_URL,
+} from "./support/config";
 import { getE2eDatabaseUrl } from "./support/database";
 
 /**
@@ -31,6 +38,7 @@ export default defineConfig({
         PLATFORM_URL,
         DATABASE_URL: getE2eDatabaseUrl(),
         BETTER_AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-0000",
+        RABBITMQ_URL,
         SMTP_URL,
         LOG_LEVEL: "warn",
       },

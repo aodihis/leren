@@ -3,7 +3,8 @@ import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { CompletionModel } from "@anvia/core";
-import type { AgentName, HarnessConfig } from "./config";
+import { resolveTaskModel } from "./config";
+import type { AgentName, HarnessConfig, ModelTask } from "./config";
 import { createModel } from "./model";
 
 const CONFIG_FILE = "harness.config.ts";
@@ -18,7 +19,8 @@ export interface Harness {
   readonly rootDir: string;
   readonly pluginsDir: string;
   readPrompt(agent: AgentName): Promise<string>;
-  createModel(name?: string): CompletionModel;
+  /** Builds the model that `task` runs on, as selected by its environment variable. */
+  createModel(task: ModelTask): CompletionModel;
 }
 
 /** Where to look for the config file, and which environment holds the API keys. */
@@ -106,18 +108,8 @@ export async function loadHarness(options: LoadHarnessOptions = {}): Promise<Har
     rootDir,
     pluginsDir: resolve(rootDir, config.pluginsDir),
     readPrompt: (agent) => readFile(resolve(rootDir, config.prompts[agent]), "utf8"),
-    createModel(name = config.defaultModel) {
-      const definition = config.models[name];
-
-      if (!definition) {
-        throw new Error(`Unknown model "${name}".`);
-      }
-
-      const apiKey = env[definition.apiKeyEnv];
-
-      if (!apiKey) {
-        throw new Error(`Set ${definition.apiKeyEnv} to use the model "${name}".`);
-      }
+    createModel(task) {
+      const { definition, apiKey } = resolveTaskModel(config, task, env);
 
       return createModel({
         apiKey,

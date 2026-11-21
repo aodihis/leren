@@ -7,8 +7,8 @@ import { runAgent } from "./core";
  *
  * Usage: `pnpm runner:assistant "your question"`.
  * It loads `harness.config.ts`, which supplies the prompt, the model, its endpoint and the name of
- * the variable that holds its API key. `HARNESS_MODEL` selects a configured model other than the
- * default. It connects to the MCP server only when `MCP_URL` and `MCP_TOKEN` are set.
+ * the variable that holds its API key. The model is the one that `ASSISTANT_MODEL` selects, or the
+ * default model. It connects to the MCP server only when `MCP_URL` and `MCP_TOKEN` are set.
  */
 async function main(): Promise<void> {
   const prompt = process.argv.slice(2).join(" ");
@@ -27,7 +27,7 @@ async function main(): Promise<void> {
     const events = runAgent({
       prompt,
       instructions: await harness.readPrompt("assistant"),
-      model: harness.createModel(process.env.HARNESS_MODEL || undefined),
+      model: harness.createModel("assistant"),
       observer,
       mcp: url && token ? { url, token } : undefined,
     });

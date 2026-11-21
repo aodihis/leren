@@ -55,14 +55,19 @@ describe("loadHarness", () => {
     expect(harness.rootDir).toBe(paths.root);
     expect(harness.pluginsDir).toBe(join(paths.root, "plugins"));
     expect(await harness.readPrompt("reply")).toBe("Reply prompt.");
-    expect(harness.createModel()).toBeDefined();
+    expect(harness.createModel("reply")).toBeDefined();
   });
 
   it("reports a missing API key and an unknown model", async () => {
-    const harness = await loadHarness({ startDir: paths.root, env: {} });
+    const missingKey = await loadHarness({ startDir: paths.root, env: {} });
 
-    expect(() => harness.createModel()).toThrow("Set TEST_KEY");
-    expect(() => harness.createModel("other")).toThrow('Unknown model "other"');
+    const unknownModel = await loadHarness({
+      startDir: paths.root,
+      env: { TEST_KEY: "key", REPLY_MODEL: "other" },
+    });
+
+    expect(() => missingKey.createModel("reply")).toThrow("TEST_KEY is not set");
+    expect(() => unknownModel.createModel("reply")).toThrow('REPLY_MODEL="other"');
   });
 
   it("rejects a default model that is not configured", async () => {

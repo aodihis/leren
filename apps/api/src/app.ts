@@ -16,13 +16,15 @@ export type AppDependencies = {
   auth: Auth;
   db: Db;
   logger: Logger;
+  /** Asks the worker to bring the vector index of a knowledge item up to date. Must not throw. */
+  requestKnowledgeIndex: (itemId: string) => Promise<void>;
 };
 
 /**
  * Builds the Hono application from its collaborators, so tests can run it against a test database
  * without starting a server.
  */
-export function createApp({ auth, db, logger }: AppDependencies) {
+export function createApp({ auth, db, logger, requestKnowledgeIndex }: AppDependencies) {
   return new Hono()
     .use(requestId())
     .use(async (c, next) => {
@@ -45,7 +47,7 @@ export function createApp({ auth, db, logger }: AppDependencies) {
     })
     .route("/", createAuthRouter(auth, db))
     .route("/", createAutoReplyRulesRouter(auth, db))
-    .route("/", createKnowledgeItemsRouter(auth, db));
+    .route("/", createKnowledgeItemsRouter(auth, db, requestKnowledgeIndex));
 }
 
 export type AppType = ReturnType<typeof createApp>;

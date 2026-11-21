@@ -1,6 +1,8 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 
-import type { VectorMetadata, VectorStore } from "./types";
+import type { StoredRecord, VectorMetadata, VectorStore } from "./types";
+
+const SCROLL_OPTIONS = { limit: 256, with_payload: true, with_vector: false };
 
 /**
  * Creates a `VectorStore` backed by Qdrant, using cosine distance.
@@ -52,6 +54,26 @@ export function createQdrantStore(url: string): VectorStore {
 
     async delete(collection, ids) {
       await client.delete(collection, { wait: true, points: ids });
+    },
+
+    async list(collection) {
+      const records: StoredRecord[] = [];
+      let page = await client.scroll(collection, SCROLL_OPTIONS);
+
+      while (true) {
+        for (const point of page.points) {
+          records.push({ id: String(point.id), metadata: (point.payload ?? {}) as VectorMetadata });
+        }
+
+        if (page.next_page_offset === null || page.next_page_offset === undefined) {
+          return records;
+        }
+
+        page = await client.scroll(collection, {
+          ...SCROLL_OPTIONS,
+          offset: page.next_page_offset,
+        });
+      }
     },
 
     async deleteCollection(collection) {
