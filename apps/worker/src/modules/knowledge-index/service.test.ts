@@ -49,7 +49,6 @@ describe("knowledge indexing", () => {
         timezone: "UTC",
         topic: "Opening hours",
         response: "We are open from 9 to 5.",
-        approvalStatus: "approved",
         ...values,
       })
       .returning();
@@ -64,7 +63,7 @@ describe("knowledge indexing", () => {
   }
 
   describe("syncPlaybook", () => {
-    it("indexes an approved playbook with its identifiers and period in the payload", async () => {
+    it("indexes an enabled playbook with its identifiers and period in the payload", async () => {
       const playbook = await createPlaybook({ startsAt: PAST, endsAt: FUTURE });
 
       expect(await syncPlaybook(dependencies, playbook.id, { now: NOW })).toBe("indexed");
@@ -111,21 +110,18 @@ describe("knowledge indexing", () => {
       expect(record.metadata.updatedAt).toBe(edited.updatedAt.getTime());
     });
 
-    it.each(["draft", "archived"] as const)(
-      "removes the vector of a %s playbook",
-      async (status) => {
-        const playbook = await createPlaybook();
+    it("removes the vector of a disabled playbook", async () => {
+      const playbook = await createPlaybook();
 
-        await syncPlaybook(dependencies, playbook.id, { now: NOW });
-        await database.db
-          .update(playbooks)
-          .set({ approvalStatus: status })
-          .where(eq(playbooks.id, playbook.id));
+      await syncPlaybook(dependencies, playbook.id, { now: NOW });
+      await database.db
+        .update(playbooks)
+        .set({ enabled: false })
+        .where(eq(playbooks.id, playbook.id));
 
-        expect(await syncPlaybook(dependencies, playbook.id, { now: NOW })).toBe("removed");
-        expect(await vectorIds()).toEqual([]);
-      },
-    );
+      expect(await syncPlaybook(dependencies, playbook.id, { now: NOW })).toBe("removed");
+      expect(await vectorIds()).toEqual([]);
+    });
 
     it("removes the vector of a playbook whose period has ended", async () => {
       const playbook = await createPlaybook({ endsAt: PAST });
@@ -185,8 +181,8 @@ describe("knowledge indexing", () => {
       expect((await checkKnowledgeDrift(dependencies, NOW)).stale).toEqual([playbook.id]);
     });
 
-    it("reports vectors without a row, of unapproved playbooks and of expired playbooks as orphaned", async () => {
-      const draft = await createPlaybook({ approvalStatus: "draft" });
+    it("reports vectors without a row, of unenabled playbooks and of expired playbooks as orphaned", async () => {
+      const draft = await createPlaybook({ enabled: false });
       const expired = await createPlaybook({ endsAt: PAST });
       const unknown = crypto.randomUUID();
 
@@ -220,7 +216,7 @@ describe("knowledge indexing", () => {
         .where(eq(playbooks.id, edited.id));
       await database.db
         .update(playbooks)
-        .set({ approvalStatus: "archived" })
+        .set({ enabled: false })
         .where(eq(playbooks.id, archived.id));
       await database.db.delete(playbooks).where(eq(playbooks.id, deleted.id));
 
@@ -228,12 +224,10 @@ describe("knowledge indexing", () => {
 
       const rows = await database.db.select().from(playbooks);
 
-      const approvedIds = rows
-        .filter((row) => row.approvalStatus === "approved")
-        .map((row) => row.id);
+      const enabledIds = rows.filter((row) => row.enabled).map((row) => row.id);
 
       expect(repaired).toBe(4);
-      expect((await vectorIds()).toSorted()).toEqual(approvedIds.toSorted());
+      expect((await vectorIds()).toSorted()).toEqual(enabledIds.toSorted());
       expect(await vectorIds()).toContain(missing.id);
       expect(await checkKnowledgeDrift(dependencies, NOW)).toEqual({
         missing: [],

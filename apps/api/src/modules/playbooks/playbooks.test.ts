@@ -46,6 +46,7 @@ const validEmail: PlaybookInput["conditions"][number] = {
 };
 
 const validBody = {
+  enabled: true,
   topic: "Project status",
   examples: ["How is the project going?"],
   response: "The project is on track.",
@@ -63,7 +64,7 @@ function body(overrides: Partial<PlaybookInput> = {}) {
 
 type Created = {
   id: string;
-  approvalStatus: string;
+  enabled: boolean;
   usable: boolean;
   periodStatus: string;
   contacts: string[];
@@ -109,8 +110,8 @@ describe("playbooks API", () => {
     return playbook as Created;
   };
 
-  const act = (cookie: string, id: string, action: string) =>
-    call(cookie, "POST", `${PATH}/${id}/${action}`);
+  const setEnabled = (cookie: string, id: string, enabled: boolean) =>
+    call(cookie, "PATCH", `${PATH}/${id}`, { enabled });
 
   beforeAll(async () => {
     database = await createTestDatabase();
@@ -146,7 +147,7 @@ describe("playbooks API", () => {
       ["POST", PATH],
       ["GET", `${PATH}/${MISSING_ID}`],
       ["PUT", `${PATH}/${MISSING_ID}`],
-      ["POST", `${PATH}/${MISSING_ID}/approve`],
+      ["PATCH", `${PATH}/${MISSING_ID}`],
       ["DELETE", `${PATH}/${MISSING_ID}`],
     ]) {
       const response = await app.request(path, { method });
@@ -156,7 +157,7 @@ describe("playbooks API", () => {
   });
 
   describe("creating and reading", () => {
-    it("creates a draft with its conditions that is not usable yet", async () => {
+    it("creates an enabled playbook with its conditions that the assistant may use", async () => {
       const cookie = await signIn("author@example.com");
 
       const response = await call(
@@ -172,22 +173,17 @@ describe("playbooks API", () => {
           ...validBody,
           id: expect.any(String),
           contacts: ["dewi@example.com", "@Don"],
-          approvalStatus: "draft",
-          approvedAt: null,
           periodStatus: "active",
-          usable: false,
+          usable: true,
         },
       });
     });
 
-    it("ignores an approval status sent in the body", async () => {
-      const cookie = await signIn("sneaky@example.com");
+    it("creates a disabled playbook that is not usable", async () => {
+      const cookie = await signIn("disabled@example.com");
+      const created = await create(cookie, { enabled: false });
 
-      const created = await create(cookie, {
-        approvalStatus: "approved",
-      } as Partial<PlaybookInput>);
-
-      expect(created.approvalStatus).toBe("draft");
+      expect(created).toMatchObject({ enabled: false, usable: false, periodStatus: "active" });
     });
 
     it.each([
@@ -304,24 +300,20 @@ describe("playbooks API", () => {
       expect((await response.json()).playbook).toMatchObject({ ...changed, id: created.id });
     });
 
-    it("sends an edited approved playbook back to draft so that it is reviewed again", async () => {
-      const cookie = await signIn("edit-approved@example.com");
+    it("keeps a playbook enabled or disabled as the body says", async () => {
+      const cookie = await signIn("edit-enabled@example.com");
       const created = await create(cookie);
-
-      await act(cookie, created.id, "approve");
 
       const response = await call(
         cookie,
         "PUT",
         `${PATH}/${created.id}`,
-        body({ response: "The project is late." }),
+        body({ enabled: false, response: "The project is late." }),
       );
 
-      expect(response.status).toBe(200);
       expect((await response.json()).playbook).toMatchObject({
         response: "The project is late.",
-        approvalStatus: "draft",
-        approvedAt: null,
+        enabled: false,
         usable: false,
       });
     });
@@ -338,78 +330,53 @@ describe("playbooks API", () => {
     });
   });
 
-  describe("approval", () => {
-    it("approves a draft, archives it and returns it to draft on restore", async () => {
-      const cookie = await signIn("workflow@example.com");
-      const created = await create(cookie);
+  describe("enabling", () => {
+    it("turns a playbook off and on without changing anything else", async () => {
+      const cookie = await signIn("toggle@example.com");
+      const created = await create(cookie, { topic: "Toggle me" });
 
-      const approved = await (await act(cookie, created.id, "approve")).json();
-      const archived = await (await act(cookie, created.id, "archive")).json();
-      const restored = await (await act(cookie, created.id, "restore")).json();
+      const off = await (await setEnabled(cookie, created.id, false)).json();
+      const on = await (await setEnabled(cookie, created.id, true)).json();
 
-      expect(approved.playbook).toMatchObject({ approvalStatus: "approved", usable: true });
-      expect(approved.playbook.approvedAt).toEqual(expect.any(String));
-      expect(archived.playbook).toMatchObject({ approvalStatus: "archived", usable: false });
-      expect(restored.playbook).toMatchObject({
-        approvalStatus: "draft",
-        approvedAt: null,
-        usable: false,
-      });
+      expect(off.playbook).toMatchObject({ topic: "Toggle me", enabled: false, usable: false });
+      expect(on.playbook).toMatchObject({ topic: "Toggle me", enabled: true, usable: true });
     });
 
-    it.each(["approve", "restore", "archive"] as const)(
-      "answers 409 to %s when the status does not allow it",
-      async (action) => {
-        const cookie = await signIn(`conflict-${action}@example.com`);
-        const approved = await create(cookie);
-        const archived = await create(cookie);
-        const draft = await create(cookie);
+    it("rejects a body that is not a boolean", async () => {
+      const cookie = await signIn("toggle-invalid@example.com");
+      const created = await create(cookie);
 
-        await act(cookie, approved.id, "approve");
-        await act(cookie, archived.id, "archive");
+      const response = await call(cookie, "PATCH", `${PATH}/${created.id}`, { enabled: "yes" });
 
-        const target = { approve: approved, restore: draft, archive: archived }[action];
+      expect(response.status).toBe(400);
+    });
 
-        expect((await act(cookie, target.id, action)).status).toBe(409);
-      },
-    );
-
-    it("lists only the playbooks that are approved and inside their period when asked", async () => {
+    it("lists only the playbooks that are enabled and inside their period when asked", async () => {
       const cookie = await signIn("usable@example.com");
 
       const usable = await create(cookie, { topic: "usable" });
       const open = await create(cookie, { topic: "open", startsAt: PAST });
-      const draft = await create(cookie, { topic: "draft" });
-      const archived = await create(cookie, { topic: "archived" });
+      const off = await create(cookie, { topic: "off", enabled: false });
       const early = await create(cookie, { topic: "early", startsAt: FUTURE });
       const late = await create(cookie, { topic: "late", endsAt: PAST });
-
-      for (const playbook of [usable, open, archived, early, late]) {
-        await act(cookie, playbook.id, "approve");
-      }
-
-      await act(cookie, archived.id, "archive");
 
       const { playbooks } = await (await call(cookie, "GET", `${PATH}?usable=true`)).json();
 
       expect(playbooks.map((playbook: { id: string }) => playbook.id).toSorted()).toEqual(
         [usable.id, open.id].toSorted(),
       );
-      expect(draft.usable).toBe(false);
+      expect([off.usable, early.usable, late.usable]).toEqual([false, false, false]);
     });
 
-    it("filters the list by status", async () => {
+    it("filters the list by enabled", async () => {
       const cookie = await signIn("filters@example.com");
 
       await create(cookie);
 
-      const approved = await create(cookie);
+      const off = await create(cookie, { enabled: false });
+      const { playbooks } = await (await call(cookie, "GET", `${PATH}?enabled=false`)).json();
 
-      await act(cookie, approved.id, "approve");
-
-      const { playbooks } = await (await call(cookie, "GET", `${PATH}?status=approved`)).json();
-
-      expect(playbooks.map((playbook: { id: string }) => playbook.id)).toEqual([approved.id]);
+      expect(playbooks.map((playbook: { id: string }) => playbook.id)).toEqual([off.id]);
     });
   });
 
@@ -423,14 +390,13 @@ describe("playbooks API", () => {
       requestKnowledgeIndex.mockClear();
 
       await call(cookie, "PUT", `${PATH}/${created.id}`, body({ topic: "Changed" }));
-      await act(cookie, created.id, "approve");
-      await act(cookie, created.id, "archive");
+      await setEnabled(cookie, created.id, false);
+      await setEnabled(cookie, created.id, true);
 
       expect(requestKnowledgeIndex.mock.calls).toEqual([[created.id], [created.id], [created.id]]);
 
       requestKnowledgeIndex.mockClear();
 
-      await act(cookie, created.id, "approve");
       await call(cookie, "POST", PATH, body({ topic: " " }));
       await call(cookie, "PUT", `${PATH}/${MISSING_ID}`, body());
       await call(cookie, "DELETE", `${PATH}/${MISSING_ID}`);
@@ -449,7 +415,7 @@ describe("playbooks API", () => {
 
       requestKnowledgeIndex.mockClear();
 
-      await act(intruder, created.id, "approve");
+      await setEnabled(intruder, created.id, false);
       await call(intruder, "DELETE", `${PATH}/${created.id}`);
 
       expect(requestKnowledgeIndex).not.toHaveBeenCalled();
@@ -477,16 +443,16 @@ describe("playbooks API", () => {
 
       const read = await call(intruder, "GET", path);
       const replace = await call(intruder, "PUT", path, body({ topic: "Hacked" }));
-      const approve = await act(intruder, created.id, "approve");
+      const toggle = await setEnabled(intruder, created.id, false);
       const remove = await call(intruder, "DELETE", path);
       const stillThere = await call(owner, "GET", path);
 
-      expect([read.status, replace.status, approve.status, remove.status]).toEqual([
+      expect([read.status, replace.status, toggle.status, remove.status]).toEqual([
         404, 404, 404, 404,
       ]);
       expect((await stillThere.json()).playbook).toMatchObject({
         topic: "Private",
-        approvalStatus: "draft",
+        enabled: true,
       });
     });
   });

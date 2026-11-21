@@ -10,7 +10,7 @@ const STATS: { status: PlaybookStatus; label: string; meta: string }[] = [
   { status: "active", label: "Active playbooks", meta: "Replying to email now" },
   { status: "scheduled", label: "Scheduled", meta: "Start later" },
   { status: "expired", label: "Expired", meta: "Their period has ended" },
-  { status: "draft", label: "Drafts", meta: "Waiting for your approval" },
+  { status: "disabled", label: "Disabled", meta: "Turned off by you" },
 ];
 
 const SHOWN_PLAYBOOKS = 5;

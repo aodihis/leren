@@ -87,7 +87,6 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
         .values({
           ...owner,
           timezone: "UTC",
-          approvalStatus: "approved",
           topic: "Topic",
           response: "Response.",
           ...values,
@@ -137,8 +136,8 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
       expect(await search("opening hours", other)).toMatchObject({ status: "found" });
     });
 
-    it("excludes vectors whose row is unapproved or expired", async () => {
-      await createIndexedPlaybook({ topic: "Opening hours", approvalStatus: "draft" });
+    it("excludes vectors whose row is disabled or expired", async () => {
+      await createIndexedPlaybook({ topic: "Opening hours", enabled: false });
       await createIndexedPlaybook({ topic: "Opening hours", endsAt: PAST });
 
       expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });
@@ -220,13 +219,11 @@ describe.skipIf(!embeddingApiKey)("semantic retrieval with the embedding endpoin
       .values([
         {
           ...owner,
-          approvalStatus: "approved",
           topic: "Office opening hours",
           response: "The office is open Monday to Friday, 9 to 5.",
         },
         {
           ...owner,
-          approvalStatus: "approved",
           topic: "Invoice payment terms",
           response: "Invoices are due within 30 days of the invoice date.",
         },

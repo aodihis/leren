@@ -68,7 +68,7 @@ export async function syncPlaybook(
 }
 
 /**
- * Compares every approved playbook with every vector. Only approved playbooks can be indexable, so the
+ * Compares every enabled playbook with every vector. Only enabled playbooks can be indexable, so the
  * query reads those rows and any vector outside that set is orphaned. A stale vector is one whose
  * stored `updatedAt` differs from the row's.
  */
@@ -78,13 +78,13 @@ export async function checkKnowledgeDrift(
 ): Promise<KnowledgeDrift> {
   await store.ensureCollection({ name: KNOWLEDGE_COLLECTION, dimensions: embedder.dimensions });
 
-  const [approved, vectors] = await Promise.all([
-    db.select().from(playbooks).where(eq(playbooks.approvalStatus, "approved")),
+  const [enabled, vectors] = await Promise.all([
+    db.select().from(playbooks).where(eq(playbooks.enabled, true)),
     store.list(KNOWLEDGE_COLLECTION),
   ]);
 
   const expected = new Map(
-    approved
+    enabled
       .filter((playbook) => isKnowledgeIndexable(playbook, now))
       .map((playbook) => [playbook.id, playbook.updatedAt.getTime()]),
   );

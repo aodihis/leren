@@ -6,8 +6,7 @@ const STATUS_BADGES = {
   active: { label: "Active", className: "bg-success-soft text-success" },
   scheduled: { label: "Scheduled", className: "bg-info-soft text-info" },
   expired: { label: "Expired", className: "bg-subtle text-ink-muted" },
-  draft: { label: "Draft", className: "bg-subtle text-ink-muted" },
-  archived: { label: "Archived", className: "bg-subtle text-ink-muted" },
+  disabled: { label: "Disabled", className: "bg-subtle text-ink-muted" },
 } as const satisfies Record<PlaybookStatus, { label: string; className: string }>;
 
 interface PlaybookStatusBadgeProps {

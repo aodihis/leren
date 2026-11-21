@@ -17,17 +17,6 @@ import { PlaybookStatusBadge } from "../../../modules/playbooks/components/playb
 import { getPlaybookStatus } from "../../../modules/playbooks/status";
 import type { Playbook } from "../../../modules/playbooks/types";
 
-const ACTIONS = {
-  draft: [
-    { action: "approve", label: "Approve" },
-    { action: "archive", label: "Archive" },
-  ],
-  approved: [{ action: "archive", label: "Archive" }],
-  archived: [{ action: "restore", label: "Restore" }],
-} as const;
-
-type Action = (typeof ACTIONS)[keyof typeof ACTIONS][number]["action"];
-
 export const Route = createFileRoute("/_authed/playbooks/")({
   loader: async () => {
     const response = await api.api.playbooks.$get({ query: {} });
@@ -68,10 +57,15 @@ function PlaybooksPage() {
   const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
 
-  async function handleAction(id: string, action: Action) {
-    const response = await api.api.playbooks[":id"][":action"].$post({ param: { id, action } });
+  async function handleToggle(playbook: Playbook) {
+    const enabled = !playbook.enabled;
 
-    setFailure(response.ok ? null : `Could not ${action} the playbook`);
+    const response = await api.api.playbooks[":id"].$patch({
+      param: { id: playbook.id },
+      json: { enabled },
+    });
+
+    setFailure(response.ok ? null : `Could not ${enabled ? "enable" : "disable"} the playbook`);
 
     if (response.ok) {
       await router.invalidate();
@@ -103,8 +97,7 @@ function PlaybooksPage() {
       )}
       {playbooks.length === 0 ? (
         <p className="text-muted-foreground">
-          You have no playbooks yet. Add what the assistant may say and when it replies, then
-          approve the playbook so the assistant can use it.
+          You have no playbooks yet. Add what the assistant may say and when it replies.
         </p>
       ) : (
         <Table>
@@ -125,17 +118,14 @@ function PlaybooksPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{describePeriod(playbook)}</TableCell>
                 <TableCell className="space-x-2 text-right">
-                  {ACTIONS[playbook.approvalStatus].map(({ action, label }) => (
-                    <Button
-                      key={action}
-                      variant="outline"
-                      size="sm"
-                      aria-label={`${label} ${playbook.topic}`}
-                      onClick={() => handleAction(playbook.id, action)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={`${playbook.enabled ? "Disable" : "Enable"} ${playbook.topic}`}
+                    onClick={() => handleToggle(playbook)}
+                  >
+                    {playbook.enabled ? "Disable" : "Enable"}
+                  </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link to="/playbooks/$playbookId" params={{ playbookId: playbook.id }}>
                       Edit

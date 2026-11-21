@@ -7,7 +7,7 @@ const authClient = vi.hoisted(() => ({ getSession: vi.fn() }));
 const playbooksApi = vi.hoisted(() => ({
   $get: vi.fn(),
   $post: vi.fn(),
-  ":id": { $get: vi.fn(), $put: vi.fn(), $delete: vi.fn(), ":action": { $post: vi.fn() } },
+  ":id": { $get: vi.fn(), $put: vi.fn(), $patch: vi.fn(), $delete: vi.fn() },
 }));
 
 vi.mock("../../../modules/auth/auth-client", () => ({ authClient }));
@@ -40,7 +40,7 @@ const email = {
   skipBulkMail: true,
 };
 
-const draft = {
+const scheduled = {
   id: "11111111-1111-4111-8111-111111111111",
   topic: "Project status",
   examples: [],
@@ -50,19 +50,17 @@ const draft = {
   startsAt: "2026-12-01T02:00:00.000Z",
   endsAt: null,
   timezone: "Asia/Jakarta",
-  approvalStatus: "draft",
-  approvedAt: null,
+  enabled: true,
   periodStatus: "scheduled",
   usable: false,
   conditions: [email],
 };
 
 const active = {
-  ...draft,
+  ...scheduled,
   id: "44444444-4444-4444-8444-444444444444",
   topic: "Budget",
   startsAt: null,
-  approvalStatus: "approved",
   periodStatus: "active",
   usable: true,
 };
@@ -76,11 +74,11 @@ const expired = {
   usable: false,
 };
 
-const archived = {
-  ...draft,
+const disabled = {
+  ...scheduled,
   id: "66666666-6666-4666-8666-666666666666",
   topic: "Gone",
-  approvalStatus: "archived",
+  enabled: false,
 };
 
 describe("playbooks routes", () => {
@@ -96,15 +94,15 @@ describe("playbooks routes", () => {
   describe("list", () => {
     it("shows one status for each playbook and the period of each", async () => {
       playbooksApi.$get.mockImplementation(() =>
-        jsonResponse({ playbooks: [draft, active, expired, archived] }, 200),
+        jsonResponse({ playbooks: [scheduled, active, expired, disabled] }, 200),
       );
       await renderApp("/playbooks");
 
       expect(await screen.findByText("Project status")).toBeTruthy();
-      expect(screen.getByText("Draft")).toBeTruthy();
+      expect(screen.getByText("Scheduled")).toBeTruthy();
       expect(screen.getByText("Active")).toBeTruthy();
       expect(screen.getByText("Expired")).toBeTruthy();
-      expect(screen.getByText("Archived")).toBeTruthy();
+      expect(screen.getByText("Disabled")).toBeTruthy();
       expect(screen.getByText("Always")).toBeTruthy();
     });
 
@@ -114,54 +112,53 @@ describe("playbooks routes", () => {
       expect(await screen.findByText(/You have no playbooks yet/)).toBeTruthy();
     });
 
-    it("offers only the actions that the approval status allows", async () => {
+    it("offers Disable for an enabled playbook and Enable for a disabled one", async () => {
       playbooksApi.$get.mockImplementation(() =>
-        jsonResponse({ playbooks: [draft, active, archived] }, 200),
+        jsonResponse({ playbooks: [scheduled, disabled] }, 200),
       );
       await renderApp("/playbooks");
 
-      expect(await screen.findByRole("button", { name: "Approve Project status" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Archive Project status" })).toBeTruthy();
-      expect(screen.queryByRole("button", { name: "Approve Budget" })).toBeNull();
-      expect(screen.getByRole("button", { name: "Archive Budget" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Restore Gone" })).toBeTruthy();
-      expect(screen.queryByRole("button", { name: "Archive Gone" })).toBeNull();
+      expect(await screen.findByRole("button", { name: "Disable Project status" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Enable Project status" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Enable Gone" })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "Disable Gone" })).toBeNull();
     });
 
-    it("approves a draft and reloads the list", async () => {
+    it("disables a playbook and reloads the list", async () => {
       playbooksApi.$get
-        .mockImplementationOnce(() => jsonResponse({ playbooks: [draft] }, 200))
-        .mockImplementation(() => jsonResponse({ playbooks: [active] }, 200));
-      playbooksApi[":id"][":action"].$post.mockImplementation(() =>
-        jsonResponse({ playbook: active }, 200),
+        .mockImplementationOnce(() => jsonResponse({ playbooks: [active] }, 200))
+        .mockImplementation(() =>
+          jsonResponse({ playbooks: [{ ...active, enabled: false }] }, 200),
+        );
+      playbooksApi[":id"].$patch.mockImplementation(() =>
+        jsonResponse({ playbook: { ...active, enabled: false } }, 200),
       );
       const user = userEvent.setup();
 
       await renderApp("/playbooks");
-      await user.click(await screen.findByRole("button", { name: "Approve Project status" }));
+      await user.click(await screen.findByRole("button", { name: "Disable Budget" }));
 
-      expect(await screen.findByText("Active")).toBeTruthy();
-      expect(playbooksApi[":id"][":action"].$post).toHaveBeenCalledExactlyOnceWith({
-        param: { id: draft.id, action: "approve" },
+      expect(await screen.findByText("Disabled")).toBeTruthy();
+      expect(playbooksApi[":id"].$patch).toHaveBeenCalledExactlyOnceWith({
+        param: { id: active.id },
+        json: { enabled: false },
       });
     });
 
-    it("tells the user when an action fails", async () => {
-      playbooksApi.$get.mockImplementation(() => jsonResponse({ playbooks: [draft] }, 200));
-      playbooksApi[":id"][":action"].$post.mockImplementation(() =>
-        jsonResponse({ error: "conflict" }, 409),
-      );
+    it("tells the user when the switch fails", async () => {
+      playbooksApi.$get.mockImplementation(() => jsonResponse({ playbooks: [scheduled] }, 200));
+      playbooksApi[":id"].$patch.mockImplementation(() => jsonResponse({ error: "boom" }, 500));
       const user = userEvent.setup();
 
       await renderApp("/playbooks");
-      await user.click(await screen.findByRole("button", { name: "Approve Project status" }));
+      await user.click(await screen.findByRole("button", { name: "Disable Project status" }));
 
-      expect(await screen.findByText("Could not approve the playbook")).toBeTruthy();
+      expect(await screen.findByText("Could not disable the playbook")).toBeTruthy();
     });
 
     it("deletes a playbook and reloads the list", async () => {
       playbooksApi.$get
-        .mockImplementationOnce(() => jsonResponse({ playbooks: [draft] }, 200))
+        .mockImplementationOnce(() => jsonResponse({ playbooks: [scheduled] }, 200))
         .mockImplementation(() => jsonResponse({ playbooks: [] }, 200));
       playbooksApi[":id"].$delete.mockImplementation(() => new Response(null, { status: 204 }));
       const user = userEvent.setup();
@@ -171,14 +168,14 @@ describe("playbooks routes", () => {
 
       expect(await screen.findByText(/You have no playbooks yet/)).toBeTruthy();
       expect(playbooksApi[":id"].$delete).toHaveBeenCalledExactlyOnceWith({
-        param: { id: draft.id },
+        param: { id: scheduled.id },
       });
     });
   });
 
   describe("new playbook", () => {
     it("sends the knowledge and the rules of one form and returns to the list", async () => {
-      playbooksApi.$post.mockImplementation(() => jsonResponse({ playbook: draft }, 201));
+      playbooksApi.$post.mockImplementation(() => jsonResponse({ playbook: scheduled }, 201));
       const user = userEvent.setup();
       const router = await renderApp("/playbooks/new");
 
@@ -194,6 +191,7 @@ describe("playbooks routes", () => {
       expect(router.state.location.pathname).toBe("/playbooks");
       expect(playbooksApi.$post).toHaveBeenCalledExactlyOnceWith({
         json: {
+          enabled: true,
           topic: "Project status",
           examples: ["How is it going?", "When?"],
           response: "On track.",
@@ -250,10 +248,10 @@ describe("playbooks routes", () => {
 
   describe("edit playbook", () => {
     it("shows the stored playbook with its dates in the playbook's timezone", async () => {
-      playbooksApi[":id"].$get.mockImplementation(() => jsonResponse({ playbook: draft }, 200));
+      playbooksApi[":id"].$get.mockImplementation(() => jsonResponse({ playbook: scheduled }, 200));
       const user = userEvent.setup();
 
-      await renderApp(`/playbooks/${draft.id}`);
+      await renderApp(`/playbooks/${scheduled.id}`);
 
       expect((await screen.findByLabelText<HTMLInputElement>("Topic")).value).toBe(
         "Project status",
@@ -267,30 +265,31 @@ describe("playbooks routes", () => {
       expect(screen.getByLabelText<HTMLInputElement>("Ends").value).toBe("");
     });
 
-    it("warns that an approved playbook returns to draft and replaces it", async () => {
+    it("replaces the playbook with the edited values", async () => {
       playbooksApi[":id"].$get.mockImplementation(() => jsonResponse({ playbook: active }, 200));
-      playbooksApi[":id"].$put.mockImplementation(() => jsonResponse({ playbook: draft }, 200));
+      playbooksApi[":id"].$put.mockImplementation(() => jsonResponse({ playbook: active }, 200));
       const user = userEvent.setup();
 
       await renderApp(`/playbooks/${active.id}`);
-
-      expect(await screen.findByText(/Saving a change returns it to draft/)).toBeTruthy();
-
-      await user.type(screen.getByLabelText("Topic"), " 2026");
+      await user.type(await screen.findByLabelText("Topic"), " 2026");
       await user.click(screen.getByRole("button", { name: "Save changes" }));
 
       expect(await screen.findByText(/You have no playbooks yet/)).toBeTruthy();
       expect(playbooksApi[":id"].$put).toHaveBeenCalledWith(
         expect.objectContaining({
           param: { id: active.id },
-          json: expect.objectContaining({ topic: "Budget 2026", conditions: [email] }),
+          json: expect.objectContaining({
+            topic: "Budget 2026",
+            enabled: true,
+            conditions: [email],
+          }),
         }),
       );
     });
 
     it("says so when the playbook does not exist", async () => {
       playbooksApi[":id"].$get.mockImplementation(() => jsonResponse({ error: "Not found" }, 404));
-      await renderApp(`/playbooks/${draft.id}`);
+      await renderApp(`/playbooks/${scheduled.id}`);
 
       expect(await screen.findByText("This playbook does not exist.")).toBeTruthy();
     });

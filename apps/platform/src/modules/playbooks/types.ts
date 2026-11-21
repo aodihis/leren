@@ -26,6 +26,7 @@ export type EmailConditions = Extract<Playbook["conditions"][number], { channel:
  * allowlist and the aliases are text that the user separates with new lines or commas.
  */
 export interface PlaybookFormValues {
+  enabled: boolean;
   topic: string;
   examples: string;
   response: string;

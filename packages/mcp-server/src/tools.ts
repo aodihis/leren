@@ -83,7 +83,7 @@ function toPlaybookView(
     startsAt: playbook.startsAt?.toISOString() ?? null,
     endsAt: playbook.endsAt?.toISOString() ?? null,
     timezone: playbook.timezone,
-    approvalStatus: playbook.approvalStatus,
+    enabled: playbook.enabled,
     periodStatus: getAutoReplyStatus(playbook, now),
     usable: isKnowledgeUsable(playbook, now),
     conditions: conditions
@@ -104,7 +104,7 @@ async function findOwnedPlaybook(db: Db, userId: string, playbookId: string) {
 const playbookIdArgs = z.object({ playbookId: z.uuid() });
 
 const listPlaybooksArgs = z.object({
-  status: z.enum(["draft", "approved", "archived"]).optional(),
+  enabled: z.boolean().optional(),
   usableOnly: z.boolean().optional(),
 });
 
@@ -193,7 +193,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
       "list_playbooks",
       {
         description:
-          "List the user's playbooks with their conditions, optionally for one status or only the playbooks that are usable now.",
+          "List the user's playbooks with their conditions, optionally only the enabled or only the disabled ones, or only the playbooks that are usable now.",
         inputSchema: listPlaybooksArgs,
       },
       (args) =>
@@ -206,7 +206,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
             .where(
               and(
                 eq(playbooks.userId, session.userId),
-                args.status ? eq(playbooks.approvalStatus, args.status) : undefined,
+                args.enabled === undefined ? undefined : eq(playbooks.enabled, args.enabled),
               ),
             )
             .orderBy(desc(playbooks.createdAt));
@@ -270,7 +270,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
       "search_playbooks",
       {
         description:
-          "Find the approved playbooks that are valid now and match a text. Returns no matches when nothing is reliably close.",
+          "Find the enabled playbooks that are valid now and match a text. Returns no matches when nothing is reliably close.",
         inputSchema: searchPlaybooksArgs,
       },
       ({ query }) =>
@@ -360,7 +360,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
     server.registerPrompt(
       "answer_from_playbooks",
       {
-        description: "Guidance for answering a question only from the user's approved playbooks.",
+        description: "Guidance for answering a question only from the user's enabled playbooks.",
         argsSchema: z.object({ question: z.string().min(1).max(2000) }),
       },
       ({ question }) => ({

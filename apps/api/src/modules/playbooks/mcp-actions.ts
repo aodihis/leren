@@ -31,6 +31,7 @@ const CHANNEL_DEFAULTS = {
 const instant = z.iso.datetime({ offset: true });
 
 const playbookFields = z.object({
+  enabled: z.boolean().optional().describe("Whether the playbook is on. Defaults to true."),
   topic: z.string().describe("The subject of the playbook, up to 200 characters."),
   response: z.string().describe("What may be said about the subject, up to 5000 characters."),
   timezone: z.string().describe("An IANA timezone name, such as Asia/Jakarta."),
@@ -73,8 +74,7 @@ function mergeConditions(
 }
 
 /**
- * Converts the result of replacing a playbook. Replacing never reports a status conflict, which
- * only the approval actions do.
+ * Converts the result of replacing a playbook.
  */
 function fromUpdate(result: Awaited<ReturnType<typeof updatePlaybook>>): McpWriteOutcome {
   return result.status === "saved"
@@ -85,9 +85,9 @@ function fromUpdate(result: Awaited<ReturnType<typeof updatePlaybook>>): McpWrit
 /**
  * Builds the tools that let the Assistant Agent create and change playbooks on behalf of the
  * session's user. Each tool validates the complete result with the same schema as the web API and
- * calls the same service, so a playbook saved here is the same as one saved in the interface. A
- * playbook is saved as a draft, or returned to draft when it was approved, because only the user
- * approves a playbook. `requestIndex` asks for the vector index of a written playbook to be
+ * calls the same service, so a playbook saved here is the same as one saved in the interface. Every
+ * call of a write tool needs the user's confirmation in the agent runtime (decision 0032).
+ * `requestIndex` asks for the vector index of a written playbook to be
  * updated, as the web API does.
  */
 export function createPlaybookMcpActions(
@@ -97,12 +97,13 @@ export function createPlaybookMcpActions(
   return {
     createPlaybook: {
       description:
-        "Create a playbook for the user. It is saved as a draft that the user approves in the interface. Call it only after the user has confirmed the exact content.",
+        "Create a playbook for the user. Call it only after the user has confirmed the exact content.",
       inputSchema: createPlaybookArgs,
       async run(userId, input: z.infer<typeof createPlaybookArgs>) {
         const { conditions, ...fields } = input;
 
         const parsed = playbookSchema.safeParse({
+          enabled: true,
           examples: [],
           restrictions: "",
           contacts: [],
@@ -125,7 +126,7 @@ export function createPlaybookMcpActions(
     },
     updatePlaybook: {
       description:
-        "Change an existing playbook of the user. Name only the fields to change. An approved playbook returns to draft and the user approves it again. Call it only after the user has confirmed the exact content.",
+        "Change an existing playbook of the user. Name only the fields to change. Call it only after the user has confirmed the exact content.",
       inputSchema: updatePlaybookArgs,
       async run(userId, input: z.infer<typeof updatePlaybookArgs>) {
         const { playbookId, ...changes } = input;
@@ -143,6 +144,7 @@ export function createPlaybookMcpActions(
         const { conditions, ...fields } = changes;
 
         const parsed = playbookSchema.safeParse({
+          enabled: existing.enabled,
           topic: existing.topic,
           response: existing.response,
           examples: existing.examples,

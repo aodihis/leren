@@ -56,12 +56,12 @@ export type ReplyConditionsInput = z.infer<typeof replyConditionsSchema>;
 /**
  * The body of a request that creates or replaces a playbook. The bounds are ISO 8601 instants with
  * an offset, and a null bound is open. A playbook that ends before it starts is rejected.
- * `conditions` holds one entry for each channel that the playbook listens on. The approval status
- * is not part of the body, because it changes only through the approve, archive and restore
- * routes.
+ * `conditions` holds one entry for each channel that the playbook listens on. A disabled playbook
+ * is never used.
  */
 export const playbookSchema = z
   .object({
+    enabled: z.boolean(),
     topic: z.string().trim().min(1, "Enter a topic").max(200),
     examples: z.array(z.string().trim().min(1).max(500)).max(MAX_EXAMPLES),
     response: z.string().trim().min(1, "Enter a response").max(5000),
@@ -90,17 +90,14 @@ export const playbookSchema = z
 
 export const playbookParamsSchema = z.object({ id: z.uuid() });
 
-export const playbookTransitionParamsSchema = z.object({
-  id: z.uuid(),
-  action: z.enum(["approve", "archive", "restore"]),
-});
+export const playbookEnabledSchema = z.object({ enabled: z.boolean() });
 
 /**
- * The filters of the list route. `usable=true` keeps only the playbooks that the assistant may use
- * now.
+ * The filters of the list route. `enabled` keeps only the enabled or only the disabled playbooks,
+ * and `usable=true` keeps only the playbooks that the assistant may use now.
  */
 export const playbookListQuerySchema = z.object({
-  status: z.enum(["draft", "approved", "archived"]).optional(),
+  enabled: z.enum(["true", "false"]).optional(),
   usable: z.enum(["true"]).optional(),
 });
 

@@ -85,8 +85,6 @@ describe("MCP endpoint", () => {
         topic: "Opening hours",
         response: "We open at nine",
         timezone: "UTC",
-        approvalStatus: "approved",
-        approvedAt: NOW,
       })
       .returning();
 
@@ -265,21 +263,21 @@ describe("MCP endpoint", () => {
       ]);
     });
 
-    it("filters the list by status and by usability", async () => {
+    it("filters the list by enabled and by usability", async () => {
       const token = await tokenFor();
 
       await database.db
         .insert(playbooks)
-        .values({ userId, topic: "Draft", response: "r", timezone: "UTC" });
+        .values({ userId, topic: "Off", enabled: false, response: "r", timezone: "UTC" });
 
       const all = parsed(await call(token, "list_playbooks"));
       const usable = parsed(await call(token, "list_playbooks", { usableOnly: true }));
-      const drafts = parsed(await call(token, "list_playbooks", { status: "draft" }));
+      const disabled = parsed(await call(token, "list_playbooks", { enabled: false }));
 
       expect(all.playbooks).toHaveLength(2);
       expect(usable.playbooks.map((playbook: { id: string }) => playbook.id)).toEqual([playbookId]);
-      expect(drafts.playbooks.map((playbook: { topic: string }) => playbook.topic)).toEqual([
-        "Draft",
+      expect(disabled.playbooks.map((playbook: { topic: string }) => playbook.topic)).toEqual([
+        "Off",
       ]);
     });
 
@@ -302,7 +300,7 @@ describe("MCP endpoint", () => {
       expect(result.error ?? result.isError).toBeTruthy();
     });
 
-    it("searches the user's approved playbooks and returns their conditions", async () => {
+    it("searches the user's enabled playbooks and returns their conditions", async () => {
       const found = parsed(
         await call(await tokenFor(), "search_playbooks", {
           query: "Opening hours We open at nine",

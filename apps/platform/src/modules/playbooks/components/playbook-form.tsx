@@ -34,6 +34,7 @@ import { getNewPlaybookValues, toFormValues, toRequestBody } from "../form-value
 import type { Playbook, PlaybookFormValues } from "../types";
 
 type SwitchName =
+  | "enabled"
   | "email.replyWhenTo"
   | "email.replyWhenCc"
   | "email.replyWhenBcc"
@@ -171,14 +172,6 @@ export function PlaybookForm({ playbook }: PlaybookFormProps) {
             <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
           </Alert>
         )}
-        {playbook?.approvalStatus === "approved" && (
-          <Alert>
-            <AlertDescription>
-              This playbook is approved. Saving a change returns it to draft, and you must approve
-              it again before the assistant can use it.
-            </AlertDescription>
-          </Alert>
-        )}
         <Tabs value={tab} onValueChange={(value) => setTab(value as TabName)}>
           <TabsList>
             <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
@@ -282,6 +275,12 @@ export function PlaybookForm({ playbook }: PlaybookFormProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <SwitchField
+                  control={form.control}
+                  name="enabled"
+                  label="Enabled"
+                  description="A disabled playbook is never used."
+                />
                 <FormField
                   control={form.control}
                   name="timezone"

@@ -9,21 +9,21 @@ const playbook: KnowledgeIndexable = {
   id: "11111111-1111-4111-8111-111111111111",
   userId: "22222222-2222-4222-8222-222222222222",
   topic: "Opening hours",
+  enabled: true,
   examples: ["When are you open?"],
   response: "We are open from 9 to 5.",
-  approvalStatus: "approved",
   startsAt: null,
   endsAt: null,
   updatedAt: new Date("2026-06-01T00:00:00Z"),
 };
 
 describe("isKnowledgeIndexable", () => {
-  it("indexes an approved playbook without a window", () => {
+  it("indexes an enabled playbook without a window", () => {
     expect(isKnowledgeIndexable(playbook, NOW)).toBe(true);
   });
 
-  it.each(["draft", "archived"] as const)("does not index a %s playbook", (approvalStatus) => {
-    expect(isKnowledgeIndexable({ ...playbook, approvalStatus }, NOW)).toBe(false);
+  it("does not index a disabled playbook", () => {
+    expect(isKnowledgeIndexable({ ...playbook, enabled: false }, NOW)).toBe(false);
   });
 
   it("indexes a playbook whose window has not started", () => {

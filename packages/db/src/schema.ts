@@ -91,17 +91,15 @@ export const verifications = pgTable(
   (table) => [index("verifications_identifier_idx").on(table.identifier)],
 );
 
-export const approvalStatusEnum = pgEnum("approval_status", ["draft", "approved", "archived"]);
-
 /**
  * Playbooks. A playbook says when the assistant replies and what it says, one topic for each row.
  * `response` is what the assistant may say about the topic and `restrictions` is what it must not
  * say. `examples` are optional sample messages that help retrieval find the playbook, and
  * `contacts` lists the people a reply may point to, as email addresses or channel handles.
  * `startsAt` and `endsAt` are instants and a null bound is open. `timezone` is the IANA zone the
- * user enters and reads the bounds in. A playbook is usable only when it is `approved` and the
+ * user enters and reads the bounds in. A playbook is usable only when it is `enabled` and the
  * current time is inside its period, and the period status is derived and never stored
- * (decision 0035). The channel conditions of a playbook are rows of `reply_conditions`.
+ * (decision 0036). The channel conditions of a playbook are rows of `reply_conditions`.
  */
 export const playbooks = pgTable(
   "playbooks",
@@ -118,8 +116,7 @@ export const playbooks = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     timezone: text("timezone").notNull(),
-    approvalStatus: approvalStatusEnum("approval_status").notNull().default("draft"),
-    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    enabled: boolean("enabled").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

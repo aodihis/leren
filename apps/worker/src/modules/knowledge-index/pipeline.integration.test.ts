@@ -114,7 +114,6 @@ describe("knowledge indexing pipeline", () => {
         timezone: "UTC",
         topic: "Opening hours",
         response: "We are open from 9 to 5.",
-        approvalStatus: "approved",
         ...values,
       })
       .returning();
@@ -141,7 +140,7 @@ describe("knowledge indexing pipeline", () => {
     return searchKnowledge(dependencies, { userId, text });
   }
 
-  it("makes an approved playbook searchable once its message is consumed", async () => {
+  it("makes an enabled playbook searchable once its message is consumed", async () => {
     const playbook = await createPlaybook();
 
     await requestIndex(playbook.id);
@@ -153,7 +152,7 @@ describe("knowledge indexing pipeline", () => {
     });
   });
 
-  it("stops returning a playbook after it is archived and its message is consumed", async () => {
+  it("stops returning a playbook after it is disabled and its message is consumed", async () => {
     const playbook = await createPlaybook();
 
     await requestIndex(playbook.id);
@@ -161,7 +160,7 @@ describe("knowledge indexing pipeline", () => {
 
     await database.db
       .update(playbooks)
-      .set({ approvalStatus: "archived" })
+      .set({ enabled: false })
       .where(eq(playbooks.id, playbook.id));
     await requestIndex(playbook.id);
     await waitFor(async () => !(await indexedIds()).includes(playbook.id));

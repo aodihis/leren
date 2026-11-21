@@ -55,7 +55,7 @@ describe("playbook MCP actions", () => {
   }
 
   describe("createPlaybook", () => {
-    it("saves a draft with the email defaults that is not usable and asks for it to be indexed", async () => {
+    it("saves an enabled playbook with the email defaults and asks for it to be indexed", async () => {
       const created = (await run(actions.createPlaybook, userId, {
         topic: "Parking",
         response: "Free parking",
@@ -64,8 +64,8 @@ describe("playbook MCP actions", () => {
 
       expect(created.data).toMatchObject({
         topic: "Parking",
-        approvalStatus: "draft",
-        usable: false,
+        enabled: true,
+        usable: true,
         examples: [],
         contacts: [],
         startsAt: null,

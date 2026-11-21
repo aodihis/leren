@@ -4,16 +4,15 @@ import { getPlaybookStatus } from "./status";
 
 describe("getPlaybookStatus", () => {
   it.each([
-    ["draft", "active", "draft"],
-    ["archived", "active", "archived"],
-    ["approved", "active", "active"],
-    ["approved", "scheduled", "scheduled"],
-    ["approved", "expired", "expired"],
-    ["draft", "expired", "draft"],
+    [true, "active", "active"],
+    [true, "scheduled", "scheduled"],
+    [true, "expired", "expired"],
+    [false, "active", "disabled"],
+    [false, "expired", "disabled"],
   ] as const)(
-    "shows a %s playbook with a %s period as %s",
-    (approvalStatus, periodStatus, expected) => {
-      expect(getPlaybookStatus({ approvalStatus, periodStatus })).toBe(expected);
+    "shows an enabled=%s playbook with a %s period as %s",
+    (enabled, periodStatus, expected) => {
+      expect(getPlaybookStatus({ enabled, periodStatus })).toBe(expected);
     },
   );
 });

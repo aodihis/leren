@@ -13,8 +13,7 @@ const playbook: Playbook = {
   startsAt: "2026-12-01T02:00:00.000Z",
   endsAt: null,
   timezone: "Asia/Jakarta",
-  approvalStatus: "draft",
-  approvedAt: null,
+  enabled: true,
   periodStatus: "scheduled",
   usable: false,
   conditions: [
@@ -37,14 +36,7 @@ const playbook: Playbook = {
 
 describe("toRequestBody", () => {
   it("converts a stored playbook to the same request body after a round trip", () => {
-    const {
-      id: _id,
-      approvalStatus: _approvalStatus,
-      approvedAt: _approvedAt,
-      periodStatus: _periodStatus,
-      usable: _usable,
-      ...body
-    } = playbook;
+    const { id: _id, periodStatus: _periodStatus, usable: _usable, ...body } = playbook;
 
     expect(toRequestBody(toFormValues(playbook))).toEqual(body);
   });

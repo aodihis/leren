@@ -16,7 +16,7 @@ export interface AutoReplyWindow {
 
 /**
  * Computes the period status of a playbook at `now`. A playbook is active from `startsAt` to
- * `endsAt`, and both bounds are inclusive. The approval status is separate and is not considered.
+ * `endsAt`, and both bounds are inclusive. Whether the playbook is enabled is separate and is not considered.
  */
 export function getAutoReplyStatus(period: AutoReplyWindow, now: Date): AutoReplyStatus {
   if (period.startsAt && now < period.startsAt) {

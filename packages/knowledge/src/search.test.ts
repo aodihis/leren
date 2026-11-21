@@ -62,7 +62,6 @@ describe("knowledge retrieval", () => {
         timezone: "UTC",
         topic: "Opening hours",
         response: "We are open from 9 to 5.",
-        approvalStatus: "approved",
         ...values,
       })
       .returning();
@@ -159,8 +158,8 @@ describe("knowledge retrieval", () => {
 
   describe("usability is decided by PostgreSQL", () => {
     it.each([
-      ["a draft playbook", { approvalStatus: "draft" as const }],
-      ["an archived playbook", { approvalStatus: "archived" as const }],
+      ["a disabled playbook", { enabled: false }],
+      ["a disabled playbook", { enabled: false }],
       ["an expired playbook", { endsAt: PAST }],
       ["a playbook that is not valid yet", { startsAt: FUTURE }],
     ])("excludes %s even when its vector is still indexed", async (_name, values) => {
@@ -175,12 +174,12 @@ describe("knowledge retrieval", () => {
       expect((await search("opening hours")).status).toBe("found");
     });
 
-    it("excludes a playbook that was archived after it was indexed", async () => {
+    it("excludes a playbook that was disabled after it was indexed", async () => {
       const playbook = await createIndexedPlaybook();
 
       await database.db
         .update(playbooks)
-        .set({ approvalStatus: "archived" })
+        .set({ enabled: false })
         .where(eq(playbooks.id, playbook.id));
 
       expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });

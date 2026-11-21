@@ -1,6 +1,6 @@
 # High-level design
 
-Leren is an AI email assistant. The user defines **playbooks** that say what the assistant may say and when it replies. While a playbook is in effect, incoming work email is classified and then answered from approved knowledge, delegated, ignored or escalated. The first version only creates drafts. A person approves every reply before it is sent.
+Leren is an AI email assistant. The user defines **playbooks** that say what the assistant may say and when it replies. While a playbook is in effect, incoming work email is classified and then answered from enabled playbooks, delegated, ignored or escalated. The first version only creates drafts. A person approves every reply before it is sent.
 
 ## Components
 
@@ -11,7 +11,7 @@ Leren is an AI email assistant. The user defines **playbooks** that say what the
 | `worker`   | Runs the queue consumers: email listener, gate, pipeline runner and reply sender.                                 |
 | RabbitMQ   | Durable queues between the stages, with retries and dead-letter queues.                                           |
 | PostgreSQL | The source of truth for users, playbooks, messages, decisions and drafts.                                         |
-| Qdrant     | The vector index of approved knowledge, accessed through `@leren/vector-db`.                                      |
+| Qdrant     | The vector index of enabled playbooks, accessed through `@leren/vector-db`.                                       |
 | Anvia      | The agent framework for both agents, and Lens for tracing and evaluation.                                         |
 
 ## Playbooks
@@ -29,9 +29,9 @@ The rules part has an optional start, an optional end, a timezone and conditions
 - Whether new threads, replies in an existing thread, or both are answered.
 - Whether mailing lists and automatically generated messages are skipped.
 
-## Approval and derived status
+## Enabling and derived status
 
-A playbook is a `draft`, `approved` or `archived`. The assistant may use a playbook only when it is approved and the current time is inside its period. Only the user approves, archives or restores a playbook. Editing an approved playbook returns it to draft, so a changed text, period or condition is reviewed again.
+A playbook is enabled or disabled. The assistant may use a playbook only when it is enabled and the current time is inside its period. The user turns a playbook on or off in the list.
 
 The period status is computed from the start, the end and the current time. It is never stored.
 
@@ -41,7 +41,7 @@ The period status is computed from the start, the end and the current time. It i
 | `active`    | Now is inside the period. |
 | `expired`   | Now is after the end.     |
 
-A missing bound is open, and both bounds are inclusive. The interface shows one status for each playbook: `draft` and `archived` as they are, and for an approved playbook its period status.
+A missing bound is open, and both bounds are inclusive. The interface shows one status for each playbook: `disabled`, and for an enabled playbook its period status.
 
 ## Channels and accounts
 
@@ -53,13 +53,13 @@ A user has many playbooks. A playbook listens on a channel when it has the condi
 
 The platform UI is the main way to manage data. The assistant is an optional helper beside it. The two agents never share a prompt, a tool set or a session.
 
-|             | Assistant Agent                                                                        | Reply Agent                                          |
-| ----------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Started by  | The user, from the chat page in the platform.                                          | A queued email job.                                  |
-| Purpose     | Look up saved data, generate example questions, refine wording and point out gaps.     | Decide how to handle one email and draft the output. |
-| Writes      | Creates and changes playbooks after the user confirms. A playbook it saves is a draft. | A draft reply or a decision record. It cannot send.  |
-| Input trust | Written by the user.                                                                   | Email content is untrusted data, never instructions. |
-| Step limit  | One interactive turn at a time.                                                        | At most 5 steps.                                     |
+|             | Assistant Agent                                                                    | Reply Agent                                          |
+| ----------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Started by  | The user, from the chat page in the platform.                                      | A queued email job.                                  |
+| Purpose     | Look up saved data, generate example questions, refine wording and point out gaps. | Decide how to handle one email and draft the output. |
+| Writes      | Creates and changes playbooks after the user confirms.                             | A draft reply or a decision record. It cannot send.  |
+| Input trust | Written by the user.                                                               | Email content is untrusted data, never instructions. |
+| Step limit  | One interactive turn at a time.                                                    | At most 5 steps.                                     |
 
 ## Flow A: configuration
 
@@ -73,7 +73,7 @@ User ─▶ platform chat ─▶ api ─▶ Assistant Agent
                             MCP server (in api) ─▶ services ─▶ PostgreSQL / Qdrant
 ```
 
-The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes playbooks through the same services the UI uses. The assistant asks for confirmation in the chat before it saves anything. Only the user approves playbooks in the UI (decisions 0032 and 0034). The chat is a full page that the sidebar opens with New chat. The sidebar lists earlier chats below the menu, and a chat's history is the agent's memory (decision 0034).
+The UI is the primary path. The assistant reads saved data and, after the user confirms, creates and changes playbooks through the same services the UI uses. The assistant asks for confirmation in the chat before it saves anything. Every write needs the user's confirmation in the chat (decisions 0032 and 0034). The chat is a full page that the sidebar opens with New chat. The sidebar lists earlier chats below the menu, and a chat's history is the agent's memory (decision 0034).
 
 ## Flow B: incoming email
 
@@ -113,13 +113,13 @@ The queues are `email.received`, `email.process`, `email.send` and `knowledge.in
 
 ## Knowledge indexing
 
-Only an approved playbook whose period has not ended is searchable. Each such playbook has one vector in the Qdrant collection `knowledge`, and the vector id is the playbook id. The text that is embedded is the topic, the response and the examples. The payload holds the playbook and user ids, the type, the period and the `updatedAt` of the row that the vector was built from.
+Only an enabled playbook whose period has not ended is searchable. Each such playbook has one vector in the Qdrant collection `knowledge`, and the vector id is the playbook id. The text that is embedded is the topic, the response and the examples. The payload holds the playbook and user ids, the type, the period and the `updatedAt` of the row that the vector was built from.
 
-When the API creates, edits, approves, archives, restores or deletes a playbook, it publishes the playbook id to `knowledge.index`. The worker reads the current row and makes the index match it, so a repeated or reordered message does no harm. A periodic `knowledge.drift` job compares PostgreSQL with Qdrant, repairs any difference and removes the vectors of expired playbooks. Embeddings come from an OpenAI-compatible endpoint, which is OpenRouter by default (decision 0024).
+When the API creates, edits, enables, disables or deletes a playbook, it publishes the playbook id to `knowledge.index`. The worker reads the current row and makes the index match it, so a repeated or reordered message does no harm. A periodic `knowledge.drift` job compares PostgreSQL with Qdrant, repairs any difference and removes the vectors of expired playbooks. Embeddings come from an OpenAI-compatible endpoint, which is OpenRouter by default (decision 0024).
 
 ## Knowledge retrieval
 
-`searchKnowledge` embeds a message and returns up to five playbooks for one user, best match first, or an explicit `no_reliable_result` when nothing usable scores above the threshold. The index only proposes candidates. PostgreSQL decides whether each one exists, is approved and is valid now, and supplies the content that is returned (decision 0028).
+`searchKnowledge` embeds a message and returns up to five playbooks for one user, best match first, or an explicit `no_reliable_result` when nothing usable scores above the threshold. The index only proposes candidates. PostgreSQL decides whether each one exists, is enabled and is valid now, and supplies the content that is returned (decision 0028).
 
 ## MCP server
 
@@ -127,7 +127,7 @@ The MCP server lives in `api` and exposes tools, resources and prompts. It is th
 
 - **Scopes.** Tools are grouped into scopes such as `playbooks:read`, `playbooks:write` and `reply:draft`. A session receives only the scopes granted to its client. The Assistant Agent and the Reply Agent are built-in clients with fixed scopes.
 - **Neutral tools.** Tool names and schemas do not depend on our prompts or agent framework.
-- **Confirmed writes.** The assistant's write tools need the user's confirmation, and a playbook they save is a draft. Approval is a separate action by the user in the UI, so no agent can approve its own writes. No agent can send email.
+- **Confirmed writes.** The assistant's write tools need the user's confirmation before they run. No agent can send email.
 
 ### Sessions and security
 

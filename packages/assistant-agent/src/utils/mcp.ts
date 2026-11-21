@@ -4,8 +4,8 @@ import type { McpConnection, McpOptions } from "@leren/agents";
 /**
  * The MCP tools the Assistant Agent may use.
  *
- * The agent can create and change playbooks. It has no tool that approves a playbook,
- * deletes anything or sends email. The MCP server enforces scopes, and this list is a second,
+ * The agent can create and change playbooks, including turning them on or off. It has no tool
+ * that deletes anything or sends email. The MCP server enforces scopes, and this list is a second,
  * client-side filter.
  */
 export const allowedTools = [

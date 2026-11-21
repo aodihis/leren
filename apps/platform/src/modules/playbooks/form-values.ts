@@ -28,6 +28,7 @@ function findEmailConditions(playbook: Playbook): EmailConditions {
  */
 export function getNewPlaybookValues(timezone: string): PlaybookFormValues {
   return {
+    enabled: true,
     topic: "",
     examples: "",
     response: "",
@@ -60,6 +61,7 @@ export function toFormValues(playbook: Playbook): PlaybookFormValues {
   const { channel: _channel, ...email } = findEmailConditions(playbook);
 
   return {
+    enabled: playbook.enabled,
     topic: playbook.topic,
     examples: playbook.examples.join("\n"),
     response: playbook.response,
@@ -82,6 +84,7 @@ export function toFormValues(playbook: Playbook): PlaybookFormValues {
  */
 export function toRequestBody(values: PlaybookFormValues): PlaybookInput {
   return {
+    enabled: values.enabled,
     topic: values.topic,
     examples: values.examples.split("\n").flatMap((example) => example.trim() || []),
     response: values.response,

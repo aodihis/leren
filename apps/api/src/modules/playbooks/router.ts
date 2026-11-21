@@ -7,25 +7,24 @@ import type { AuthVariables } from "../auth/middleware";
 import type { Auth } from "../auth/service";
 import {
   playbookListQuerySchema,
+  playbookEnabledSchema,
   playbookParamsSchema,
   playbookSchema,
-  playbookTransitionParamsSchema,
 } from "./schema";
 import {
   createPlaybook,
   deletePlaybook,
   getPlaybook,
   listPlaybooks,
-  transitionPlaybook,
+  setPlaybookEnabled,
   updatePlaybook,
 } from "./service";
 
 /**
  * Mounts the routes of the signed-in user's playbooks under `/api/playbooks`. Every route requires
  * a session and every query is scoped by the session's user, so a playbook of another user is
- * reported as not found. The approval status changes only through `POST /api/playbooks/:id/:action`
- * and is never read from a request body. After every change that was written, `requestIndex` asks
- * for the vector index of the playbook to be updated. The routes are chained so that the platform
+ * reported as not found. `PATCH /api/playbooks/:id` turns a playbook on or off. After every change
+ * that was written, `requestIndex` asks for the vector index of the playbook to be updated. The routes are chained so that the platform
  * can infer their types through Hono RPC.
  */
 export function createPlaybooksRouter(
@@ -74,22 +73,25 @@ export function createPlaybooksRouter(
         return c.json({ playbook: result.playbook }, 200);
       },
     )
-    .post(
-      "/api/playbooks/:id/:action",
-      validate("param", playbookTransitionParamsSchema),
+    .patch(
+      "/api/playbooks/:id",
+      validate("param", playbookParamsSchema),
+      validate("json", playbookEnabledSchema),
       async (c) => {
-        const { id, action } = c.req.valid("param");
-        const result = await transitionPlaybook(db, c.get("userId"), id, action);
+        const result = await setPlaybookEnabled(
+          db,
+          c.get("userId"),
+          c.req.valid("param").id,
+          c.req.valid("json").enabled,
+        );
 
-        if (result.status === "saved") {
-          await requestIndex(result.playbook.id);
-
-          return c.json({ playbook: result.playbook }, 200);
+        if (result.status !== "saved") {
+          return c.json({ error: "Not found" }, 404);
         }
 
-        return result.status === "conflict"
-          ? c.json({ error: "The status of the playbook does not allow this action" }, 409)
-          : c.json({ error: "Not found" }, 404);
+        await requestIndex(result.playbook.id);
+
+        return c.json({ playbook: result.playbook }, 200);
       },
     )
     .delete("/api/playbooks/:id", validate("param", playbookParamsSchema), async (c) => {

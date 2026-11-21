@@ -1,6 +1,6 @@
 export { isKnowledgeUsable } from "./usable";
 
-export type { KnowledgeApproval, KnowledgeUsability } from "./usable";
+export type { KnowledgeUsability } from "./usable";
 
 export {
   KNOWLEDGE_COLLECTION,

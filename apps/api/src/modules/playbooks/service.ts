@@ -13,25 +13,10 @@ type ConditionsRow = typeof replyConditions.$inferSelect;
 export type PlaybookView = ReturnType<typeof toView>;
 
 /**
- * The approval actions. Each action lists the statuses it applies to and the status it leads to.
- * Restoring leads to draft and not to approved, so that a restored playbook is reviewed again.
+ * The outcome of changing a playbook. `not_found` means that the playbook does not exist or belongs
+ * to another user.
  */
-const TRANSITIONS = {
-  approve: { from: ["draft"], to: "approved" },
-  archive: { from: ["draft", "approved"], to: "archived" },
-  restore: { from: ["archived"], to: "draft" },
-} as const;
-
-export type PlaybookTransition = keyof typeof TRANSITIONS;
-
-/**
- * The outcome of saving or changing a playbook. `conflict` means that the status of the playbook
- * does not allow the action.
- */
-export type PlaybookResult =
-  | { status: "saved"; playbook: PlaybookView }
-  | { status: "conflict" }
-  | { status: "not_found" };
+export type PlaybookResult = { status: "saved"; playbook: PlaybookView } | { status: "not_found" };
 
 /**
  * Converts the stored rows to the representation the API returns. Each conditions row becomes one
@@ -50,8 +35,7 @@ function toView(playbook: PlaybookRow, conditions: ConditionsRow[], now: Date) {
     startsAt: playbook.startsAt?.toISOString() ?? null,
     endsAt: playbook.endsAt?.toISOString() ?? null,
     timezone: playbook.timezone,
-    approvalStatus: playbook.approvalStatus,
-    approvedAt: playbook.approvedAt?.toISOString() ?? null,
+    enabled: playbook.enabled,
     periodStatus: getAutoReplyStatus(playbook, now),
     usable: isKnowledgeUsable(playbook, now),
     conditions: conditions
@@ -83,6 +67,7 @@ function dedupeContacts(contacts: string[]): string[] {
 function toRows(input: PlaybookInput) {
   return {
     playbook: {
+      enabled: input.enabled,
       topic: input.topic,
       examples: input.examples,
       response: input.response,
@@ -112,7 +97,7 @@ export async function listPlaybooks(
     .where(
       and(
         eq(playbooks.userId, userId),
-        filters.status ? eq(playbooks.approvalStatus, filters.status) : undefined,
+        filters.enabled ? eq(playbooks.enabled, filters.enabled === "true") : undefined,
       ),
     )
     .orderBy(desc(playbooks.createdAt));
@@ -164,7 +149,7 @@ export async function getPlaybook(db: Db, userId: string, id: string, now = new 
 }
 
 /**
- * Creates a draft playbook and its conditions in one transaction, owned by `userId`.
+ * Creates a playbook and its conditions in one transaction, owned by `userId`.
  */
 export async function createPlaybook(
   db: Db,
@@ -191,10 +176,8 @@ export async function createPlaybook(
 
 /**
  * Replaces a playbook and its conditions. A channel that the input leaves out loses its
- * conditions. An approved playbook returns to draft, because the approved text, period and
- * conditions are no longer what was reviewed. A draft or archived playbook keeps its status.
- * Returns `not_found` when the playbook does not exist or belongs to another user, in which case
- * nothing is written.
+ * conditions. Returns `not_found` when the playbook does not exist or belongs to another user, in
+ * which case nothing is written.
  */
 export async function updatePlaybook(
   db: Db,
@@ -206,27 +189,15 @@ export async function updatePlaybook(
   const { playbook, conditions } = toRows(input);
 
   return db.transaction(async (tx) => {
-    const [existing] = await tx
-      .select()
-      .from(playbooks)
-      .where(and(eq(playbooks.id, id), eq(playbooks.userId, userId)));
-
-    if (!existing) {
-      return { status: "not_found" };
-    }
-
-    const wasApproved = existing.approvalStatus === "approved";
-
     const [updated] = await tx
       .update(playbooks)
-      .set({
-        ...playbook,
-        approvalStatus: wasApproved ? "draft" : existing.approvalStatus,
-        approvedAt: wasApproved ? null : existing.approvedAt,
-        updatedAt: now,
-      })
-      .where(eq(playbooks.id, id))
+      .set({ ...playbook, updatedAt: now })
+      .where(and(eq(playbooks.id, id), eq(playbooks.userId, userId)))
       .returning();
+
+    if (!updated) {
+      return { status: "not_found" };
+    }
 
     await tx.delete(replyConditions).where(
       and(
@@ -252,42 +223,25 @@ export async function updatePlaybook(
 }
 
 /**
- * Applies an approval action to a playbook. The status check is part of the update, so the change
- * is atomic. Returns `conflict` when the playbook exists but its status does not allow the action,
- * and `not_found` when it does not exist or belongs to another user.
+ * Turns a playbook on or off without touching anything else. Returns `not_found` when the playbook
+ * does not exist or belongs to another user.
  */
-export async function transitionPlaybook(
+export async function setPlaybookEnabled(
   db: Db,
   userId: string,
   id: string,
-  action: PlaybookTransition,
+  enabled: boolean,
   now = new Date(),
 ): Promise<PlaybookResult> {
-  const { from, to } = TRANSITIONS[action];
-
   const [updated] = await db
     .update(playbooks)
-    .set({
-      approvalStatus: to,
-      approvedAt: to === "approved" ? now : null,
-      updatedAt: now,
-    })
-    .where(
-      and(
-        eq(playbooks.id, id),
-        eq(playbooks.userId, userId),
-        inArray(playbooks.approvalStatus, [...from]),
-      ),
-    )
-    .returning();
+    .set({ enabled, updatedAt: now })
+    .where(and(eq(playbooks.id, id), eq(playbooks.userId, userId)))
+    .returning({ id: playbooks.id });
 
-  const view = await getPlaybook(db, userId, id, now);
+  const view = updated ? await getPlaybook(db, userId, id, now) : null;
 
-  if (updated && view) {
-    return { status: "saved", playbook: view };
-  }
-
-  return view ? { status: "conflict" } : { status: "not_found" };
+  return view ? { status: "saved", playbook: view } : { status: "not_found" };
 }
 
 /**
