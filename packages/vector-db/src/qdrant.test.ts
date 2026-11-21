@@ -47,17 +47,41 @@ describe("createQdrantStore", () => {
       expect(client.createCollection).not.toHaveBeenCalled();
     });
 
-    it("waits until a collection that is still being created is ready", async () => {
+    it("waits through the errors of a collection that is still being created", async () => {
       client.collectionExists.mockResolvedValue({ exists: true });
       client.getCollection
         .mockRejectedValueOnce({ status: 500 })
-        .mockResolvedValueOnce({ status: "yellow" })
+        .mockRejectedValueOnce({ status: 404 })
         .mockResolvedValue({ status: "green" });
       const store = createQdrantStore("http://qdrant");
 
       await store.ensureCollection({ name: "docs", dimensions: 3 });
 
       expect(client.getCollection).toHaveBeenCalledTimes(3);
+    });
+
+    it.each(["yellow", "grey"])(
+      "does not wait for a %s collection, which accepts writes",
+      async (status) => {
+        client.collectionExists.mockResolvedValue({ exists: true });
+        client.getCollection.mockResolvedValue({ status });
+        const store = createQdrantStore("http://qdrant");
+
+        await store.ensureCollection({ name: "docs", dimensions: 3 });
+
+        expect(client.getCollection).toHaveBeenCalledOnce();
+      },
+    );
+
+    it("rejects a collection in the red status without polling", async () => {
+      client.collectionExists.mockResolvedValue({ exists: true });
+      client.getCollection.mockResolvedValue({ status: "red" });
+      const store = createQdrantStore("http://qdrant");
+
+      await expect(store.ensureCollection({ name: "docs", dimensions: 3 })).rejects.toThrow(
+        "unrecoverable",
+      );
+      expect(client.getCollection).toHaveBeenCalledOnce();
     });
 
     it("accepts the conflict that the loser of a creation race receives", async () => {

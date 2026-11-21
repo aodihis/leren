@@ -30,9 +30,11 @@ function isNotReadyYet(error: unknown): boolean {
 /**
  * Creates a `VectorStore` backed by Qdrant, using cosine distance.
  *
- * `ensureCollection` returns only when the collection can accept writes. A collection that another
+ * `ensureCollection` returns once Qdrant can describe the collection. A collection that another
  * caller is still creating already exists for `collectionExists` and for a conflicting create, but
- * Qdrant answers requests for it with HTTP 500 until its status is `green`.
+ * Qdrant answers requests for it with HTTP 404 or 500 until its creation completes. Afterwards
+ * every status except `red` accepts writes: `yellow` means the collection is optimizing and `grey`
+ * means optimizations are pending after a restart, and only a write restarts them.
  */
 export function createQdrantStore(url: string): VectorStore {
   const client = new QdrantClient({ url });
@@ -41,7 +43,7 @@ export function createQdrantStore(url: string): VectorStore {
     const deadline = Date.now() + READY_TIMEOUT_MS;
 
     for (;;) {
-      let status = "unknown";
+      let status: string | undefined;
 
       try {
         status = (await client.getCollection(name)).status;
@@ -49,14 +51,20 @@ export function createQdrantStore(url: string): VectorStore {
         if (!isNotReadyYet(error)) {
           throw error;
         }
+
+        if (Date.now() > deadline) {
+          throw new Error(`The collection "${name}" was not available within the time limit`, {
+            cause: error,
+          });
+        }
       }
 
-      if (status === "green") {
+      if (status === "red") {
+        throw new Error(`The collection "${name}" has an unrecoverable error (status red)`);
+      }
+
+      if (status !== undefined) {
         return;
-      }
-
-      if (Date.now() > deadline) {
-        throw new Error(`The collection "${name}" is not ready (status ${status})`);
       }
 
       await new Promise((resolve) => setTimeout(resolve, READY_POLL_MS));
