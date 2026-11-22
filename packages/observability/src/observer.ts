@@ -1,3 +1,4 @@
+import type { EvalReporter } from "@anvia/core/evals";
 import type { AgentObservabilityOptions } from "@anvia/core/observability";
 
 /**
@@ -14,6 +15,13 @@ export interface Observer {
    * when tracing is disabled.
    */
   forAgent(): AgentObservabilityOptions | undefined;
+
+  /**
+   * Returns a reporter that records eval results next to the traces of the agent runs they grade,
+   * or `undefined` when tracing is disabled. The reporter includes the inputs and outputs of the
+   * cases, so use it only for evals whose cases hold invented data.
+   */
+  evalReporter(): EvalReporter | undefined;
 
   /** Delivers buffered telemetry. Short-lived processes call it before exiting. */
   flush(): Promise<void>;

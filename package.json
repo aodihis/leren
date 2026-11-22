@@ -10,6 +10,8 @@
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
+    "evals": "pnpm --filter @leren/assistant-agent evals",
+    "evals:secure": "dotenvx run -f .env -- pnpm evals",
     "runner:assistant": "pnpm --filter @leren/assistant-agent runner:run",
     "runner:reply": "pnpm --filter @leren/reply-agent runner:run",
     "studio:assistant": "dotenvx run -f .env -- pnpm --filter @leren/assistant-agent studio",

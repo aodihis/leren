@@ -294,6 +294,9 @@ importers:
       '@leren/observability':
         specifier: workspace:*
         version: link:../observability
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@anvia/studio':
         specifier: ^1.5.0
