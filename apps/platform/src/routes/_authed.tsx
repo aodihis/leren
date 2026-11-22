@@ -81,7 +81,6 @@ function AuthedLayout() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
   const isChat = pathname === "/chat" || pathname.startsWith("/chat/");
-  const isEditor = pathname.startsWith("/playbooks/");
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-canvas">
@@ -112,8 +111,8 @@ function AuthedLayout() {
             <Outlet />
           </main>
         ) : (
-          <main className="min-h-0 flex-1 overflow-auto p-6">
-            <div className={isEditor ? undefined : "mx-auto max-w-280"}>
+          <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-6">
+            <div className="mx-auto max-w-280">
               <Outlet />
             </div>
           </main>

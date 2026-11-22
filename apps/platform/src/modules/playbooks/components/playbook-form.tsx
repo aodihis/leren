@@ -172,7 +172,7 @@ export function PlaybookForm({ playbook }: PlaybookFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)}>
         <Tabs value={tab} onValueChange={(value) => setTab(value as TabName)} className="gap-0">
-          <header className="sticky top-0 z-10 -mx-6 -mt-6 mb-6 space-y-3 border-b bg-background px-6 pt-4">
+          <header className="sticky top-0 z-10 -mx-6 -mt-6 mb-6 space-y-3 bg-background px-6 pt-4 shadow-[0_0_0_100vmax_var(--color-background)] [clip-path:inset(0_-100vmax)] after:absolute after:inset-x-[-100vmax] after:bottom-0 after:h-px after:bg-border">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <Link
@@ -437,7 +437,7 @@ export function PlaybookForm({ playbook }: PlaybookFormProps) {
                 </div>
               </TabsContent>
             </div>
-            <aside className="space-y-4 lg:sticky lg:top-24">
+            <aside className="space-y-4 lg:sticky lg:top-36">
               <section className="space-y-4 rounded-lg border bg-surface p-4">
                 <div>
                   <h2 className="text-title-sm font-semibold">Status and period</h2>

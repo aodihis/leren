@@ -102,7 +102,8 @@ export function Conversation({
   const canSend = available && !working;
   const empty = chat.messages.length === 0;
   const last = chat.messages.at(-1);
-  const answering = last?.role === "assistant" && textOf(last) !== "";
+  const lastPart = last?.parts.at(-1);
+  const answering = last?.role === "assistant" && lastPart?.type === "text" && lastPart.text !== "";
 
   useEffect(() => {
     if (chat.messages.length === 0) {
