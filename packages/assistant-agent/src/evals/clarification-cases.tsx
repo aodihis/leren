@@ -23,6 +23,9 @@ const ENGLISH_TOPICS = [
   }),
 ];
 
+const ANSWER_ONLY_ENABLED_STATE =
+  "The agent says whether the Office hours playbook is enabled, and, only if relevant, why it is not usable. It does not mention the timezone, the response text, the period or the conditions, does not mention the Refund policy playbook, and adds no suggestions, offers or next steps.";
+
 const LIST_IN_INDONESIAN =
   "The answer is written in Indonesian, the language of the user, and names the topics Office hours and Refund policy.";
 
@@ -109,11 +112,48 @@ export const clarificationCases = defineEvalCases([
     },
     expected: {
       verdict: "pass",
-      criteria:
-        "The agent says whether the Office hours playbook is enabled. It adds no suggestions, offers, next steps or unrelated information, and does not mention the Refund policy playbook.",
+      criteria: ANSWER_ONLY_ENABLED_STATE,
     } satisfies RubricExpectation,
     metadata: {
       note: "Rule: answer only what was asked, without extra information, suggestions or next steps.",
+    },
+  },
+  {
+    id: "answers-only-for-a-disabled-playbook",
+    input: {
+      conversation: [{ role: "user", content: "Is my Old promo playbook enabled?" }],
+      playbooks: [
+        playbook({
+          id: "pb-promo",
+          topic: "Old promo",
+          response: "The old promo code gives free shipping.",
+          enabled: false,
+        }),
+        ...ENGLISH_TOPICS,
+      ],
+    },
+    expected: {
+      verdict: "pass",
+      criteria:
+        "The agent says that the Old promo playbook is not enabled, and nothing more. It does not explain what that means for Leren, does not mention the timezone, the response text or the conditions, does not mention other playbooks, and adds no suggestions, offers or next steps, such as offering to enable it.",
+    } satisfies RubricExpectation,
+    metadata: {
+      note: "Rule: a yes or no answer may carry the reason that changes it, and nothing else. Offering to enable the playbook is a next step.",
+    },
+  },
+  {
+    id: "answers-a-count-without-listing",
+    input: {
+      conversation: [{ role: "user", content: "How many playbooks do I have?" }],
+      playbooks: ENGLISH_TOPICS,
+    },
+    expected: {
+      verdict: "pass",
+      criteria:
+        "The agent says that the user has two playbooks. It does not list the topics, responses, timezones or states of the playbooks, and adds no suggestions, offers or next steps.",
+    } satisfies RubricExpectation,
+    metadata: {
+      note: "Rule: answer only what was asked. A count question does not ask for the list.",
     },
   },
   {
