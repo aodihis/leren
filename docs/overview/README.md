@@ -1,6 +1,6 @@
 # High-level design
 
-Leren is an AI email assistant. The user defines **playbooks** that say what the assistant may say and when it replies. While a playbook is in effect, incoming work email is classified and then answered from enabled playbooks, delegated, ignored or escalated. The first version only creates drafts. A person approves every reply before it is sent.
+Leren is an AI email assistant. The user defines **playbooks** that say what the assistant may say and when it replies. While a playbook is in effect, incoming work email is classified and then answered from enabled playbooks, delegated, ignored or escalated. By default a reply is saved as a draft, and a person approves it before it is sent. A user can choose to send the replies of a playbook without approval (product decision 0001).
 
 ## Components
 
@@ -28,7 +28,7 @@ The rules part has an optional start, an optional end, a timezone and conditions
 - Whether a message that mentions the user by name is answered even when the role or the recipient count would otherwise exclude it. Names are matched against the user's name and a list of aliases. A playbook can also ask a model to decide when no alias matches.
 - Whether new threads, replies in an existing thread, or both are answered.
 - Whether mailing lists and automatically generated messages are skipped.
-- What happens to a reply: it is saved as a draft for the user to approve, which is the default, or it is sent without approval. The assistant cannot change this setting, and the user chooses it on the Rules tab (decision 0039).
+- What happens to a reply: it is saved as a draft for the user to approve, which is the default, or it is sent without approval. The assistant cannot change this setting, and the user chooses it on the Rules tab (product decision 0001 and decision 0039).
 
 ## Enabling and derived status
 
@@ -187,4 +187,4 @@ Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a s
 
 ## Current limitations
 
-Jobs run on RabbitMQ and survive worker restarts. The API publishes `knowledge.index` and `email.received`, and the worker publishes `email.process`, which nothing consumes yet. The idempotency helper has only an in-memory store, and the message record is what makes recording an email idempotent. Nothing reads a real mailbox yet, so the idempotency helper has only an in-memory store until the pipeline tables exist. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.
+Jobs run on RabbitMQ and survive worker restarts. The API publishes `knowledge.index` and `email.received`, and the worker publishes `email.process`, which nothing consumes yet. Nothing reads a real mailbox yet. The idempotency helper has only an in-memory store, and the message record is what makes recording an email idempotent. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.

@@ -163,6 +163,7 @@ Status: Todo. Branch: `feat/13-reply-agent`.
 Status: Todo. Branch: `feat/14-approval-send`.
 
 - [ ] Add the API for pending drafts: approve, edit and approve, reject with a reason.
+- [ ] Send a reply at once when its playbook is in `send` mode, and after approval in `draft` mode (product decision 0001).
 - [ ] Add the `email.send` consumer with retry, delivery status, failure notification and idempotency.
 - [ ] Add the approval inbox UI and escalation notifications.
 
@@ -225,5 +226,5 @@ F02 and F03 can swap if Anvia access is delayed.
 
 - The vacation schedule, the `vacation://` resources and the "vacation ends" trigger are replaced by auto-reply rules with a derived status.
 - Auto-reply rules and knowledge items are combined into playbooks (ADR 0035). Chunks that name a rule or a knowledge item now mean a playbook.
-- The `send_reply` MCP tool is removed from the agent tool sets. Sending is done by the reply sender after human approval. `request_approval` stays.
+- The `send_reply` MCP tool is removed from the agent tool sets. Sending is done by the reply sender, after human approval or at once when the playbook is in `send` mode (product decision 0001). `request_approval` stays.
 - Messages are queued through RabbitMQ, and whether to handle an email is decided by code, not by the agent.
