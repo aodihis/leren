@@ -1,7 +1,8 @@
 import { z } from "zod";
 
+import { fetchNewGmail, readGmailPosition } from "./gmail";
 import { InvalidGrantError } from "./types";
-import type { ChannelProvider, ProviderTokens } from "./types";
+import type { EmailProvider, ProviderTokens } from "./types";
 
 const AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -56,9 +57,9 @@ function readIdToken(idToken: string | undefined) {
 /**
  * The Google provider for the `email` channel. It connects a Gmail or Google Workspace mailbox with
  * the authorization code flow, PKCE and offline access. The account is identified by the `sub`
- * claim and labelled with the address.
+ * claim and labelled with the address. It reads new mail with the Gmail history API.
  */
-export function createGoogleProvider(options: GoogleProviderOptions): ChannelProvider {
+export function createGoogleProvider(options: GoogleProviderOptions): EmailProvider {
   const send = options.fetch ?? fetch;
 
   const requestTokens = async (parameters: Record<string, string>) => {
@@ -123,9 +124,12 @@ export function createGoogleProvider(options: GoogleProviderOptions): ChannelPro
 
       const claims = readIdToken(response.id_token);
 
+      const syncCursor = await readGmailPosition(send, response.access_token).catch(() => null);
+
       return {
         providerAccountId: claims.sub,
         label: claims.email,
+        syncCursor,
         tokens: {
           accessToken: response.access_token,
           refreshToken: response.refresh_token,
@@ -148,6 +152,9 @@ export function createGoogleProvider(options: GoogleProviderOptions): ChannelPro
         refreshToken: response.refresh_token ?? tokens.refreshToken,
         expiresAt: expiry(response.expires_in),
       } satisfies ProviderTokens;
+    },
+    fetchNewMail(accessToken, cursor) {
+      return fetchNewGmail(send, accessToken, cursor);
     },
     async revoke(tokens) {
       const response = await send(REVOKE_URL, {

@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
+import type { ChannelAccountsDependencies } from "@leren/channels";
 import type { Db } from "@leren/db";
 import type { Logger } from "@leren/logger";
 import { Hono } from "hono";
@@ -18,7 +19,6 @@ import {
   listChannelAccounts,
   saveAuthorisedAccount,
 } from "./service";
-import type { ChannelAccountsDependencies } from "./service";
 
 const STATE_COOKIE = "channel_oauth";
 const STATE_COOKIE_PATH = "/api/channel-accounts";

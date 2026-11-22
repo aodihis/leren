@@ -11,6 +11,7 @@
   "dependencies": {
     "@leren/agents": "workspace:*",
     "@leren/auto-reply": "workspace:*",
+    "@leren/channels": "workspace:*",
     "@leren/db": "workspace:*",
     "@leren/embedder": "workspace:*",
     "@leren/inbox": "workspace:*",

@@ -50,7 +50,7 @@ A **channel** is a kind of medium that messages arrive on, such as email or Slac
 
 A user has many playbooks. A playbook listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. A user connects and disconnects accounts on the Channels page, and chooses the account of a playbook on its Rules tab. A user can have one email account in the first version, and an account cannot belong to two users.
 
-The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0021 and 0038 specify this. Reading mail from a real mailbox and sending mail through an account are not built yet. While `mailpit` is enabled, `POST /api/messages/simulate` records an email as if the mailbox had received it.
+The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0021 and 0038 specify this. The worker reads new mail from a Gmail mailbox every `EMAIL_POLL_INTERVAL_SECONDS` seconds, 60 by default, and records only mail that arrives after the account is connected. Mail that arrives while an account is disconnected or revoked is not read later. Sending mail through an account is not built yet. While `mailpit` is enabled, `POST /api/messages/simulate` records an email as if the mailbox had received it.
 
 ## Agents
 
@@ -82,7 +82,7 @@ The UI is the primary path. The assistant reads saved data and, after the user c
 
 ```
 Email provider
-   │ poll or webhook
+   │ poll
    ▼
 Email listener ─▶ message record (status: received) ─▶ [email.received]
                                 │
@@ -181,10 +181,11 @@ Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a s
 | `@leren/email`         | Email sending over SMTP      |
 | `@leren/auto-reply`    | Period status and conditions |
 | `@leren/inbox`         | Message records and statuses |
+| `@leren/channels`      | Channel providers and tokens |
 | `@leren/agents`        | Contracts for AI agents      |
 | `@leren/observability` | Logging                      |
 | `@leren/ui`            | Shared React components      |
 
 ## Current limitations
 
-Jobs run on RabbitMQ and survive worker restarts. The API publishes `knowledge.index` and `email.received`, and the worker publishes `email.process`, which nothing consumes yet. Nothing reads a real mailbox yet. The idempotency helper has only an in-memory store, and the message record is what makes recording an email idempotent. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.
+Jobs run on RabbitMQ and survive worker restarts. The API publishes `knowledge.index` and `email.received`, and the worker publishes `email.process`, which nothing consumes yet. The idempotency helper has only an in-memory store, and the message record is what makes recording an email idempotent. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.
