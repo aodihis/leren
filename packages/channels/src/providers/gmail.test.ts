@@ -69,6 +69,20 @@ describe("parseGmailMessage", () => {
     expect(email.cc).toEqual(["bo@example.com"]);
   });
 
+  it("ignores an address in angle brackets inside a quoted display name", () => {
+    const email = parseGmailMessage(
+      gmailMessage({
+        headers: {
+          From: '"<boss@company.com>" <attacker@evil.com>',
+          To: '"say \\"<a@b.com>\\"" <ana@example.com>',
+        },
+      }),
+    );
+
+    expect(email.from).toBe("attacker@evil.com");
+    expect(email.to).toEqual(["ana@example.com"]);
+  });
+
   it("prefers the plain part of a multipart message", () => {
     const email = parseGmailMessage(
       gmailMessage({

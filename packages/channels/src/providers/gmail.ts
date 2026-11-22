@@ -121,8 +121,9 @@ function extractBody(payload: Part): string {
 /**
  * Returns one address for each mailbox in a header such as `Ana <ana@example.com>, bo@example.com`.
  * A mailbox is split from the next at a comma that is outside a quoted display name. Its address is
- * the one in angle brackets when it has one, and the bare address otherwise, so an address written
- * inside a display name is never taken for the address of the mailbox.
+ * the one in angle brackets when it has one, and the bare address otherwise. Quoted strings are
+ * removed first, so an address written inside a display name, with or without angle brackets, is
+ * never taken for the address of the mailbox.
  */
 function parseAddresses(value: string | undefined): string[] {
   if (!value) {
@@ -130,8 +131,10 @@ function parseAddresses(value: string | undefined): string[] {
   }
 
   return (value.match(/(?:"(?:[^"\\]|\\.)*"|[^,"])+/g) ?? []).flatMap((mailbox) => {
+    const unquoted = mailbox.replace(/"(?:[^"\\]|\\.)*"/g, "");
+
     const address =
-      /<([^<>\s]+@[^<>\s]+)>/.exec(mailbox)?.[1] ?? /[^\s<>"]+@[^\s<>"]+/.exec(mailbox)?.[0];
+      /<([^<>\s]+@[^<>\s]+)>/.exec(unquoted)?.[1] ?? /[^\s<>"]+@[^\s<>"]+/.exec(unquoted)?.[0];
 
     return address ? [address.toLowerCase()] : [];
   });
