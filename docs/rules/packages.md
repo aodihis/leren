@@ -30,6 +30,7 @@ Applies to everything in `packages/`.
 | `@leren/email`           | Email sending over SMTP       |
 | `@leren/auto-reply`      | Period status and conditions  |
 | `@leren/knowledge`       | Playbook usability, retrieval |
+| `@leren/inbox`           | Message records and statuses  |
 
 ## Observability
 

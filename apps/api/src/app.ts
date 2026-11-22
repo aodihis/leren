@@ -18,6 +18,8 @@ import {
 import type { ChannelAccountsRouterDependencies } from "./modules/channel-accounts/router";
 import type { Auth } from "./modules/auth/service";
 import { createMcpRouter } from "./modules/mcp/router";
+import { NO_INBOX, createMessagesRouter } from "./modules/messages/router";
+import type { MessagesRouterDependencies } from "./modules/messages/router";
 import { createPlaybookMcpActions } from "./modules/playbooks/mcp-actions";
 import { createPlaybooksRouter } from "./modules/playbooks/router";
 
@@ -33,6 +35,8 @@ export type AppDependencies = {
   assistant?: Agent | undefined;
   /** The enabled channel providers and their settings. Without it, no provider is enabled. */
   channelAccounts?: ChannelAccountsRouterDependencies | undefined;
+  /** Records received emails for the gate. Without it, no email can be simulated. */
+  inbox?: MessagesRouterDependencies | undefined;
   mcp: {
     /** Signs MCP session tokens. At least 32 characters. */
     secret: string;
@@ -52,6 +56,7 @@ export function createApp({
   requestKnowledgeIndex,
   assistant,
   channelAccounts = NO_CHANNEL_PROVIDERS,
+  inbox = NO_INBOX,
   mcp,
 }: AppDependencies) {
   const sessions = { db, secret: mcp.secret };
@@ -92,6 +97,7 @@ export function createApp({
     .route("/", createAuthRouter(auth, db))
     .route("/", createPlaybooksRouter(auth, db, requestKnowledgeIndex))
     .route("/", createChannelAccountsRouter({ auth, db, logger, dependencies: channelAccounts }))
+    .route("/", createMessagesRouter({ auth, db, dependencies: inbox }))
     .route("/", createMcpRouter({ auth, db, sessions, endpoint }))
     .route("/", createAssistantRouter({ auth, db, logger, agent: assistant }))
     .onError((error, c) => {

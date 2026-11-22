@@ -1,6 +1,7 @@
-import { users } from "@leren/db";
+import { replyConditions, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createPlaybookMcpActions } from "./mcp-actions";
@@ -126,6 +127,24 @@ describe("playbook MCP actions", () => {
         conditions: [{ channel: "email" }],
       });
       expect(requestIndex).toHaveBeenLastCalledWith(created.id);
+    });
+
+    it("keeps the reply mode that the user chose when it changes the email conditions", async () => {
+      const created = await newPlaybook();
+
+      await database.db
+        .update(replyConditions)
+        .set({ settings: sql`${replyConditions.settings} || '{"replyMode":"send"}'::jsonb` })
+        .where(eq(replyConditions.playbookId, created.id));
+
+      const updated = (await run(actions.updatePlaybook, userId, {
+        playbookId: created.id,
+        conditions: [{ channel: "email", senderMode: "allowlist", senderAllowlist: ["@acme.com"] }],
+      })) as Saved;
+
+      expect(updated.data).toMatchObject({
+        conditions: [{ channel: "email", senderMode: "allowlist", replyMode: "send" }],
+      });
     });
 
     it("rejects a change that makes the playbook invalid and keeps the stored text", async () => {

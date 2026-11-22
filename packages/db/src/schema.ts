@@ -186,6 +186,65 @@ export const replyConditions = pgTable(
   ],
 );
 
+export const messageStatusEnum = pgEnum("message_status", [
+  "received",
+  "not_applicable",
+  "queued",
+  "processing",
+  "drafted",
+  "sent",
+  "failed",
+]);
+
+/**
+ * The record of one received message and where it stands in the pipeline (decision 0039). It holds
+ * only the email data: the sender, the recipients, the subject and a body that is cut to a fixed
+ * length, with `bodyTruncated` set when it was cut. `providerMessageId` and `providerThreadId` are
+ * the provider's own identifiers, and a message is unique on the user, the channel, the provider
+ * and `providerMessageId`, which makes recording it idempotent. `channelAccountId` is set to null
+ * when the account is deleted, and the record stays. `status` moves forward through the pipeline
+ * and `statusReason` is a short code that says why.
+ */
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channelAccountId: uuid("channel_account_id").references(() => channelAccounts.id, {
+      onDelete: "set null",
+    }),
+    channel: text("channel").notNull(),
+    provider: text("provider").notNull(),
+    providerMessageId: text("provider_message_id").notNull(),
+    providerThreadId: text("provider_thread_id"),
+    fromAddress: text("from_address").notNull(),
+    toAddresses: text("to_addresses").array().notNull().default([]),
+    ccAddresses: text("cc_addresses").array().notNull().default([]),
+    subject: text("subject").notNull(),
+    body: text("body").notNull(),
+    bodyTruncated: boolean("body_truncated").notNull().default(false),
+    isReply: boolean("is_reply").notNull().default(false),
+    isBulk: boolean("is_bulk").notNull().default(false),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+    status: messageStatusEnum("status").notNull().default("received"),
+    statusReason: text("status_reason"),
+    statusChangedAt: timestamp("status_changed_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    unique("messages_provider_message_unique").on(
+      table.userId,
+      table.channel,
+      table.provider,
+      table.providerMessageId,
+    ),
+    index("messages_user_received_idx").on(table.userId, table.receivedAt),
+  ],
+);
+
 export const mcpClientRoleEnum = pgEnum("mcp_client_role", ["assistant", "reply"]);
 
 /**

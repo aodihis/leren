@@ -3,6 +3,7 @@ import { loadHarness, resolveEmbeddingModel } from "@leren/agents";
 import { createDb } from "@leren/db";
 import { createSmtpEmailSender } from "@leren/email";
 import { createEmbedder } from "@leren/embedder";
+import { recordInboundEmail } from "@leren/inbox";
 import { createLogger } from "@leren/logger";
 import { createObserver } from "@leren/observability";
 import { createRabbitMqQueue } from "@leren/queue";
@@ -106,6 +107,10 @@ const app = createApp({
     cookieSecret: config.BETTER_AUTH_SECRET,
     apiUrl: config.API_URL,
     platformUrl: config.PLATFORM_URL,
+  },
+  inbox: {
+    recordEmail: (email) => recordInboundEmail({ db, queue }, email),
+    simulate: config.CHANNEL_PROVIDERS.includes("mailpit"),
   },
   mcp: { secret: config.MCP_SESSION_SECRET, search: createSearchDependencies() },
 });

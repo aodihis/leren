@@ -23,6 +23,7 @@ const queue = await createRabbitMqQueue({
 });
 
 const jobs = createJobs({
+  queue,
   db: createDb(config.DATABASE_URL),
   store: createVectorStore({ url: config.VECTOR_STORE_URL }),
   embedder: createEmbedder({

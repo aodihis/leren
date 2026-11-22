@@ -14,6 +14,7 @@ import { createPlaybook, getPlaybook, updatePlaybook } from "./service";
 const CHANNEL_DEFAULTS = {
   email: {
     channel: "email",
+    replyMode: "draft",
     senderMode: "any",
     senderAllowlist: [],
     replyWhenTo: true,
@@ -42,7 +43,10 @@ const playbookFields = z.object({
   endsAt: instant.nullable().optional().describe("When the playbook ends, or null for none."),
   conditions: z
     .array(
-      emailConditionsSchema.omit({ channelAccountId: true }).partial().required({ channel: true }),
+      emailConditionsSchema
+        .omit({ channelAccountId: true, replyMode: true })
+        .partial()
+        .required({ channel: true }),
     )
     .optional()
     .describe(

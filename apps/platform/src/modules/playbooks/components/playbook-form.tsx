@@ -342,6 +342,28 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                   />
                   <FormField
                     control={form.control}
+                    name="email.replyMode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Replies</FormLabel>
+                        <FormControl>
+                          <NativeSelect className="w-full" {...field}>
+                            <NativeSelectOption value="draft">
+                              Save as a draft for me to approve
+                            </NativeSelectOption>
+                            <NativeSelectOption value="send">
+                              Send without approval
+                            </NativeSelectOption>
+                          </NativeSelect>
+                        </FormControl>
+                        <FormDescription>
+                          Choose what happens to a reply that this playbook writes.
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="email.senderMode"
                     render={({ field }) => (
                       <FormItem>
