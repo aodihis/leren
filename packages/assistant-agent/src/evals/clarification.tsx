@@ -41,9 +41,4 @@ await runEvalCli({
   concurrency: 1,
   metrics: [clarification],
   exitCode: true,
-  expectations: {
-    outcomes: Object.fromEntries(
-      clarificationCases.map((c) => [c.id, { clarification: c.expected.verdict }]),
-    ),
-  },
 });

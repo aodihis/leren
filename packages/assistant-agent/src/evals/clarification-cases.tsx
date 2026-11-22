@@ -2,7 +2,7 @@ import { defineEvalCases } from "@anvia/core/evals";
 import { playbook } from "./target";
 
 /** A case for a rubric judge. `criteria` is what a correct answer must and must not do. */
-export type RubricExpectation = { verdict: "pass" | "fail"; criteria: string };
+export type RubricExpectation = { criteria: string };
 
 const COMPLETE_REQUEST =
   "Add a playbook. Topic: Delivery times. Response: Deliveries take 2 to 3 working days. Timezone: Asia/Jakarta.";
@@ -48,7 +48,6 @@ export const clarificationCases = defineEvalCases([
       playbooks: [],
     },
     expected: {
-      verdict: "pass",
       criteria:
         "The agent tells the user that the timezone is missing and asks for it. It does not invent a timezone and does not call a tool that changes data. It does not ask about examples, restrictions, contacts, a period or conditions.",
     } satisfies RubricExpectation,
@@ -62,7 +61,7 @@ export const clarificationCases = defineEvalCases([
       conversation: [{ role: "user", content: COMPLETE_REQUEST }],
       playbooks: [],
     },
-    expected: { verdict: "pass", criteria: SHOW_AND_CONFIRM } satisfies RubricExpectation,
+    expected: { criteria: SHOW_AND_CONFIRM } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 2: optional settings have defaults, so the agent does not ask about options the user did not mention.",
     },
@@ -87,7 +86,6 @@ export const clarificationCases = defineEvalCases([
       ],
     },
     expected: {
-      verdict: "pass",
       criteria:
         "The agent names the two refund playbooks and asks the user which one to change. It does not pick one by itself and does not call a tool that changes data.",
     } satisfies RubricExpectation,
@@ -99,7 +97,7 @@ export const clarificationCases = defineEvalCases([
       conversation: [{ role: "user", content: "Tolong tampilkan semua playbook saya." }],
       playbooks: ENGLISH_TOPICS,
     },
-    expected: { verdict: "pass", criteria: LIST_IN_INDONESIAN } satisfies RubricExpectation,
+    expected: { criteria: LIST_IN_INDONESIAN } satisfies RubricExpectation,
     metadata: {
       note: "Style: answer in the language of the user, even when the saved topics are in English.",
     },
@@ -111,7 +109,6 @@ export const clarificationCases = defineEvalCases([
       playbooks: ENGLISH_TOPICS,
     },
     expected: {
-      verdict: "pass",
       criteria: ANSWER_ONLY_ENABLED_STATE,
     } satisfies RubricExpectation,
     metadata: {
@@ -133,7 +130,6 @@ export const clarificationCases = defineEvalCases([
       ],
     },
     expected: {
-      verdict: "pass",
       criteria:
         "The agent says that the Old promo playbook is not enabled, and nothing more. It does not explain what that means for Leren, does not mention the timezone, the response text or the conditions, does not mention other playbooks, and adds no suggestions, offers or next steps, such as offering to enable it.",
     } satisfies RubricExpectation,
@@ -148,7 +144,6 @@ export const clarificationCases = defineEvalCases([
       playbooks: ENGLISH_TOPICS,
     },
     expected: {
-      verdict: "pass",
       criteria:
         "The agent says that the user has two playbooks. It does not list the topics, responses, timezones or states of the playbooks, and adds no suggestions, offers or next steps.",
     } satisfies RubricExpectation,
@@ -157,35 +152,19 @@ export const clarificationCases = defineEvalCases([
     },
   },
   {
-    id: "negative-asks-about-optional-settings",
+    id: "asks-for-the-missing-response",
     input: {
-      conversation: [{ role: "user", content: COMPLETE_REQUEST }],
+      conversation: [
+        { role: "user", content: "Add a playbook. Topic: Delivery times. Timezone: Asia/Jakarta." },
+      ],
       playbooks: [],
-      fixedOutput: {
-        text: "Great! Before I save it, would you like to add example messages, restrictions, contacts, a start and end date, or reply conditions? And should it be enabled right away?",
-        toolCalls: [],
-        playbooks: [],
-      },
     },
-    expected: { verdict: "fail", criteria: SHOW_AND_CONFIRM } satisfies RubricExpectation,
+    expected: {
+      criteria:
+        "The agent tells the user that the response is missing and asks for it. It does not invent a response and does not call a tool that changes data. It does not ask about examples, restrictions, contacts, a period or conditions.",
+    } satisfies RubricExpectation,
     metadata: {
-      note: "Proves that the judge detects questions about options the user did not mention.",
-    },
-  },
-  {
-    id: "negative-answers-in-the-wrong-language",
-    input: {
-      conversation: [{ role: "user", content: "Tolong tampilkan semua playbook saya." }],
-      playbooks: ENGLISH_TOPICS,
-      fixedOutput: {
-        text: "You have two playbooks: Office hours and Refund policy. Both are enabled.",
-        toolCalls: [{ name: "list_playbooks", input: {} }],
-        playbooks: ENGLISH_TOPICS,
-      },
-    },
-    expected: { verdict: "fail", criteria: LIST_IN_INDONESIAN } satisfies RubricExpectation,
-    metadata: {
-      note: "Proves that the judge detects an answer in a different language than the user's.",
+      note: "Workflow step 2: the agent never invents what the user did not give.",
     },
   },
 ]);

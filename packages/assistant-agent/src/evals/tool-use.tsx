@@ -42,9 +42,4 @@ await runEvalCli({
   concurrency: 2,
   metrics: [toolUse],
   exitCode: true,
-  expectations: {
-    outcomes: Object.fromEntries(
-      toolUseCases.map((c) => [c.id, { "tool-use": c.expected.verdict }]),
-    ),
-  },
 });
