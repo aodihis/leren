@@ -106,7 +106,9 @@ export class ChannelAccountUnavailableError extends Error {
 /**
  * Checks that every channel account named by `conditions` belongs to `userId` and is on the
  * channel of the entry that names it. It runs inside the write's transaction, so a playbook never
- * listens through another user's account.
+ * listens through another user's account. The account row is locked with `FOR KEY SHARE`, so a
+ * disconnect waits until the transaction commits and then clears the new reference through the
+ * foreign key's `ON DELETE SET NULL`.
  */
 async function assertAccountsAvailable(
   tx: Pick<Db, "select">,
@@ -127,7 +129,8 @@ async function assertAccountsAvailable(
           eq(channelAccounts.userId, userId),
           eq(channelAccounts.channel, entry.channel),
         ),
-      );
+      )
+      .for("key share");
 
     if (!account) {
       throw new ChannelAccountUnavailableError();
