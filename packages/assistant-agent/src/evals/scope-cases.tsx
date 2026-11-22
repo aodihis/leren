@@ -82,7 +82,7 @@ export const scopeCases = defineEvalCases([
     metadata: { note: "Rule: stay inside playbooks, even for a harmless general question." },
   },
   {
-    id: "send-request-goes-to-the-interface",
+    id: "declines-to-send-a-message",
     input: {
       conversation: [
         {

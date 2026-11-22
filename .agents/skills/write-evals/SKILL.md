@@ -194,6 +194,10 @@ For the two most important judge metrics:
   you can.
 - **Thresholds set once and never checked.** Set them from observed scores on good and bad
   cases, with a margin below the lowest score of a case that a careful person would accept.
+- **Graders that nothing checks.** Because every case expects a pass, a metric that always passes
+  also gives a green suite. Check each custom metric with a unit test on a hand-built bad output,
+  and recheck a judge when the judge model changes. Faithfulness only checks that claims are
+  supported, so use a rubric judge when the answer must say something.
 - **Ambiguous cases.** If two careful people could disagree about the expected result, rewrite the
   case. A flaky case teaches nothing.
 - **Real secrets or personal data in cases.** Cases are committed. Use invented data.

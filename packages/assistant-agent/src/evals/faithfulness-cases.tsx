@@ -37,7 +37,7 @@ const THREE_PLAYBOOKS_CONTEXT = [
   "The user has exactly three playbooks.",
   "Playbook 'Office hours': enabled, no start and no end, period active, usable now. Response: We are open Monday to Friday from 09:00 to 17:00.",
   "Playbook 'Holiday sale': enabled, no start, ended on 31 October 2026, period expired, not usable now. Response: The holiday sale gives a discount on all gift items.",
-  "Playbook 'Old promo': disabled, no start and no end, not usable now. Response: The old promo code gives free shipping.",
+  "Playbook 'Old promo': disabled, no start and no end, not usable now, so Leren does not use it in replies. Response: The old promo code gives free shipping.",
   ...COMMON_FACTS,
 ];
 
@@ -88,7 +88,7 @@ export const faithfulnessCases = defineEvalCases([
     },
     retrievalContext: THREE_PLAYBOOKS_CONTEXT,
     metadata: {
-      note: "A disabled playbook is not in use. The answer must follow the tool result and not the wording of the question.",
+      note: "A disabled playbook is not in use. The answer must not claim that it is in use, which the context contradicts.",
     },
   },
   {
@@ -107,7 +107,7 @@ export const faithfulnessCases = defineEvalCases([
       "The Holiday sale playbook does not mention delivery.",
     ],
     metadata: {
-      note: "The prompt forbids inventing facts. The answer must say that the playbook does not mention delivery.",
+      note: "The prompt forbids inventing facts. The answer must not claim that the playbook mentions delivery. Faithfulness cannot require the answer to say that it does not.",
     },
   },
 ]);
