@@ -135,7 +135,7 @@ Status: In progress. Branch: `feat/12a-channel-accounts`.
 - [x] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
 - [x] Add the platform screen to connect and disconnect the account, and let a playbook choose it.
 - [x] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.
-- [ ] Connect a real Google account once by hand, with the project in testing mode and a test user.
+- [x] Connect a real Google account once by hand, with the project in testing mode and a test user.
 
 ### F12 Email ingestion and gate
 
@@ -211,7 +211,7 @@ F02 and F03 can swap if Anvia access is delayed.
 | F09     | MCP server and sessions      | In progress |                                                                                              |
 | F10     | Assistant Agent              | Todo        |                                                                                              |
 | F11     | Routing rules                | Dropped     |                                                                                              |
-| F12a    | Channel accounts             | Todo        |                                                                                              |
+| F12a    | Channel accounts             | In progress | [#29](https://github.com/aodihis/leren/pull/29)                                              |
 | F12     | Email ingestion and gate     | Todo        |                                                                                              |
 | F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
 | F14     | Approval and sending         | Todo        |                                                                                              |
