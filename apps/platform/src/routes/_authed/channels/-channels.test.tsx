@@ -61,6 +61,7 @@ const email = {
   mentionAliases: [],
   threadMode: "both",
   skipBulkMail: true,
+  replyMode: "draft",
 };
 
 const playbook = {

@@ -139,12 +139,14 @@ Status: In progress. Branch: `feat/12a-channel-accounts`.
 
 ### F12 Email ingestion and gate
 
-Status: Todo. Branch: `feat/12-email-gate`.
+Status: In progress. Branch: `feat/12-email-gate`.
 
-- [ ] Add an `EmailProvider` interface, a simulated inbox and an endpoint that injects test emails.
-- [ ] Add `messages`, `threads`, `decisions` and `drafts`, with a unique idempotency key.
-- [ ] Add the listener that publishes `email.received`.
-- [ ] Add the gate: deduplicate, check active rules with `getAutoReplyStatus`, then publish `email.process` or record "not applicable".
+- [x] Add the `messages` table that records each received email with its provider ids, channel, truncated body and status, and the `@leren/inbox` package that records a message, publishes `email.received` and moves the status forward (ADR 0039). It replaces the planned `messages`, `threads`, `decisions` and `drafts`: a thread is the provider's thread id, and decisions and drafts belong to F13 and F14.
+- [x] Add the reply mode `draft` or `send` to the email conditions of a playbook, with a control on the Rules tab. The assistant cannot set it.
+- [x] Add the gate: consume `email.received`, check the usable playbooks of the account with `isKnowledgeUsable` and `evaluateEmailConditions`, then set `queued` and publish `email.process`, or set `not_applicable` with a reason.
+- [x] Add `GET /api/messages` and `GET /api/messages/:id` for the dashboard, and `POST /api/messages/simulate` to inject a test email while the `mailpit` provider is enabled.
+- [ ] Add the `EmailProvider` interface and the listener that reads a real mailbox. It needs the channel token handling to move out of `apps/api` into a package. Deferred: it needs its own decision.
+- [ ] Later stages set `processing`, `drafted`, `sent` and `failed` through `transitionMessage` (F13 and F14).
 
 ### F13 Reply Agent and pipeline
 
@@ -212,7 +214,7 @@ F02 and F03 can swap if Anvia access is delayed.
 | F10     | Assistant Agent              | Todo        |                                                                                              |
 | F11     | Routing rules                | Dropped     |                                                                                              |
 | F12a    | Channel accounts             | In progress | [#29](https://github.com/aodihis/leren/pull/29)                                              |
-| F12     | Email ingestion and gate     | Todo        |                                                                                              |
+| F12     | Email ingestion and gate     | In progress |                                                                                              |
 | F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
 | F14     | Approval and sending         | Todo        |                                                                                              |
 | F15     | Dashboard and report         | Todo        |                                                                                              |

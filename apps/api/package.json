@@ -24,6 +24,7 @@
     "@leren/db": "workspace:*",
     "@leren/email": "workspace:*",
     "@leren/embedder": "workspace:*",
+    "@leren/inbox": "workspace:*",
     "@leren/knowledge": "workspace:*",
     "@leren/logger": "workspace:*",
     "@leren/mcp-server": "workspace:*",

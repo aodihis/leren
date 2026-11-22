@@ -30,6 +30,7 @@ const playbook: Playbook = {
       mentionAliases: ["Bal", "Mr. Iqbal"],
       threadMode: "both",
       skipBulkMail: true,
+      replyMode: "draft",
     },
   ],
 };

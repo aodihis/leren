@@ -38,6 +38,7 @@ export function getNewPlaybookValues(timezone: string): PlaybookFormValues {
     startsAt: "",
     endsAt: "",
     email: {
+      replyMode: "draft",
       senderMode: "any",
       senderAllowlist: "",
       replyWhenTo: true,

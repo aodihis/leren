@@ -34,6 +34,7 @@ function createSilentLogger(): Logger {
 
 const validEmail: PlaybookInput["conditions"][number] = {
   channel: "email",
+  replyMode: "draft",
   senderMode: "any",
   senderAllowlist: [],
   replyWhenTo: true,
@@ -74,7 +75,7 @@ type Created = {
   usable: boolean;
   periodStatus: string;
   contacts: string[];
-  conditions: { channel: string; senderAllowlist: string[] }[];
+  conditions: { channel: string; senderAllowlist: string[]; replyMode: string }[];
 };
 
 describe("playbooks API", () => {
@@ -330,6 +331,31 @@ describe("playbooks API", () => {
       expect(created.contacts).toEqual(["a@example.com", "@Lin", "Don"]);
       expect(invalid.status).toBe(400);
       expect((await invalid.json()).fieldErrors).toHaveProperty("contacts");
+    });
+
+    it("defaults the reply mode to draft, keeps send when chosen, and rejects any other value", async () => {
+      const cookie = await signIn("reply-mode@example.com");
+      const { replyMode: _omitted, ...withoutMode } = validEmail;
+
+      const defaulted = await call(
+        cookie,
+        "POST",
+        PATH,
+        body({ conditions: [withoutMode as never] }),
+      );
+
+      const sending = await create(cookie, { conditions: [{ ...validEmail, replyMode: "send" }] });
+
+      const invalid = await call(
+        cookie,
+        "POST",
+        PATH,
+        body({ conditions: [{ ...validEmail, replyMode: "auto" as never }] }),
+      );
+
+      expect((await defaulted.json()).playbook.conditions[0].replyMode).toBe("draft");
+      expect(sending.conditions[0]).toMatchObject({ replyMode: "send" });
+      expect(invalid.status).toBe(400);
     });
 
     it("rejects an invalid sender allowlist entry and normalizes valid entries to lowercase", async () => {

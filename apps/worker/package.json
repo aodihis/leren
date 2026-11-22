@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@leren/agents": "workspace:*",
+    "@leren/auto-reply": "workspace:*",
     "@leren/db": "workspace:*",
     "@leren/embedder": "workspace:*",
+    "@leren/inbox": "workspace:*",
     "@leren/knowledge": "workspace:*",
     "@leren/logger": "workspace:*",
     "@leren/queue": "workspace:*",

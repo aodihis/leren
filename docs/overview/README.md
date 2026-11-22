@@ -28,6 +28,7 @@ The rules part has an optional start, an optional end, a timezone and conditions
 - Whether a message that mentions the user by name is answered even when the role or the recipient count would otherwise exclude it. Names are matched against the user's name and a list of aliases. A playbook can also ask a model to decide when no alias matches.
 - Whether new threads, replies in an existing thread, or both are answered.
 - Whether mailing lists and automatically generated messages are skipped.
+- What happens to a reply: it is saved as a draft for the user to approve, which is the default, or it is sent without approval. The assistant cannot change this setting, and the user chooses it on the Rules tab (decision 0039).
 
 ## Enabling and derived status
 
@@ -49,7 +50,7 @@ A **channel** is a kind of medium that messages arrive on, such as email or Slac
 
 A user has many playbooks. A playbook listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. A user connects and disconnects accounts on the Channels page, and chooses the account of a playbook on its Rules tab. A user can have one email account in the first version, and an account cannot belong to two users.
 
-The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0021 and 0038 specify this. Reading and sending mail through an account is not built yet.
+The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0021 and 0038 specify this. Reading mail from a real mailbox and sending mail through an account are not built yet. While `mailpit` is enabled, `POST /api/messages/simulate` records an email as if the mailbox had received it.
 
 ## Agents
 
@@ -83,13 +84,14 @@ The UI is the primary path. The assistant reads saved data and, after the user c
 Email provider
    │ poll or webhook
    ▼
-Email listener (worker) ─▶ [email.received]
+Email listener ─▶ message record (status: received) ─▶ [email.received]
                                 │
                                 ▼
                        Gate (worker, code only)
-                         - drop duplicates by provider message id
-                         - find the user's active playbooks
-                         - none found: record "not applicable" and stop
+                         - duplicates are one record, by provider message id
+                         - find the user's active playbooks for the account
+                         - none handles it: status "not applicable", with the reason, and stop
+                         - otherwise status "queued"
                                 │
                                 ▼
                          [email.process]
@@ -107,7 +109,25 @@ Email listener (worker) ─▶ [email.received]
                           [email.send] ─▶ Reply sender (worker) ─▶ Email provider
 ```
 
-Whether an email is handled at all is decided by the gate, in code, from stored playbooks and their conditions. The Reply Agent is never asked whether to reply to a message outside an active playbook. The only model call in the gate is the optional mention check of a playbook that asks for it.
+Whether an email is handled at all is decided by the gate, in code, from stored playbooks and their conditions. The Reply Agent is never asked whether to reply to a message outside an active playbook. The gate makes no model call. The optional mention check of a playbook that asks for it is made by the pipeline, and the gate passes such a playbook on with the verdict `check_mention`.
+
+## Message records
+
+Every received email has one record, so the user can see in the dashboard what arrived and where it stands. A record holds the channel, the provider and the provider's message and thread ids, the sender, the recipients, the subject, a body that is cut at 20,000 characters and the time it was received. It holds no attachments, headers or credentials.
+
+The status is updated as the message passes through the pipeline, and it only moves forward.
+
+| Status           | Meaning                                               |
+| ---------------- | ----------------------------------------------------- |
+| `received`       | The email is recorded and waits for the gate.         |
+| `not_applicable` | No playbook handles it. The reason is stored with it. |
+| `queued`         | The gate passed it to the pipeline.                   |
+| `processing`     | The pipeline is working on it.                        |
+| `drafted`        | A reply was saved as a draft and waits for the user.  |
+| `sent`           | A reply was sent.                                     |
+| `failed`         | A step failed. The reason is stored with it.          |
+
+`GET /api/messages` lists the user's records, newest first, and takes `status`, `channel`, `channelAccountId`, `limit` and `cursor`. `GET /api/messages/:id` returns one record with its stored body (decision 0039).
 
 ## Queues
 
@@ -160,10 +180,11 @@ Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a s
 | `@leren/queue`         | Durable queues with retries  |
 | `@leren/email`         | Email sending over SMTP      |
 | `@leren/auto-reply`    | Period status and conditions |
+| `@leren/inbox`         | Message records and statuses |
 | `@leren/agents`        | Contracts for AI agents      |
 | `@leren/observability` | Logging                      |
 | `@leren/ui`            | Shared React components      |
 
 ## Current limitations
 
-Jobs run on RabbitMQ and survive worker restarts. The API publishes only `knowledge.index` so far, and the idempotency helper has only an in-memory store until the pipeline tables exist. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.
+Jobs run on RabbitMQ and survive worker restarts. The API publishes `knowledge.index` and `email.received`, and the worker publishes `email.process`, which nothing consumes yet. The idempotency helper has only an in-memory store, and the message record is what makes recording an email idempotent. Nothing reads a real mailbox yet, so the idempotency helper has only an in-memory store until the pipeline tables exist. The roadmap in [`../plans/0001-auto-reply-roadmap.md`](../plans/0001-auto-reply-roadmap.md) lists the order in which the rest of this design is built.
