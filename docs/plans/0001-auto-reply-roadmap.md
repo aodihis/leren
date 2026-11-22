@@ -139,19 +139,27 @@ Status: In progress. Branch: `feat/12a-channel-accounts`.
 
 ### F12 Email ingestion and gate
 
-Status: In progress. Branch: `feat/12-email-gate`.
+Status: Done. Branch: `feat/12-email-gate`.
 
 - [x] Add the `messages` table that records each received email with its provider ids, channel, truncated body and status, and the `@leren/inbox` package that records a message, publishes `email.received` and moves the status forward (ADR 0039). It replaces the planned `messages`, `threads`, `decisions` and `drafts`: a thread is the provider's thread id, and decisions and drafts belong to F13 and F14.
 - [x] Add the reply mode `draft` or `send` to the email conditions of a playbook, with a control on the Rules tab. The assistant cannot set it.
 - [x] Add the gate: consume `email.received`, check the usable playbooks of the account with `isKnowledgeUsable` and `evaluateEmailConditions`, then set `queued` and publish `email.process`, or set `not_applicable` with a reason.
 - [x] Add `GET /api/messages` and `GET /api/messages/:id` for the dashboard, and `POST /api/messages/simulate` to inject a test email while the `mailpit` provider is enabled.
-- [ ] Add the `EmailProvider` interface and the listener that reads a real mailbox. It needs the channel token handling to move out of `apps/api` into a package. Deferred: it needs its own decision.
-- [ ] Later stages set `processing`, `drafted`, `sent` and `failed` through `transitionMessage` (F13 and F14).
+
+### F12b Email listener
+
+Status: Todo. Branch: `feat/12b-email-listener`.
+
+- [x] Decide the listener: poll Gmail from the worker, ingest only new mail, and move the provider and token code into `@leren/channels` (ADR 0040).
+- [ ] Move the channel provider, encryption and token code out of `apps/api` into `@leren/channels`, add it to `docs/rules/packages.md`, and add `sync_cursor` to `channel_accounts`. Connecting an account clears the cursor.
+- [ ] Add the `EmailProvider` interface, the Gmail `fetchNewMail`, and the `email.poll` timer and job that record new mail. Write the cursor only if it is unchanged since it was read, skip a message that Gmail reports as not found, and read every page of the history.
+- [ ] Later: add Gmail push notifications in front of the same `email.poll` job, to cut the delay from up to a minute to a few seconds. It needs its own decision. It adds a Pub/Sub topic, a public HTTPS endpoint that verifies the OIDC token of each push, a renewal of `users.watch` at least every 7 days, and a fallback poll.
 
 ### F13 Reply Agent and pipeline
 
 Status: Todo. Branch: `feat/13-reply-agent`.
 
+- [ ] Set `processing`, `drafted`, `sent` and `failed` through `transitionMessage` as the pipeline passes each stage (ADR 0039). F14 sets the statuses of approval and sending.
 - [ ] Add the Anvia agent with the reply tool set, a 5-step limit and untrusted-input handling.
 - [ ] Validate output against a schema, with citations of knowledge ids.
 - [ ] Abstain when retrieval finds nothing reliable.
@@ -194,7 +202,7 @@ Status: Todo. Branch: `feat/17-hardening-docs`.
 
 ## Order
 
-F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F12a → F12 → F13 → F14 → F15 → F16 → F17.
+F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F12a → F12 → F12b → F13 → F14 → F15 → F16 → F17.
 
 F02 and F03 can swap if Anvia access is delayed.
 
@@ -215,7 +223,8 @@ F02 and F03 can swap if Anvia access is delayed.
 | F10     | Assistant Agent              | Todo        |                                                                                              |
 | F11     | Routing rules                | Dropped     |                                                                                              |
 | F12a    | Channel accounts             | In progress | [#29](https://github.com/aodihis/leren/pull/29)                                              |
-| F12     | Email ingestion and gate     | In progress |                                                                                              |
+| F12     | Email ingestion and gate     | Done        | [#30](https://github.com/aodihis/leren/pull/30)                                              |
+| F12b    | Email listener               | Todo        |                                                                                              |
 | F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
 | F14     | Approval and sending         | Todo        |                                                                                              |
 | F15     | Dashboard and report         | Todo        |                                                                                              |
