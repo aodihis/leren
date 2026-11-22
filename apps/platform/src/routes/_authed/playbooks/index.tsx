@@ -112,7 +112,15 @@ function PlaybooksPage() {
           <TableBody>
             {playbooks.map((playbook) => (
               <TableRow key={playbook.id}>
-                <TableCell className="font-medium">{playbook.topic}</TableCell>
+                <TableCell className="font-medium">
+                  <Link
+                    to="/playbooks/$playbookId"
+                    params={{ playbookId: playbook.id }}
+                    className="rounded-sm underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {playbook.topic}
+                  </Link>
+                </TableCell>
                 <TableCell>
                   <PlaybookStatusBadge status={getPlaybookStatus(playbook)} />
                 </TableCell>
@@ -125,11 +133,6 @@ function PlaybooksPage() {
                     onClick={() => handleToggle(playbook)}
                   >
                     {playbook.enabled ? "Disable" : "Enable"}
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/playbooks/$playbookId" params={{ playbookId: playbook.id }}>
-                      Edit
-                    </Link>
                   </Button>
                   <Button
                     variant="outline"

@@ -5,6 +5,8 @@ import { Alert, AlertDescription, Button, Textarea } from "@leren/ui";
 import { ArrowUpIcon, SparklesIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
+import Markdown from "react-markdown";
+import type { Components } from "react-markdown";
 
 const STARTERS = [
   { label: "See my rules", prompt: "What rules do I have?" },
@@ -20,6 +22,29 @@ function titleFrom(text: string): string {
 
   return line.length > TITLE_LENGTH ? `${line.slice(0, TITLE_LENGTH - 1)}…` : line;
 }
+
+/**
+ * Styles for the elements of an assistant reply. The assistant writes Markdown, so lists, bold text
+ * and links are rendered as elements instead of showing their markers. Raw HTML in a reply is not
+ * rendered, because react-markdown ignores it by default.
+ */
+const MARKDOWN_COMPONENTS: Components = {
+  p: ({ node: _node, ...props }) => <p className="whitespace-pre-wrap" {...props} />,
+  ul: ({ node: _node, ...props }) => <ul className="list-disc space-y-1.5 pl-6" {...props} />,
+  ol: ({ node: _node, ...props }) => <ol className="list-decimal space-y-1.5 pl-6" {...props} />,
+  strong: ({ node: _node, ...props }) => <strong className="font-semibold" {...props} />,
+  a: ({ node: _node, ...props }) => (
+    <a
+      className="text-brand underline underline-offset-2"
+      target="_blank"
+      rel="noreferrer noopener"
+      {...props}
+    />
+  ),
+  code: ({ node: _node, ...props }) => (
+    <code className="rounded bg-subtle px-1 py-0.5 font-mono text-[0.9em]" {...props} />
+  ),
+};
 
 function textOf(message: UIMessage): string {
   return message.parts.map((part) => (part.type === "text" ? part.text : "")).join("");
@@ -76,6 +101,9 @@ export function Conversation({
   const working = chat.status === "submitted" || chat.status === "streaming";
   const canSend = available && !working;
   const empty = chat.messages.length === 0;
+  const last = chat.messages.at(-1);
+  const lastPart = last?.parts.at(-1);
+  const answering = last?.role === "assistant" && lastPart?.type === "text" && lastPart.text !== "";
 
   useEffect(() => {
     if (chat.messages.length === 0) {
@@ -193,7 +221,7 @@ export function Conversation({
           {chat.messages.map((message) => (
             <Message key={message.id} message={message} />
           ))}
-          {working && (
+          {working && !answering && (
             <p role="status" className="text-body-sm text-ink-muted">
               The assistant is working…
             </p>
@@ -232,14 +260,8 @@ function Message({ message }: { message: UIMessage }) {
   }
 
   return (
-    <div className="flex gap-3">
-      <span
-        className="grid size-7 flex-none place-items-center rounded-full bg-brand-soft text-brand"
-        aria-hidden="true"
-      >
-        <SparklesIcon className="size-4" strokeWidth={1.75} />
-      </span>
-      <p className="min-w-0 flex-1 text-title-sm whitespace-pre-wrap">{text}</p>
+    <div className="min-w-0 space-y-3 text-title-sm">
+      <Markdown components={MARKDOWN_COMPONENTS}>{text}</Markdown>
     </div>
   );
 }
