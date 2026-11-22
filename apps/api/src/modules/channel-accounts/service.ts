@@ -1,31 +1,20 @@
 import { randomUUID } from "node:crypto";
 
 import { channelAccounts, users } from "@leren/db";
+import { encryptCredentials, readTokens, requireKey } from "@leren/channels";
+import type {
+  AuthorisedAccount,
+  ChannelAccountsDependencies,
+  ChannelProvider,
+} from "@leren/channels";
 import type { Db } from "@leren/db";
 import type { Logger } from "@leren/logger";
 import { and, asc, eq } from "drizzle-orm";
-import { z } from "zod";
-
-import { decryptCredentials, encryptCredentials } from "./crypto";
-import { InvalidGrantError } from "./providers/types";
-import type { AuthorisedAccount, ChannelProvider, ProviderTokens } from "./providers/types";
 
 /** How many accounts a user may have on a channel in the first version (decision 0021). */
 const ACCOUNT_LIMIT_PER_CHANNEL: Readonly<Record<string, number>> = { email: 1 };
 
-/** An access token that expires within this many milliseconds is refreshed before it is used. */
-const REFRESH_MARGIN_MS = 60_000;
-
 const POSTGRES_UNIQUE_VIOLATION = "23505";
-
-/**
- * What the account functions need from the process: the enabled providers, and the key that
- * encrypts credentials. The key is undefined when no enabled provider stores tokens.
- */
-export type ChannelAccountsDependencies = {
-  providers: ReadonlyMap<string, ChannelProvider>;
-  encryptionKey: Buffer | undefined;
-};
 
 type AccountRow = typeof channelAccounts.$inferSelect;
 
@@ -52,12 +41,6 @@ export type SaveResult =
   | { status: "conflict" }
   | { status: "limit" };
 
-const storedTokensSchema = z.object({
-  accessToken: z.string(),
-  refreshToken: z.string().nullable(),
-  expiresAt: z.string().nullable(),
-});
-
 function toView(
   row: AccountRow,
   providers: ReadonlyMap<string, ChannelProvider>,
@@ -70,14 +53,6 @@ function toView(
     status: row.status,
     usable: row.status === "active" && providers.has(row.provider),
   };
-}
-
-function requireKey(key: Buffer | undefined): Buffer {
-  if (!key) {
-    throw new Error("CHANNEL_TOKEN_ENCRYPTION_KEY is not configured");
-  }
-
-  return key;
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -170,6 +145,7 @@ export async function saveAuthorisedAccount(
         label: authorised.label,
         credentials,
         status: "active",
+        syncCursor: authorised.syncCursor ?? null,
         updatedAt: new Date(),
       } as const;
 
@@ -192,90 +168,6 @@ export async function saveAuthorisedAccount(
   } catch (error) {
     if (isUniqueViolation(error)) {
       return { status: "conflict" };
-    }
-
-    throw error;
-  }
-}
-
-function readTokens(
-  dependencies: ChannelAccountsDependencies,
-  row: AccountRow,
-): ProviderTokens | null {
-  if (row.credentials === null) {
-    return null;
-  }
-
-  const plaintext = decryptCredentials(
-    requireKey(dependencies.encryptionKey),
-    row.id,
-    row.credentials,
-  );
-
-  return storedTokensSchema.parse(JSON.parse(plaintext));
-}
-
-/**
- * Returns a valid access token for one of the user's accounts, or `null` when the account does not
- * exist, belongs to another user, is not usable or has no credentials. A token that has expired, or
- * expires within a minute, is refreshed and the new credentials are stored. When the provider
- * rejects the refresh token, the account becomes `revoked` and the result is `null`. Other
- * failures are thrown, because they may succeed on a retry.
- */
-export async function getAccessToken(
-  db: Db,
-  dependencies: ChannelAccountsDependencies,
-  userId: string,
-  accountId: string,
-  now = new Date(),
-): Promise<string | null> {
-  const [row] = await db
-    .select()
-    .from(channelAccounts)
-    .where(and(eq(channelAccounts.id, accountId), eq(channelAccounts.userId, userId)));
-
-  const provider = row ? dependencies.providers.get(row.provider) : undefined;
-
-  if (!row || !provider || row.status !== "active") {
-    return null;
-  }
-
-  const tokens = readTokens(dependencies, row);
-
-  if (!tokens) {
-    return null;
-  }
-
-  const expiresAt = tokens.expiresAt ? Date.parse(tokens.expiresAt) : Infinity;
-
-  if (expiresAt - now.getTime() > REFRESH_MARGIN_MS) {
-    return tokens.accessToken;
-  }
-
-  try {
-    const refreshed = await provider.refresh(tokens);
-
-    await db
-      .update(channelAccounts)
-      .set({
-        credentials: encryptCredentials(
-          requireKey(dependencies.encryptionKey),
-          row.id,
-          JSON.stringify(refreshed),
-        ),
-        updatedAt: new Date(),
-      })
-      .where(eq(channelAccounts.id, row.id));
-
-    return refreshed.accessToken;
-  } catch (error) {
-    if (error instanceof InvalidGrantError) {
-      await db
-        .update(channelAccounts)
-        .set({ status: "revoked", updatedAt: new Date() })
-        .where(eq(channelAccounts.id, row.id));
-
-      return null;
     }
 
     throw error;

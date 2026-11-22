@@ -21,6 +21,7 @@
     "@leren/agents": "workspace:*",
     "@leren/assistant-agent": "workspace:*",
     "@leren/auto-reply": "workspace:*",
+    "@leren/channels": "workspace:*",
     "@leren/db": "workspace:*",
     "@leren/email": "workspace:*",
     "@leren/embedder": "workspace:*",

@@ -1,11 +1,15 @@
 import type { JobDefinition } from "../job";
 import { createEmailGateJob } from "./email-gate/job";
 import type { EmailGateJobDependencies } from "./email-gate/job";
+import { createEmailPollJob } from "./email-poll/job";
+import type { EmailPollJobDependencies } from "./email-poll/job";
 import { createKnowledgeDriftJob, createKnowledgeIndexJob } from "./knowledge-index/job";
 import type { KnowledgeIndexDependencies } from "./knowledge-index/service";
 import { runAgentJob } from "./run-agent/job";
 
-export type JobDependencies = KnowledgeIndexDependencies & EmailGateJobDependencies;
+export type JobDependencies = KnowledgeIndexDependencies &
+  EmailGateJobDependencies &
+  EmailPollJobDependencies;
 
 /**
  * Builds every job the worker consumes. Jobs that need collaborators receive them here, so tests
@@ -17,5 +21,6 @@ export function createJobs(dependencies: JobDependencies): JobDefinition[] {
     createKnowledgeIndexJob(dependencies),
     createKnowledgeDriftJob(dependencies),
     createEmailGateJob(dependencies),
+    createEmailPollJob(dependencies),
   ];
 }

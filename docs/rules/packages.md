@@ -31,6 +31,7 @@ Applies to everything in `packages/`.
 | `@leren/auto-reply`      | Period status and conditions  |
 | `@leren/knowledge`       | Playbook usability, retrieval |
 | `@leren/inbox`           | Message records and statuses  |
+| `@leren/channels`        | Channel providers and tokens  |
 
 ## Observability
 

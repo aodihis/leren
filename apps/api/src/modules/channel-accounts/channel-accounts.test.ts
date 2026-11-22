@@ -1,5 +1,13 @@
 import { randomBytes } from "node:crypto";
 
+import { InvalidGrantError, getAccessToken } from "@leren/channels";
+import type {
+  AuthorisedAccount,
+  ChannelAccountsDependencies,
+  ChannelProvider,
+  ConnectStart,
+  ProviderTokens,
+} from "@leren/channels";
 import { channelAccounts } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
@@ -11,15 +19,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../../app";
 import { createAuth } from "../auth/service";
-import { InvalidGrantError } from "./providers/types";
-import type {
-  AuthorisedAccount,
-  ChannelProvider,
-  ConnectStart,
-  ProviderTokens,
-} from "./providers/types";
-import { getAccessToken, listChannelAccounts } from "./service";
-import type { ChannelAccountsDependencies } from "./service";
+import { listChannelAccounts } from "./service";
 
 const ORIGIN = "http://localhost:5173";
 const PATH = "/api/channel-accounts";
@@ -373,6 +373,11 @@ describe("channel accounts API", () => {
 
     expect(second.headers.get("location")).toBe(`${ORIGIN}/channels?error=limit`);
 
+    await database.db
+      .update(channelAccounts)
+      .set({ syncCursor: "100" })
+      .where(eq(channelAccounts.providerAccountId, "sub-single"));
+
     fake.state.next = { providerAccountId: "sub-single", label: "new@gmail.com", tokens: TOKENS };
     await connect(cookie);
 
@@ -380,6 +385,13 @@ describe("channel accounts API", () => {
 
     expect(accounts).toHaveLength(1);
     expect(accounts[0]?.label).toBe("new@gmail.com");
+
+    const [stored] = await database.db
+      .select({ cursor: channelAccounts.syncCursor })
+      .from(channelAccounts)
+      .where(eq(channelAccounts.providerAccountId, "sub-single"));
+
+    expect(stored?.cursor).toBeNull();
   });
 
   it("does not let a provider account belong to two users", async () => {

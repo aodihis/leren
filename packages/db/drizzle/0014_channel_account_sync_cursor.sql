@@ -1,0 +1,1 @@
+ALTER TABLE "channel_accounts" ADD COLUMN "sync_cursor" text;

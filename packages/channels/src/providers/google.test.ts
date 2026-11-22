@@ -87,6 +87,49 @@ describe("Google provider", () => {
     });
   });
 
+  it("records the position of the mailbox when the account connects", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        respond(200, {
+          access_token: "access",
+          refresh_token: "refresh",
+          id_token: idToken({ sub: "1", email: "a@b.c" }),
+        }),
+      )
+      .mockResolvedValueOnce(respond(200, { historyId: "77" }));
+
+    const account = await createProvider(fetchMock).finish({
+      code: "c",
+      codeVerifier: "v",
+      redirectUri: REDIRECT_URI,
+    });
+
+    expect(account.syncCursor).toBe("77");
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual({ headers: { authorization: "Bearer access" } });
+  });
+
+  it("connects without a position when the mailbox cannot be read", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        respond(200, {
+          access_token: "access",
+          refresh_token: "refresh",
+          id_token: idToken({ sub: "1", email: "a@b.c" }),
+        }),
+      )
+      .mockResolvedValueOnce(respond(500, {}));
+
+    const account = await createProvider(fetchMock).finish({
+      code: "c",
+      codeVerifier: "v",
+      redirectUri: REDIRECT_URI,
+    });
+
+    expect(account.syncCursor).toBeNull();
+  });
+
   it("fails when Google returns no refresh token", async () => {
     const fetchMock = vi
       .fn()

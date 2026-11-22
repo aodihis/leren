@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { loadHarness, resolveEmbeddingModel } from "@leren/agents";
+import { createChannelProviders, parseEncryptionKey } from "@leren/channels";
 import { createDb } from "@leren/db";
 import { createSmtpEmailSender } from "@leren/email";
 import { createEmbedder } from "@leren/embedder";
@@ -15,8 +16,6 @@ import type { AppType } from "./app";
 import { loadConfig } from "./config";
 import { createAgent } from "./modules/assistant/agent";
 import { createAuth } from "./modules/auth/service";
-import { parseEncryptionKey } from "./modules/channel-accounts/crypto";
-import { createChannelProviders } from "./modules/channel-accounts/providers";
 import { createKnowledgeIndexRequester } from "./modules/playbooks/indexing";
 
 const logger = createLogger({ name: "api" });

@@ -99,6 +99,13 @@
       "when": 1795354744851,
       "tag": "0013_email_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795358911445,
+      "tag": "0014_channel_account_sync_cursor",
+      "breakpoints": true
     }
   ]
 }
