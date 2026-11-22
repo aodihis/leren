@@ -123,6 +123,42 @@ export const playbooks = pgTable(
   (table) => [index("playbooks_user_id_idx").on(table.userId)],
 );
 
+export const channelAccountStatusEnum = pgEnum("channel_account_status", ["active", "revoked"]);
+
+/**
+ * A user's authorised account on a channel, such as one Gmail mailbox. `provider` names the adapter
+ * that connected it and `providerAccountId` is the provider's stable identifier of the account, so
+ * an account belongs to exactly one user. `label` is the text shown to the user, such as the
+ * address. `credentials` is the encrypted token set, and it is null for a provider that has none.
+ * Whether an account is usable also depends on its provider being enabled in the configuration, so
+ * disabling a provider changes no row (decision 0038).
+ */
+export const channelAccounts = pgTable(
+  "channel_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channel: text("channel").notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    label: text("label").notNull(),
+    credentials: text("credentials"),
+    status: channelAccountStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    unique("channel_accounts_provider_account_unique").on(
+      table.channel,
+      table.provider,
+      table.providerAccountId,
+    ),
+    index("channel_accounts_user_id_idx").on(table.userId),
+  ],
+);
+
 /**
  * The reply conditions of a playbook for one channel, such as `email` or `slack`. A playbook
  * listens on a channel when it has a row for that channel, and it has at most one row for each.
@@ -138,6 +174,9 @@ export const replyConditions = pgTable(
       .notNull()
       .references(() => playbooks.id, { onDelete: "cascade" }),
     channel: text("channel").notNull(),
+    channelAccountId: uuid("channel_account_id").references(() => channelAccounts.id, {
+      onDelete: "set null",
+    }),
     settings: jsonb("settings").$type<Record<string, unknown>>().notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -1,8 +1,10 @@
+import { channelAccounts, replyConditions, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createInMemoryEmailSender } from "@leren/email/testing";
 import type { InMemoryEmailSender } from "@leren/email/testing";
 import type { Logger } from "@leren/logger";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../../app";
@@ -62,6 +64,10 @@ function body(overrides: Partial<PlaybookInput> = {}) {
   return { ...validBody, ...overrides };
 }
 
+function withAccount(channelAccountId: string | null) {
+  return { conditions: [{ ...validEmail, channelAccountId }] };
+}
+
 type Created = {
   id: string;
   enabled: boolean;
@@ -112,6 +118,23 @@ describe("playbooks API", () => {
 
   const setEnabled = (cookie: string, id: string, enabled: boolean) =>
     call(cookie, "PATCH", `${PATH}/${id}`, { enabled });
+
+  const addAccount = async (email: string, providerAccountId: string, channel = "email") => {
+    const [owner] = await database.db.select().from(users).where(eq(users.email, email));
+
+    const [account] = await database.db
+      .insert(channelAccounts)
+      .values({
+        userId: owner?.id ?? "",
+        channel,
+        provider: "google",
+        providerAccountId,
+        label: email,
+      })
+      .returning();
+
+    return account?.id ?? "";
+  };
 
   beforeAll(async () => {
     database = await createTestDatabase();
@@ -172,6 +195,7 @@ describe("playbooks API", () => {
         playbook: {
           ...validBody,
           id: expect.any(String),
+          conditions: [{ ...validEmail, channelAccountId: null }],
           contacts: ["dewi@example.com", "@Don"],
           periodStatus: "active",
           usable: true,
@@ -207,6 +231,71 @@ describe("playbooks API", () => {
       const cookie = await signIn("unknown@example.com");
 
       expect((await call(cookie, "GET", `${PATH}/${MISSING_ID}`)).status).toBe(404);
+    });
+  });
+
+  describe("channel accounts", () => {
+    it("lets a playbook listen through the user's own account and returns the choice", async () => {
+      const cookie = await signIn("listener@example.com");
+      const accountId = await addAccount("listener@example.com", "sub-listener");
+
+      const created = await create(cookie, withAccount(accountId));
+      const response = await call(cookie, "GET", `${PATH}/${created.id}`);
+
+      expect(await response.json()).toMatchObject({
+        playbook: { conditions: [{ channel: "email", channelAccountId: accountId }] },
+      });
+    });
+
+    it("rejects an account of another user on create and on replace, and writes nothing", async () => {
+      const cookie = await signIn("borrower@example.com");
+
+      await signIn("lender@example.com");
+
+      const foreign = await addAccount("lender@example.com", "sub-lender");
+      const own = await create(cookie, withAccount(null));
+
+      const created = await call(cookie, "POST", PATH, body(withAccount(foreign)));
+      const replaced = await call(cookie, "PUT", `${PATH}/${own.id}`, body(withAccount(foreign)));
+
+      expect(created.status).toBe(400);
+      expect(replaced.status).toBe(400);
+      expect(await replaced.json()).toEqual({
+        fieldErrors: { conditions: ["Choose one of your own channel accounts"] },
+      });
+
+      const [row] = await database.db
+        .select()
+        .from(replyConditions)
+        .where(eq(replyConditions.playbookId, own.id));
+
+      expect(row?.channelAccountId).toBeNull();
+      expect((await (await call(cookie, "GET", PATH)).json()).playbooks).toHaveLength(1);
+    });
+
+    it("rejects an account that is on another channel and an account that does not exist", async () => {
+      const cookie = await signIn("mismatch@example.com");
+      const slack = await addAccount("mismatch@example.com", "T123", "slack");
+
+      for (const accountId of [slack, MISSING_ID]) {
+        const response = await call(cookie, "POST", PATH, body(withAccount(accountId)));
+
+        expect(response.status).toBe(400);
+      }
+    });
+
+    it("keeps the playbook but drops the choice when the account is deleted", async () => {
+      const cookie = await signIn("dropper@example.com");
+      const accountId = await addAccount("dropper@example.com", "sub-dropper");
+      const created = await create(cookie, withAccount(accountId));
+
+      await database.db.delete(channelAccounts).where(eq(channelAccounts.id, accountId));
+
+      const response = await call(cookie, "GET", `${PATH}/${created.id}`);
+
+      expect(await response.json()).toMatchObject({
+        playbook: { conditions: [{ channelAccountId: null }] },
+      });
     });
   });
 

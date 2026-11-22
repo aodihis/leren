@@ -12,6 +12,7 @@ import {
   playbookSchema,
 } from "./schema";
 import {
+  ChannelAccountUnavailableError,
   createPlaybook,
   deletePlaybook,
   getPlaybook,
@@ -19,6 +20,22 @@ import {
   setPlaybookEnabled,
   updatePlaybook,
 } from "./service";
+
+const UNAVAILABLE_ACCOUNT_ERRORS: Record<string, string[] | undefined> = {
+  conditions: ["Choose one of your own channel accounts"],
+};
+
+/**
+ * Turns the error of a playbook that names an account its owner may not use into `undefined`, so
+ * that the route answers with a field error. Any other error is thrown again.
+ */
+function rejectUnavailableAccount(error: unknown): undefined {
+  if (error instanceof ChannelAccountUnavailableError) {
+    return undefined;
+  }
+
+  throw error;
+}
 
 /**
  * Mounts the routes of the signed-in user's playbooks under `/api/playbooks`. Every route requires
@@ -41,7 +58,13 @@ export function createPlaybooksRouter(
       return c.json({ playbooks }, 200);
     })
     .post("/api/playbooks", validate("json", playbookSchema), async (c) => {
-      const playbook = await createPlaybook(db, c.get("userId"), c.req.valid("json"));
+      const playbook = await createPlaybook(db, c.get("userId"), c.req.valid("json")).catch(
+        rejectUnavailableAccount,
+      );
+
+      if (!playbook) {
+        return c.json({ fieldErrors: UNAVAILABLE_ACCOUNT_ERRORS }, 400);
+      }
 
       await requestIndex(playbook.id);
 
@@ -62,7 +85,11 @@ export function createPlaybooksRouter(
           c.get("userId"),
           c.req.valid("param").id,
           c.req.valid("json"),
-        );
+        ).catch(rejectUnavailableAccount);
+
+        if (!result) {
+          return c.json({ fieldErrors: UNAVAILABLE_ACCOUNT_ERRORS }, 400);
+        }
 
         if (result.status !== "saved") {
           return c.json({ error: "Not found" }, 404);

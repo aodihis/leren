@@ -128,13 +128,14 @@ Status: Dropped. Playbooks cover it (ADR 0037).
 
 ### F12a Channel accounts
 
-Status: Todo. Branch: `feat/12a-channel-accounts`.
+Status: In progress. Branch: `feat/12a-channel-accounts`.
 
-- [ ] Add an ADR for the first OAuth provider, its scopes and the token encryption key.
-- [ ] Add the `channel_accounts` table and a nullable `channel_account_id` on `reply_conditions` (ADRs 0021 and 0033).
-- [ ] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
-- [ ] Add the platform screen to connect and disconnect the account, and let a rule choose it.
-- [ ] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.
+- [x] Add an ADR for the first OAuth provider, its scopes and the token encryption key (ADR 0038).
+- [x] Add the `channel_accounts` table and a nullable `channel_account_id` on `reply_conditions` (ADRs 0021, 0033 and 0038).
+- [x] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
+- [x] Add the platform screen to connect and disconnect the account, and let a playbook choose it.
+- [x] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.
+- [ ] Connect a real Google account once by hand, with the project in testing mode and a test user.
 
 ### F12 Email ingestion and gate
 

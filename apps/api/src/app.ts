@@ -11,6 +11,11 @@ import { z } from "zod";
 import { createAssistantRouter } from "./modules/assistant/router";
 import type { Agent } from "./modules/assistant/agent";
 import { createAuthRouter } from "./modules/auth/router";
+import {
+  NO_CHANNEL_PROVIDERS,
+  createChannelAccountsRouter,
+} from "./modules/channel-accounts/router";
+import type { ChannelAccountsRouterDependencies } from "./modules/channel-accounts/router";
 import type { Auth } from "./modules/auth/service";
 import { createMcpRouter } from "./modules/mcp/router";
 import { createPlaybookMcpActions } from "./modules/playbooks/mcp-actions";
@@ -26,6 +31,8 @@ export type AppDependencies = {
   requestKnowledgeIndex: (playbookId: string) => Promise<void>;
   /** Runs the Assistant Agent for the chat. Without it, the chat reports that it is unavailable. */
   assistant?: Agent | undefined;
+  /** The enabled channel providers and their settings. Without it, no provider is enabled. */
+  channelAccounts?: ChannelAccountsRouterDependencies | undefined;
   mcp: {
     /** Signs MCP session tokens. At least 32 characters. */
     secret: string;
@@ -44,6 +51,7 @@ export function createApp({
   logger,
   requestKnowledgeIndex,
   assistant,
+  channelAccounts = NO_CHANNEL_PROVIDERS,
   mcp,
 }: AppDependencies) {
   const sessions = { db, secret: mcp.secret };
@@ -83,6 +91,7 @@ export function createApp({
     })
     .route("/", createAuthRouter(auth, db))
     .route("/", createPlaybooksRouter(auth, db, requestKnowledgeIndex))
+    .route("/", createChannelAccountsRouter({ auth, db, logger, dependencies: channelAccounts }))
     .route("/", createMcpRouter({ auth, db, sessions, endpoint }))
     .route("/", createAssistantRouter({ auth, db, logger, agent: assistant }))
     .onError((error, c) => {

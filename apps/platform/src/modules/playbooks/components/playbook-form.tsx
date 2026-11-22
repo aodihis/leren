@@ -26,6 +26,7 @@ import type { Control } from "react-hook-form";
 
 import { api } from "../../api/api-client";
 import { getNewPlaybookValues, toFormValues, toRequestBody } from "../form-values";
+import type { ChannelAccount } from "../../channels/types";
 import type { Playbook, PlaybookFormValues } from "../types";
 
 type SwitchName =
@@ -111,6 +112,7 @@ function SwitchField({ control, name, label, description }: SwitchFieldProps) {
 
 interface PlaybookFormProps {
   playbook?: Playbook;
+  accounts?: readonly ChannelAccount[];
 }
 
 /**
@@ -121,7 +123,7 @@ interface PlaybookFormProps {
  * validates the request again, its field errors are shown next to the fields, and the form opens
  * the tab of the first field that was rejected.
  */
-export function PlaybookForm({ playbook }: PlaybookFormProps) {
+export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabName>("knowledge");
 
@@ -307,6 +309,37 @@ export function PlaybookForm({ playbook }: PlaybookFormProps) {
                       Which emails the playbook answers while it is in effect.
                     </p>
                   </div>
+                  <FormField
+                    control={form.control}
+                    name="email.channelAccountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email account</FormLabel>
+                        <FormControl>
+                          <NativeSelect
+                            className="w-full"
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={(event) => field.onChange(event.target.value || null)}
+                          >
+                            <NativeSelectOption value="">No account chosen</NativeSelectOption>
+                            {accounts
+                              .filter((account) => account.channel === "email")
+                              .map((account) => (
+                                <NativeSelectOption key={account.id} value={account.id}>
+                                  {account.label}
+                                </NativeSelectOption>
+                              ))}
+                          </NativeSelect>
+                        </FormControl>
+                        <FormDescription>
+                          The connected account that this playbook answers on. Connect accounts on
+                          the Channels page.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="email.senderMode"

@@ -1,5 +1,5 @@
 import { getAutoReplyStatus } from "@leren/auto-reply";
-import { playbooks, replyConditions } from "@leren/db";
+import { channelAccounts, playbooks, replyConditions } from "@leren/db";
 import type { Db } from "@leren/db";
 import { isKnowledgeUsable } from "@leren/knowledge";
 import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
@@ -40,7 +40,14 @@ function toView(playbook: PlaybookRow, conditions: ConditionsRow[], now: Date) {
     usable: isKnowledgeUsable(playbook, now),
     conditions: conditions
       .toSorted((a, b) => a.channel.localeCompare(b.channel))
-      .map((row) => ({ ...row.settings, channel: row.channel }) as ReplyConditionsInput),
+      .map(
+        (row) =>
+          ({
+            ...row.settings,
+            channel: row.channel,
+            channelAccountId: row.channelAccountId,
+          }) as ReplyConditionsInput,
+      ),
   };
 }
 
@@ -77,8 +84,55 @@ function toRows(input: PlaybookInput) {
       endsAt: input.endsAt ? new Date(input.endsAt) : null,
       timezone: input.timezone,
     },
-    conditions: input.conditions.map(({ channel, ...settings }) => ({ channel, settings })),
+    conditions: input.conditions.map(({ channel, channelAccountId, ...settings }) => ({
+      channel,
+      channelAccountId: channelAccountId ?? null,
+      settings,
+    })),
   };
+}
+
+/**
+ * Thrown when a playbook names a channel account that does not exist, belongs to another user or
+ * is on another channel than the conditions that name it. The write is rolled back.
+ */
+export class ChannelAccountUnavailableError extends Error {
+  constructor() {
+    super("The channel account is not available");
+    this.name = "ChannelAccountUnavailableError";
+  }
+}
+
+/**
+ * Checks that every channel account named by `conditions` belongs to `userId` and is on the
+ * channel of the entry that names it. It runs inside the write's transaction, so a playbook never
+ * listens through another user's account.
+ */
+async function assertAccountsAvailable(
+  tx: Pick<Db, "select">,
+  userId: string,
+  conditions: { channel: string; channelAccountId: string | null }[],
+): Promise<void> {
+  for (const entry of conditions) {
+    if (entry.channelAccountId === null) {
+      continue;
+    }
+
+    const [account] = await tx
+      .select({ id: channelAccounts.id })
+      .from(channelAccounts)
+      .where(
+        and(
+          eq(channelAccounts.id, entry.channelAccountId),
+          eq(channelAccounts.userId, userId),
+          eq(channelAccounts.channel, entry.channel),
+        ),
+      );
+
+    if (!account) {
+      throw new ChannelAccountUnavailableError();
+    }
+  }
 }
 
 /**
@@ -149,7 +203,8 @@ export async function getPlaybook(db: Db, userId: string, id: string, now = new 
 }
 
 /**
- * Creates a playbook and its conditions in one transaction, owned by `userId`.
+ * Creates a playbook and its conditions in one transaction, owned by `userId`. Throws
+ * `ChannelAccountUnavailableError` when a condition names an account that `userId` may not use.
  */
 export async function createPlaybook(
   db: Db,
@@ -160,6 +215,8 @@ export async function createPlaybook(
   const { playbook, conditions } = toRows(input);
 
   return db.transaction(async (tx) => {
+    await assertAccountsAvailable(tx, userId, conditions);
+
     const [created] = await tx
       .insert(playbooks)
       .values({ ...playbook, userId })
@@ -175,7 +232,7 @@ export async function createPlaybook(
 }
 
 /**
- * Replaces a playbook and its conditions. A channel that the input leaves out loses its
+ * Replaces a playbook and its conditions, including the account of each channel. A channel that the input leaves out loses its
  * conditions. Returns `not_found` when the playbook does not exist or belongs to another user, in
  * which case nothing is written.
  */
@@ -189,6 +246,8 @@ export async function updatePlaybook(
   const { playbook, conditions } = toRows(input);
 
   return db.transaction(async (tx) => {
+    await assertAccountsAvailable(tx, userId, conditions);
+
     const [updated] = await tx
       .update(playbooks)
       .set({ ...playbook, updatedAt: now })
@@ -214,7 +273,11 @@ export async function updatePlaybook(
       .values(conditions.map((entry) => ({ ...entry, playbookId: id })))
       .onConflictDoUpdate({
         target: [replyConditions.playbookId, replyConditions.channel],
-        set: { settings: sql`excluded.settings`, updatedAt: now },
+        set: {
+          settings: sql`excluded.settings`,
+          channelAccountId: sql`excluded.channel_account_id`,
+          updatedAt: now,
+        },
       })
       .returning();
 
