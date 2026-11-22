@@ -1,12 +1,13 @@
 # Docs
 
-| Folder                  | Purpose                                                                             |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| [`decision/`](decision) | Engineering decisions (ADRs): what we chose, why, and what it affects.              |
-| [`product/`](product)   | Product decisions: scope, behaviour and priorities.                                 |
-| [`plans/`](plans)       | Roadmaps and plans, with a status for each step.                                    |
-| [`rules/`](rules)       | Constraints and guides for working in this codebase.                                |
-| [`overview/`](overview) | User-facing documentation, including the high-level design in `overview/README.md`. |
+| Folder                            | Purpose                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------- |
+| [`decision/`](decision)           | Engineering decisions (ADRs): what we chose, why, and what it affects.              |
+| [`product/`](product)             | Product decisions: scope, behaviour and priorities.                                 |
+| [`plans/`](plans)                 | Roadmaps and plans, with a status for each step.                                    |
+| [`design-system/`](design-system) | The frontend design system: tokens, layout and component references.                |
+| [`rules/`](rules)                 | Constraints and guides for working in this codebase.                                |
+| [`overview/`](overview)           | User-facing documentation, including the high-level design in `overview/README.md`. |
 
 ## Decision records
 

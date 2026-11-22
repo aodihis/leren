@@ -8,6 +8,7 @@
   "trailingComma": "all",
   "ignorePatterns": [
     "tooling/oxlint/vendor/**",
+    "docs/design-system/**",
     "packages/ui/src/components/ui/**",
     "packages/ui/src/hooks/**",
     "packages/ui/src/lib/utils.ts",

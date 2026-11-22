@@ -1,8 +1,9 @@
 # 0007. Auto-reply status is derived, not stored
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-19
 - Affects: packages/db, apps/api, apps/worker, apps/platform, docs/overview/README.md
+- Superseded by: [0019](0019-email-reply-conditions.md)
 
 ## Context
 

@@ -46,7 +46,7 @@ Status: Done. Branch: `feat/02-anvia-foundation`. PRs: [#4](https://github.com/a
 
 Status: Done. Branch: `feat/03-rabbitmq-queue`. PR: [#6](https://github.com/aodihis/leren/pull/6).
 
-- [x] Add RabbitMQ to `docker-compose.yml` and `.env.example`.
+- [x] Add RabbitMQ to `docker-compose.dev.yml` and `.env.example`.
 - [x] Add `packages/queue` with publish, consume, retry with backoff, dead-letter queues and an idempotency helper.
 - [x] Rebuild the `apps/worker` consumers on it, keeping `defineJob`.
 - [x] Update the "Current limitations" section of the overview.
@@ -54,74 +54,87 @@ Status: Done. Branch: `feat/03-rabbitmq-queue`. PR: [#6](https://github.com/aodi
 
 ### F04 Authentication and user isolation
 
-Status: Todo. Branch: `feat/04-auth`.
+Status: Done. Branch: `feat/04-auth`. PR: [#7](https://github.com/aodihis/leren/pull/7).
 
-- [ ] Extend `users` and add sessions.
-- [ ] Add the API `auth` module and middleware that sets `userId`.
-- [ ] Add the platform login page and an authenticated layout.
-- [ ] Test that user A cannot read user B's data.
+- [x] Extend `users` and add sessions, accounts and verifications.
+- [x] Add the API `auth` module and middleware that sets `userId`. Sign-in and registration use an emailed one-time code with Better Auth (ADR 0013).
+- [x] Add `packages/email` with an SMTP sender and Mailpit in `docker-compose.dev.yml` (ADR 0014).
+- [x] Add the platform login page, profile page and authenticated layout.
+- [x] Test that user A cannot read user B's data. Only the profile exists so far. Extend the test when a feature adds user-owned data.
 
 ### F05 Auto-reply rules
 
-Status: Todo. Branch: `feat/05-auto-reply-rules`.
+Status: Done. Branch: `feat/05-auto-reply-rules`. PR: [#10](https://github.com/aodihis/leren/pull/10).
 
-- [ ] Add the `auto_reply_rules` table: user, name, enabled, `starts_at`, `ends_at`, timezone, preferences. No status column.
-- [ ] Add a pure `getAutoReplyStatus(rule, now)` with tests for timezones and open bounds.
-- [ ] Add the API module and the platform form and list, which show the derived status.
+- [x] Add ADR 0019, which supersedes 0007 and splits channel conditions from the rule.
+- [x] Add the `auto_reply_rules` table: user, name, enabled, `starts_at`, `ends_at`, timezone. No status column.
+- [x] Add the reply conditions table (now `reply_conditions` with a channel, ADR 0033) with the email settings: sender, recipient role, sole recipient, mention, thread and bulk mail options.
+- [x] Add `@leren/auto-reply` with a pure `getAutoReplyStatus(rule, now)` and email condition evaluation, with tests for timezones, open bounds and each condition.
+- [x] Add the API module and the platform form and list, which show the derived status.
 
 ### F06 Knowledge management
 
-Status: Todo. Branch: `feat/06-knowledge`.
+Status: In progress. Branch: `feat/06-knowledge`.
 
-- [ ] Add `knowledge_items` (topic, questions, answer, contacts, restrictions, validity, approval `draft|approved|archived`) and `contacts`.
-- [ ] Add the API modules.
-- [ ] Add the platform screens to create, edit, approve and archive.
-- [ ] Test that only approved and currently valid items are usable.
+- [x] Add `knowledge_items` (topic, response, examples, contacts, restrictions, validity, approval `draft|approved|archived`). Contacts are a list of text on the item (ADR 0020).
+- [x] Add the API modules.
+- [x] Add the platform screens to create, edit, approve and archive.
+- [x] Test that only approved and currently valid items are usable.
 
 ### F07 Indexing pipeline
 
-Status: Todo. Branch: `feat/07-indexing`.
+Status: In progress. Branch: `feat/07-indexing`.
 
-- [ ] Add an `Embedder` interface, an ADR for the provider and a deterministic fake.
-- [ ] Index approved knowledge in Qdrant with knowledge id, user id, rule id, type and validity in the payload.
-- [ ] Add a `knowledge.index` consumer for create, edit, archive and expiry.
-- [ ] Add a drift check between PostgreSQL and Qdrant.
-- [ ] Test that every vector references an existing PostgreSQL row.
+- [x] Add an `Embedder` interface, an ADR for the provider (ADR 0024) and a deterministic fake.
+- [x] Index approved knowledge in Qdrant with knowledge id, user id, rule id, type and validity in the payload.
+- [x] Add a `knowledge.index` consumer for create, edit, archive and expiry.
+- [x] Add a drift check between PostgreSQL and Qdrant.
+- [x] Test that every vector references an existing PostgreSQL row.
 
 ### F08 Retrieval
 
-Status: Todo. Branch: `feat/08-retrieval`.
+Status: In progress. Branch: `feat/08-retrieval`.
 
-- [ ] Add `searchKnowledge` with mandatory filters: user, rule, approved, valid now.
-- [ ] Return the top 5 above a score threshold, or an explicit "no reliable result".
-- [ ] Test cross-user leakage and exclusion of expired and unapproved items.
-- [ ] Add a Recall@5 harness stub.
+- [x] Add `searchKnowledge` with mandatory filters: user, rule, approved, valid now (ADR 0028).
+- [x] Return the top 5 above a score threshold, or an explicit "no reliable result".
+- [x] Test cross-user leakage and exclusion of expired and unapproved items.
+- [x] Add a Recall@5 harness stub.
+- [x] Add integration tests against real Qdrant. They also run against the embedding endpoint when `EMBEDDING_API_KEY` is set.
+- [x] Run the embedding endpoint tests with a working key and tune `DEFAULT_MIN_SCORE`.
 
 ### F09 MCP server and sessions
 
-Status: Todo. Branch: `feat/09-mcp-server`.
+Status: In progress. Branch: `feat/09-mcp-server`.
 
-- [ ] Add `packages/mcp-server`, mounted by `apps/api`.
-- [ ] Mint user-bound session tokens with scopes, expiry and revocation. Write an audit log.
-- [ ] Add scope-gated tools, resources and prompts with agent-neutral names.
-- [ ] Integration tests for every tool: valid input, invalid input, missing scope, another user's token, expired and replayed tokens.
+- [x] Add `packages/mcp-server`, mounted by `apps/api` (ADR 0031).
+- [x] Mint user-bound session tokens with scopes, expiry and revocation. Write an audit log.
+- [x] Add scope-gated tools, resources and prompts with agent-neutral names.
+- [x] Integration tests for every tool: valid input, invalid input, missing scope, another user's token, expired and replayed tokens.
 
 ### F10 Assistant Agent
 
 Status: Todo. Branch: `feat/10-assistant-agent`.
 
-- [ ] Add the Anvia agent with read tools, `suggest_questions` and `propose_knowledge_edit`.
-- [ ] Add the chat panel to the knowledge and rules screens, with accept actions that use the normal API.
-- [ ] Confirm the UI works fully without the assistant.
-- [ ] Document upload and extraction (PDF, TXT, DOCX, up to 20 files), in a follow-up pull request if large.
+- [x] Add the Anvia agent with read tools and confirmed write tools for rules and knowledge (ADR 0032).
+- [x] Add the `structure-knowledge` skill and the assistant prompt, tried in Anvia Studio (`pnpm studio:assistant`).
+- [x] Add the full-page chat, with New chat and the history in the sidebar, over Anvia's client protocol and memory (ADR 0034). The assistant confirms writes in the chat.
+- [x] Confirm the UI works fully without the assistant. The rules and knowledge screens do not call the assistant API.
+- [ ] Revisit write confirmation. The assistant confirms in the chat by following its prompt (ADR 0034), so a model that ignores the prompt, or text stored in a rule or knowledge item, could trigger a write without a yes. Decide whether to enforce confirmation in code, for example a runtime approval on the write tools or a write that takes effect only after the user clicks in the interface. Deferred: not part of F10.
+- [ ] Document upload and extraction (PDF, TXT, DOCX, up to 20 files). Deferred: not part of F10.
 
 ### F11 Routing rules
 
-Status: Todo. Branch: `feat/11-routing-rules`.
+Status: Dropped. Playbooks cover it (ADR 0037).
 
-- [ ] Add the schema: conditions, action `answer|delegate|ignore|escalate`, priority, validity, designated contact. Automatic sending is not available.
-- [ ] Add a deterministic evaluator with unit tests.
-- [ ] Add the API module, the editor and templates for the five PRD example rules.
+### F12a Channel accounts
+
+Status: Todo. Branch: `feat/12a-channel-accounts`.
+
+- [ ] Add an ADR for the first OAuth provider, its scopes and the token encryption key.
+- [ ] Add the `channel_accounts` table and a nullable `channel_account_id` on `reply_conditions` (ADRs 0021 and 0033).
+- [ ] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
+- [ ] Add the platform screen to connect and disconnect the account, and let a rule choose it.
+- [ ] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.
 
 ### F12 Email ingestion and gate
 
@@ -177,35 +190,37 @@ Status: Todo. Branch: `feat/17-hardening-docs`.
 
 ## Order
 
-F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F11 → F12 → F13 → F14 → F15 → F16 → F17.
+F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F12a → F12 → F13 → F14 → F15 → F16 → F17.
 
-F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delayed.
+F02 and F03 can swap if Anvia access is delayed.
 
 ## Status
 
-| Feature | Name                         | Status | PR                                                                                           |
-| ------- | ---------------------------- | ------ | -------------------------------------------------------------------------------------------- |
-| F00     | HLD and roadmap              | Done   | [#2](https://github.com/aodihis/leren/pull/2)                                                |
-| F01     | Test foundation              | Done   | [#3](https://github.com/aodihis/leren/pull/3)                                                |
-| F02     | Anvia foundation             | Done   | [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5) |
-| F03     | RabbitMQ queue               | Done   | [#6](https://github.com/aodihis/leren/pull/6)                                                |
-| F04     | Authentication and isolation | Todo   |                                                                                              |
-| F05     | Auto-reply rules             | Todo   |                                                                                              |
-| F06     | Knowledge management         | Todo   |                                                                                              |
-| F07     | Indexing pipeline            | Todo   |                                                                                              |
-| F08     | Retrieval                    | Todo   |                                                                                              |
-| F09     | MCP server and sessions      | Todo   |                                                                                              |
-| F10     | Assistant Agent              | Todo   |                                                                                              |
-| F11     | Routing rules                | Todo   |                                                                                              |
-| F12     | Email ingestion and gate     | Todo   |                                                                                              |
-| F13     | Reply Agent and pipeline     | Todo   |                                                                                              |
-| F14     | Approval and sending         | Todo   |                                                                                              |
-| F15     | Dashboard and report         | Todo   |                                                                                              |
-| F16     | Evaluation suite             | Todo   |                                                                                              |
-| F17     | Hardening and documentation  | Todo   |                                                                                              |
+| Feature | Name                         | Status      | PR                                                                                           |
+| ------- | ---------------------------- | ----------- | -------------------------------------------------------------------------------------------- |
+| F00     | HLD and roadmap              | Done        | [#2](https://github.com/aodihis/leren/pull/2)                                                |
+| F01     | Test foundation              | Done        | [#3](https://github.com/aodihis/leren/pull/3)                                                |
+| F02     | Anvia foundation             | Done        | [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5) |
+| F03     | RabbitMQ queue               | Done        | [#6](https://github.com/aodihis/leren/pull/6)                                                |
+| F04     | Authentication and isolation | Done        | [#7](https://github.com/aodihis/leren/pull/7)                                                |
+| F05     | Auto-reply rules             | Done        | [#10](https://github.com/aodihis/leren/pull/10)                                              |
+| F06     | Knowledge management         | Todo        |                                                                                              |
+| F07     | Indexing pipeline            | Todo        |                                                                                              |
+| F08     | Retrieval                    | In progress |                                                                                              |
+| F09     | MCP server and sessions      | In progress |                                                                                              |
+| F10     | Assistant Agent              | Todo        |                                                                                              |
+| F11     | Routing rules                | Dropped     |                                                                                              |
+| F12a    | Channel accounts             | Todo        |                                                                                              |
+| F12     | Email ingestion and gate     | Todo        |                                                                                              |
+| F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
+| F14     | Approval and sending         | Todo        |                                                                                              |
+| F15     | Dashboard and report         | Todo        |                                                                                              |
+| F16     | Evaluation suite             | Todo        |                                                                                              |
+| F17     | Hardening and documentation  | Todo        |                                                                                              |
 
 ## Changes from the PRD
 
 - The vacation schedule, the `vacation://` resources and the "vacation ends" trigger are replaced by auto-reply rules with a derived status.
+- Auto-reply rules and knowledge items are combined into playbooks (ADR 0035). Chunks that name a rule or a knowledge item now mean a playbook.
 - The `send_reply` MCP tool is removed from the agent tool sets. Sending is done by the reply sender after human approval. `request_approval` stays.
 - Messages are queued through RabbitMQ, and whether to handle an email is decided by code, not by the agent.

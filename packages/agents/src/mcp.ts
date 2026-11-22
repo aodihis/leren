@@ -6,7 +6,16 @@ export interface McpConnectionOptions {
   readonly url: McpStreamableHttpTransport["url"];
   readonly token: string;
   readonly allowedTools: readonly string[];
+  /** The allowed tools whose every call needs the user's approval before it runs. */
+  readonly approvalTools?: readonly string[] | undefined;
   readonly abortSignal?: McpConnectOptions["abortSignal"];
+  /**
+   * Whether the library refuses URLs that resolve to loopback or private addresses. It defaults
+   * to `strict`. Only the address of Leren's own MCP endpoint, which comes from deployment
+   * configuration, may use `disabled`. A server that a user or an administrator supplies must
+   * keep `strict`, so that it cannot be used to reach internal services.
+   */
+  readonly ssrfProtection?: "strict" | "disabled" | undefined;
 }
 
 /** The part of the connection that identifies the server and the user's session. */
@@ -21,12 +30,22 @@ export interface McpConnection {
 /**
  * Keeps only the tools whose remote name is in `allowedTools`.
  *
- * The result never contains a tool outside the allow-list, whatever the server advertises.
+ * The result never contains a tool outside the allow-list, whatever the server advertises. A tool
+ * whose remote name is in `approvalTools` requires the user's approval for every call, so the
+ * runtime pauses the run until the user decides.
  */
-export function restrictTools(server: McpServer, allowedTools: readonly string[]): McpServer {
+export function restrictTools(
+  server: McpServer,
+  allowedTools: readonly string[],
+  approvalTools: readonly string[] = [],
+): McpServer {
   return {
     ...server,
-    tools: server.tools.filter((tool) => allowedTools.includes(tool.mcp.remoteName)),
+    tools: server.tools
+      .filter((tool) => allowedTools.includes(tool.mcp.remoteName))
+      .map((tool) =>
+        approvalTools.includes(tool.mcp.remoteName) ? { ...tool, requiresApproval: true } : tool,
+      ),
   };
 }
 
@@ -42,6 +61,7 @@ export async function connectMcp(options: McpConnectionOptions): Promise<McpConn
     transport: {
       type: "streamableHttp",
       url: options.url,
+      ssrfProtection: options.ssrfProtection ?? "strict",
       headers: { Authorization: `Bearer ${options.token}` },
     },
   });
@@ -52,7 +72,9 @@ export async function connectMcp(options: McpConnectionOptions): Promise<McpConn
   });
 
   return {
-    servers: group.servers.map((server) => restrictTools(server, options.allowedTools)),
+    servers: group.servers.map((server) =>
+      restrictTools(server, options.allowedTools, options.approvalTools),
+    ),
     close: () => group.close(),
   };
 }

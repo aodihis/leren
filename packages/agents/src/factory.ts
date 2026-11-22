@@ -9,7 +9,7 @@ import type { Observer } from "@leren/observability";
  * here, and the observer replaces Anvia's observability options.
  */
 export type CreateAgentOptions = Required<Pick<AgentOptions, "instructions" | "maxTurns">> &
-  Pick<AgentOptions, "id" | "model" | "mcpServers" | "tools" | "memory"> & {
+  Pick<AgentOptions, "id" | "model" | "mcpServers" | "tools" | "memory" | "skills"> & {
     readonly observer: Observer;
   };
 
@@ -28,6 +28,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     mcpServers: options.mcpServers,
     tools: options.tools,
     memory: options.memory,
+    skills: options.skills,
     observability: options.observer.forAgent(),
   });
 }

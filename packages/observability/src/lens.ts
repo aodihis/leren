@@ -30,6 +30,7 @@ export function createLensObserver(env: Environment): Observer {
   return {
     enabled: true,
     forAgent: () => ({ observers: { lens: tracing }, primaryTrace: "lens" }),
+    evalReporter: () => client.evalReporter({ includePayloads: true }),
     flush: () => client.flush(),
     close: () => client.close(),
   };

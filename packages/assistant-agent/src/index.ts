@@ -1,3 +1,5 @@
-export { runAgent } from "./core";
+export { createAssistantAgent, runAgent } from "./agent";
 
-export type { RunAgentOptions } from "./core";
+export { allowedTools } from "./utils/mcp";
+
+export type { AssistantAgent, AssistantAgentOptions, RunAgentOptions } from "./agent";

@@ -5,6 +5,7 @@
 ```
 apps/       deployable applications (api, platform, worker)
 packages/   shared libraries (agents, ui, observability, db)
+tests/      end-to-end tests (Playwright)
 tooling/    development tooling (oxlint rules)
 docs/       decisions and rules
 ```
@@ -12,7 +13,7 @@ docs/       decisions and rules
 ## Dependency direction
 
 - Apps may depend on packages. Packages never depend on apps.
-- Apps do not import from each other. Share code through a package.
+- Apps do not import from each other. Share code through a package. The one exception is the type-only entry point `@leren/api/client`, which the platform imports with `import type` for Hono RPC. See [0017](../decision/0017-hono-rpc-for-api-types.md).
 - Packages should depend on as few other packages as possible.
 - `tooling/` is not imported by application code.
 
@@ -27,5 +28,6 @@ docs/       decisions and rules
 - [0002 Frontend module-driven structure](../decision/0002-frontend-module-driven-structure.md)
 - [0005 RabbitMQ for background queues](../decision/0005-rabbitmq-for-queues.md)
 - [0012 Worker module-driven structure](../decision/0012-worker-module-driven-structure.md)
+- [0017 Hono RPC for API types](../decision/0017-hono-rpc-for-api-types.md)
 
 See also [backend](backend.md), [frontend](frontend.md), [packages](packages.md) and [general](general.md).

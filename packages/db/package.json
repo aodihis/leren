@@ -11,12 +11,14 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "node --conditions=import node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@anvia/core": "^1.21.0",
+    "@anvia/memory-drizzle": "^1.2.1",
     "drizzle-orm": "^0.45.4",
     "pg": "^8.23.1"
   },
