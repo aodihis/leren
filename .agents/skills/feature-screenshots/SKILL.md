@@ -40,6 +40,8 @@ Use the browser tools available in the session, such as Claude in Chrome (load i
 4. Hide anything that distracts or can change between runs: the dev tools bar, toasts that are not part of the feature, timestamps, hover states and focus rings that are not the point.
 5. Capture at the device pixel ratio the tool provides. Do not upscale.
 6. Review each image after capture. Retake it if the feature is clipped, the data is wrong or private data is visible.
+7. Use a dedicated test user with neutral data, such as `dewi.evidence@example.com`, when the browser is signed in as a real person. The sidebar, labels and tables show the account's address. In a development environment, the sign-in code of the test user is in the local mail catcher. Tell the user that you signed their browser out.
+8. Size a crop to the whole feature. Check that no column, button or label is cut off at the edge, and move the pointer away from the feature before the capture so that it does not cover text.
 
 ## 4) Cover the states that matter
 
@@ -59,23 +61,50 @@ Prefer a few images that each prove something over many that look alike.
 
 ## 6) Add them to the PR
 
-Add screenshots to a PR only by uploading them to github.com, which needs the user's signed-in GitHub session in the browser. Every image in a PR must be a `https://github.com/user-attachments/assets/…` URL.
+Every image in a PR must be a `https://github.com/user-attachments/assets/…` URL, which only GitHub's own upload produces.
 
 - Do not host images anywhere else: not in the repository (no commits, branches or custom refs that link `raw` URLs), and not on another service such as an artifact or file host.
-- Upload by attaching the file to the PR description or a comment through the browser, then use the URL GitHub generates.
-- Edit the PR description or post a comment with `gh pr edit` or `gh pr comment` only when the user asks. Outward-facing changes need the user's approval.
+- Edit the PR description or post a comment only when the user asks for the PR or its evidence. Outward-facing changes need the user's approval.
 - If you cannot upload the images, leave them out and tell the user where the files are.
 
-Describe each image in one line, in a gallery:
+### Upload with `gh --attach`
+
+Use `gh pr edit --attach` when the GitHub CLI is version 2.99.0 or newer. It needs no browser. Check with `gh --version` and `gh pr edit --help`, which must list `--attach`.
+
+1. Put the images in one directory with plain names. A `#` in a file name is read as the start of the alt text.
+2. Write the PR body with a Screenshots section that references each image by the same relative path that you pass to `--attach`. `gh` replaces the reference with the uploaded URL.
+3. Run the command from the image directory and name the repository, because the directory is not a clone:
+
+```bash
+gh pr edit 29 -R owner/repo --body-file body.md \
+  --attach ./channels-empty-state.png \
+  --attach ./channels-connected-account.png
+```
+
+4. Verify with `gh pr view 29 -R owner/repo --json body -q .body | grep -c 'user-attachments/assets'`. The count must equal the number of images.
+
+Attaching only appends. Running the command again duplicates the images, so to replace one, write the body without its old URL in the same command. Without `--body` or `--body-file`, the existing description is kept and the images are appended at the end. To read the current body for editing, use `gh pr view … --json body -q .body`.
+
+If `gh` is older than 2.99.0, tell the user that upgrading makes this one command, and ask before upgrading it. Do not upgrade it yourself.
+
+### Upload through the browser
+
+This is the fallback for an older `gh`. It needs the user's signed-in GitHub session in the browser. GitHub's file input is created only when the "Paste, drop, or click to add files" button is clicked, so a tool that can fill only an existing `<input type="file">` cannot do it. Use a browser tool that can intercept the file chooser, and stop and tell the user if there is none.
+
+### Layout
+
+Describe each image in one line, in a gallery. Use a table for a before and after pair:
 
 ```markdown
-## Screenshots
+### Screenshots
 
-| Before                 | After                 |
-| ---------------------- | --------------------- |
-| ![Before](https://...) | ![After](https://...) |
+| Before                       | After                      |
+| ---------------------------- | -------------------------- |
+| ![Before](./form-before.png) | ![After](./form-after.png) |
 
 - **Validation error:** the form shows an inline message when the name is empty.
+
+![Form with a validation error](./form-validation-error.png)
 ```
 
 ## 7) Report
