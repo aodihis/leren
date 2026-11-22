@@ -76,7 +76,7 @@ export interface ChannelProvider {
 
 /**
  * An email as a provider reads it from a mailbox. The listener adds the owner, the account, the
- * channel and the provider name before it records the email (decision 0040).
+ * channel and the provider name before it records the email (decision 0041).
  */
 export type FetchedEmail = Omit<
   InboundEmail,
@@ -99,7 +99,7 @@ export type FetchResult = {
 };
 
 /**
- * A provider that can read new mail from a mailbox (decision 0040). `fetchNewMail` returns the
+ * A provider that can read new mail from a mailbox (decision 0041). `fetchNewMail` returns the
  * emails that arrived after `cursor`, and it throws on any failure other than a message that no
  * longer exists, which it skips. With a null cursor it returns the current position and no emails.
  */

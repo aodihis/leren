@@ -53,6 +53,22 @@ describe("parseGmailMessage", () => {
     });
   });
 
+  it("takes the address in angle brackets, not one written in the display name", () => {
+    const email = parseGmailMessage(
+      gmailMessage({
+        headers: {
+          From: '"boss@company.com" <attacker@evil.com>',
+          To: '"Smith, Ana" <ana@example.com>, "me@example.com" <other@example.com>',
+          Cc: "bo@example.com",
+        },
+      }),
+    );
+
+    expect(email.from).toBe("attacker@evil.com");
+    expect(email.to).toEqual(["ana@example.com", "other@example.com"]);
+    expect(email.cc).toEqual(["bo@example.com"]);
+  });
+
   it("prefers the plain part of a multipart message", () => {
     const email = parseGmailMessage(
       gmailMessage({

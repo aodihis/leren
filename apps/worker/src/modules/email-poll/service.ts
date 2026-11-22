@@ -51,10 +51,10 @@ export async function listPollableAccountIds(
 }
 
 /**
- * Reads the new mail of one account and records it (decision 0040). The cursor is stored after
+ * Reads the new mail of one account and records it (decision 0041). The cursor is stored after
  * every email is recorded, so a failure repeats emails that are already recorded and loses none,
  * because recording is idempotent. The cursor is written only while it is still the one that was
- * read, so overlapping polls and a reconnection, which clears it, never move it backwards.
+ * read, so overlapping polls and a reconnection, which replaces it, never move it backwards.
  */
 export async function pollAccount(
   { db, channels, recordEmail }: EmailPollDependencies,

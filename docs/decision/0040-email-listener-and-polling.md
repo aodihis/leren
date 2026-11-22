@@ -1,8 +1,9 @@
 # 0040. The email listener and polling
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-22
 - Affects: packages/channels, packages/db, packages/inbox, apps/api, apps/worker, .env.example, docs/overview/README.md, docs/plans/0001-auto-reply-roadmap.md, docs/rules/packages.md
+- Superseded by: [0041](0041-email-listener-cursor-and-unreadable-mail.md)
 
 ## Context
 

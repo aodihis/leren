@@ -118,15 +118,23 @@ function extractBody(payload: Part): string {
   return html === undefined ? "" : htmlToText(html);
 }
 
-/** Returns the plain addresses in a header such as `Ana <ana@example.com>, bo@example.com`. */
+/**
+ * Returns one address for each mailbox in a header such as `Ana <ana@example.com>, bo@example.com`.
+ * A mailbox is split from the next at a comma that is outside a quoted display name. Its address is
+ * the one in angle brackets when it has one, and the bare address otherwise, so an address written
+ * inside a display name is never taken for the address of the mailbox.
+ */
 function parseAddresses(value: string | undefined): string[] {
   if (!value) {
     return [];
   }
 
-  return [...value.matchAll(/<([^<>\s]+@[^<>\s]+)>|([^\s,<>"]+@[^\s,<>"]+)/g)].map((match) =>
-    (match[1] ?? match[2] ?? "").toLowerCase(),
-  );
+  return (value.match(/(?:"(?:[^"\\]|\\.)*"|[^,"])+/g) ?? []).flatMap((mailbox) => {
+    const address =
+      /<([^<>\s]+@[^<>\s]+)>/.exec(mailbox)?.[1] ?? /[^\s<>"]+@[^\s<>"]+/.exec(mailbox)?.[0];
+
+    return address ? [address.toLowerCase()] : [];
+  });
 }
 
 /**
@@ -179,7 +187,7 @@ export async function readGmailPosition(send: typeof fetch, accessToken: string)
 }
 
 /**
- * Reads new mail from a Gmail mailbox with the history API (decision 0040). The cursor is a
+ * Reads new mail from a Gmail mailbox with the history API (decision 0041). The cursor is a
  * `historyId`. Without one, or when Gmail no longer holds the history from it, the result is the
  * current `historyId` and no emails. Every page of the history is read, mail that the account
  * itself wrote is left out, a message that was deleted after it arrived is skipped, and a message

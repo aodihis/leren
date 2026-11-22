@@ -150,8 +150,8 @@ Status: Done. Branch: `feat/12-email-gate`.
 
 Status: In progress. Branch: `feat/12b-email-listener`.
 
-- [x] Decide the listener: poll Gmail from the worker, ingest only new mail, and move the provider and token code into `@leren/channels` (ADR 0040).
-- [x] Move the channel provider, encryption and token code out of `apps/api` into `@leren/channels`, add it to `docs/rules/packages.md`, and add `sync_cursor` to `channel_accounts`. Connecting an account clears the cursor.
+- [x] Decide the listener: poll Gmail from the worker, ingest only new mail, and move the provider and token code into `@leren/channels` (ADR 0040, superseded by ADR 0041).
+- [x] Move the channel provider, encryption and token code out of `apps/api` into `@leren/channels`, add it to `docs/rules/packages.md`, and add `sync_cursor` to `channel_accounts`. Connecting an account sets the cursor to the position of the mailbox at that moment (ADR 0041).
 - [x] Add the `EmailProvider` interface, the Gmail `fetchNewMail`, and the `email.poll` timer and job that record new mail. Write the cursor only if it is unchanged since it was read, skip a message that Gmail reports as not found, and read every page of the history.
 - [ ] Later: add Gmail push notifications in front of the same `email.poll` job, to cut the delay from up to a minute to a few seconds. It needs its own decision. It adds a Pub/Sub topic, a public HTTPS endpoint that verifies the OIDC token of each push, a renewal of `users.watch` at least every 7 days, and a fallback poll.
 

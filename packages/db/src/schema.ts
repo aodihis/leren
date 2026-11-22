@@ -131,8 +131,9 @@ export const channelAccountStatusEnum = pgEnum("channel_account_status", ["activ
  * an account belongs to exactly one user. `label` is the text shown to the user, such as the
  * address. `credentials` is the encrypted token set, and it is null for a provider that has none.
  * `syncCursor` is the opaque position from which the listener reads new mail. Only the provider that
- * wrote it interprets it, and it is null until the first poll after the account is connected
- * (decision 0040).
+ * wrote it interprets it. Connecting sets it to the position of the mailbox at that moment, and it
+ * is null only when the provider could not read that position, so the first poll sets it
+ * (decision 0041).
  * Whether an account is usable also depends on its provider being enabled in the configuration, so
  * disabling a provider changes no row (decision 0038).
  */
