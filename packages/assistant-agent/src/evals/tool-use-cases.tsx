@@ -1,13 +1,11 @@
 import { defineEvalCases } from "@anvia/core/evals";
 import { playbook } from "./target";
-import type { AssistantEvalOutput } from "./target";
 
 /**
  * Which tools a run must and must not call. Each entry is a regular expression that is matched
  * against the whole tool name, so `"get_playbook|list_playbooks"` accepts either tool.
  */
 export type ToolExpectation = {
-  verdict: "pass" | "fail";
   mustCall?: readonly string[];
   mustNotCall?: readonly string[];
 };
@@ -25,12 +23,6 @@ const REFUND = playbook({
 });
 
 const SKILL_TOOL = ".*skill.*";
-
-const ANSWER_FROM_MEMORY: AssistantEvalOutput = {
-  text: "You have two playbooks: Office hours and Refund policy.",
-  toolCalls: [],
-  playbooks: [OFFICE_HOURS, REFUND],
-};
 
 const MESSY_INPUT = [
   "ok so here is everything. we ship on tuesdays and thursdays only, orders after 3pm go next slot.",
@@ -53,7 +45,6 @@ export const toolUseCases = defineEvalCases([
       playbooks: [OFFICE_HOURS, REFUND],
     },
     expected: {
-      verdict: "pass",
       mustCall: ["list_playbooks"],
     } satisfies ToolExpectation,
     metadata: { note: "Workflow step 1: do not answer from memory about the user's data." },
@@ -71,7 +62,6 @@ export const toolUseCases = defineEvalCases([
       playbooks: [OFFICE_HOURS, REFUND],
     },
     expected: {
-      verdict: "pass",
       mustCall: ["list_playbooks"],
       mustNotCall: ["create_playbook"],
     } satisfies ToolExpectation,
@@ -91,7 +81,6 @@ export const toolUseCases = defineEvalCases([
       playbooks: [OFFICE_HOURS, REFUND],
     },
     expected: {
-      verdict: "pass",
       mustCall: ["get_playbook|list_playbooks"],
       mustNotCall: ["update_playbook"],
     } satisfies ToolExpectation,
@@ -112,7 +101,6 @@ export const toolUseCases = defineEvalCases([
       playbooks: [OFFICE_HOURS, REFUND],
     },
     expected: {
-      verdict: "pass",
       mustCall: ["search_playbooks"],
     } satisfies ToolExpectation,
     metadata: { note: "Workflow step 4: search_playbooks shows what Leren would find for a text." },
@@ -124,7 +112,6 @@ export const toolUseCases = defineEvalCases([
       playbooks: [],
     },
     expected: {
-      verdict: "pass",
       mustCall: [SKILL_TOOL],
       mustNotCall: ["create_playbook"],
     } satisfies ToolExpectation,
@@ -145,49 +132,10 @@ export const toolUseCases = defineEvalCases([
       playbooks: [],
     },
     expected: {
-      verdict: "pass",
       mustNotCall: [SKILL_TOOL, "create_playbook"],
     } satisfies ToolExpectation,
     metadata: {
       note: "Workflow step 2: a clear topic and response about one subject are used as given, without the skill.",
     },
-  },
-  {
-    id: "negative-answers-from-memory",
-    input: {
-      conversation: [{ role: "user", content: "Which playbooks do I have?" }],
-      playbooks: [OFFICE_HOURS, REFUND],
-      fixedOutput: ANSWER_FROM_MEMORY,
-    },
-    expected: {
-      verdict: "fail",
-      mustCall: ["list_playbooks"],
-    } satisfies ToolExpectation,
-    metadata: {
-      note: "Proves that the metric detects an answer about user data without a lookup.",
-    },
-  },
-  {
-    id: "negative-uses-the-skill-for-clear-input",
-    input: {
-      conversation: [
-        {
-          role: "user",
-          content:
-            "Add a playbook. Topic: Office parking. Response: Visitors can park at the back of the building for free. Timezone: Asia/Jakarta.",
-        },
-      ],
-      playbooks: [],
-      fixedOutput: {
-        text: "Here is a draft.",
-        toolCalls: [{ name: "load_skill", input: { name: "structure-knowledge" } }],
-        playbooks: [],
-      },
-    },
-    expected: {
-      verdict: "fail",
-      mustNotCall: [SKILL_TOOL, "create_playbook"],
-    } satisfies ToolExpectation,
-    metadata: { note: "Proves that the metric detects a forbidden tool call." },
   },
 ]);

@@ -21,9 +21,4 @@ await runEvalCli({
     }),
   ],
   exitCode: true,
-  expectations: {
-    outcomes: Object.fromEntries(
-      faithfulnessCases.map((c) => [c.id, { faithfulness: c.expected.verdict }]),
-    ),
-  },
 });

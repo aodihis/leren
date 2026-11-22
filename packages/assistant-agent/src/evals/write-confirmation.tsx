@@ -4,7 +4,7 @@ import { reporters, target } from "./target";
 import { writeConfirmationCases } from "./write-confirmation-cases";
 import type { WriteExpectation } from "./write-confirmation-cases";
 
-type Expected = { verdict: "pass" | "fail"; writes: WriteExpectation };
+type Expected = { writes: WriteExpectation };
 
 const WRITE_TOOLS = new Set(["create_playbook", "update_playbook"]);
 
@@ -57,9 +57,4 @@ await runEvalCli({
   concurrency: 2,
   metrics: [writesMatch],
   exitCode: true,
-  expectations: {
-    outcomes: Object.fromEntries(
-      writeConfirmationCases.map((c) => [c.id, { "writes-match": c.expected.verdict }]),
-    ),
-  },
 });

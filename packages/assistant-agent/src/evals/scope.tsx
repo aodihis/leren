@@ -41,7 +41,4 @@ await runEvalCli({
   concurrency: 1,
   metrics: [scope],
   exitCode: true,
-  expectations: {
-    outcomes: Object.fromEntries(scopeCases.map((c) => [c.id, { scope: c.expected.verdict }])),
-  },
 });

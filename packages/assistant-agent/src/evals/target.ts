@@ -40,13 +40,11 @@ export type AssistantEvalOutput = {
 
 /**
  * The input of one eval case. `conversation` ends with the user message to answer, `playbooks`
- * seeds the store, and `fixedOutput` replaces the agent's run. A case that has `fixedOutput` is a
- * negative case: it hands the metric a known-bad output to prove that the metric can detect it.
+ * seeds the store.
  */
 export type AssistantEvalInput = {
   conversation: readonly Turn[];
   playbooks: readonly PlaybookFixture[];
-  fixedOutput?: AssistantEvalOutput | undefined;
 };
 
 /** Builds a playbook fixture. Anything that is not given is empty, enabled and without a period. */
@@ -253,18 +251,14 @@ export const reporters = [observer.evalReporter()].filter((reporter) => reporter
 
 /**
  * Runs the real Assistant Agent, with its production prompt, skills and model, against the fake
- * playbook store, and returns what it said and which tools it called. Cases with `fixedOutput`
- * skip the run. Call `closeTarget` when all evals have finished so that traces are flushed.
+ * playbook store, and returns what it said and which tools it called. Call `closeTarget` when all
+ * evals have finished so that traces are flushed.
  */
 export const target: EvalTarget<AssistantEvalInput, AssistantEvalOutput> = async (
   input,
   _testCase,
   context,
 ) => {
-  if (input.fixedOutput) {
-    return input.fixedOutput;
-  }
-
   const { tools, store } = createFakePlaybookTools(input.playbooks);
   const { agent, close } = await createAssistantAgent({ model, instructions, observer, tools });
 

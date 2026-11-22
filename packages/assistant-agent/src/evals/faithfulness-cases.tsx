@@ -1,9 +1,6 @@
 import { defineEvalCases } from "@anvia/core/evals";
 import { playbook } from "./target";
 
-/** The result that every faithfulness case expects from the metric. */
-export type FaithfulnessExpectation = { verdict: "pass" | "fail" };
-
 const OFFICE_HOURS = playbook({
   id: "pb-hours",
   topic: "Office hours",
@@ -40,7 +37,7 @@ const THREE_PLAYBOOKS_CONTEXT = [
   "The user has exactly three playbooks.",
   "Playbook 'Office hours': enabled, no start and no end, period active, usable now. Response: We are open Monday to Friday from 09:00 to 17:00.",
   "Playbook 'Holiday sale': enabled, no start, ended on 31 October 2026, period expired, not usable now. Response: The holiday sale gives a discount on all gift items.",
-  "Playbook 'Old promo': disabled, no start and no end, not usable now. Response: The old promo code gives free shipping.",
+  "Playbook 'Old promo': disabled, no start and no end, not usable now, so Leren does not use it in replies. Response: The old promo code gives free shipping.",
   ...COMMON_FACTS,
 ];
 
@@ -63,7 +60,6 @@ export const faithfulnessCases = defineEvalCases([
       playbooks: THREE_PLAYBOOKS,
     },
     retrievalContext: THREE_PLAYBOOKS_CONTEXT,
-    expected: { verdict: "pass" } satisfies FaithfulnessExpectation,
     metadata: {
       note: "The answer must name each topic and say which playbook is disabled or expired, using only what the tools returned.",
     },
@@ -80,43 +76,38 @@ export const faithfulnessCases = defineEvalCases([
       "The search_playbooks tool finds no reliable match for shipping costs, because no playbook mentions shipping.",
       ...COMMON_FACTS,
     ],
-    expected: { verdict: "pass" } satisfies FaithfulnessExpectation,
     metadata: {
       note: "The prompt says to state plainly that nothing relevant was found, and not to fill the gap with a guess.",
     },
   },
   {
-    id: "negative-invents-a-discount",
-    input: {
-      conversation: [{ role: "user", content: "What does my Holiday sale playbook say?" }],
-      playbooks: THREE_PLAYBOOKS,
-      fixedOutput: {
-        text: "The Holiday sale playbook gives 20% off all gift items and free delivery on orders over 500,000 rupiah.",
-        toolCalls: [{ name: "list_playbooks", input: {} }],
-        playbooks: THREE_PLAYBOOKS,
-      },
-    },
-    retrievalContext: THREE_PLAYBOOKS_CONTEXT,
-    expected: { verdict: "fail" } satisfies FaithfulnessExpectation,
-    metadata: {
-      note: "Proves that the metric detects a number and a policy that the playbook does not contain.",
-    },
-  },
-  {
-    id: "negative-contradicts-the-status",
+    id: "does-not-call-a-disabled-playbook-in-use",
     input: {
       conversation: [{ role: "user", content: "Is my Old promo playbook in use?" }],
       playbooks: THREE_PLAYBOOKS,
-      fixedOutput: {
-        text: "Yes, the Old promo playbook is enabled and Leren uses it in replies right now.",
-        toolCalls: [{ name: "list_playbooks", input: {} }],
-        playbooks: THREE_PLAYBOOKS,
-      },
     },
     retrievalContext: THREE_PLAYBOOKS_CONTEXT,
-    expected: { verdict: "fail" } satisfies FaithfulnessExpectation,
     metadata: {
-      note: "Proves that the metric detects a claim that contradicts the playbook's enabled state.",
+      note: "A disabled playbook is not in use. The answer must not claim that it is in use, which the context contradicts.",
+    },
+  },
+  {
+    id: "does-not-invent-what-the-playbook-omits",
+    input: {
+      conversation: [
+        {
+          role: "user",
+          content: "Does my Holiday sale playbook say anything about free delivery?",
+        },
+      ],
+      playbooks: THREE_PLAYBOOKS,
+    },
+    retrievalContext: [
+      ...THREE_PLAYBOOKS_CONTEXT,
+      "The Holiday sale playbook does not mention delivery.",
+    ],
+    metadata: {
+      note: "The prompt forbids inventing facts. The answer must not claim that the playbook mentions delivery. Faithfulness cannot require the answer to say that it does not.",
     },
   },
 ]);

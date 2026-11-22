@@ -133,30 +133,41 @@ write. In short:
 - **Trajectory** (which tools ran, in what order, how many turns): checks the path when the path
   matters, such as cost or required steps.
 
-## Positive and negative cases
+## Good and bad cases
 
-Every metric needs both kinds of cases. A metric that only sees good outputs can pass while being
-blind, because a judge that always says "fine" scores 100%.
+Every metric needs both kinds of cases. A suite of only easy requests can pass while the agent
+misbehaves in the situations that matter, such as a request it must refuse.
 
-- A **positive case** is an input where the agent should do well. The metric must pass.
-- A **negative case** is an input or output where the metric must fail, which proves the metric can
-  detect the problem. The agent usually does not produce bad outputs on request, so give the case a
-  fixed bad output that replaces the agent's answer.
+- A **good case** is an ordinary request that the agent should handle well. The metric must pass.
+- A **bad case** is a request or a situation where the agent could do the wrong thing: an
+  out-of-scope request, an action it must not take, an instruction hidden in data, a missing
+  detail it must ask for, or a question whose answer the data does not hold. The right behaviour is
+  to refuse, decline, ask or abstain, and the case describes that behaviour.
 
-Mark each case with the result it expects (`expected: "pass"` or `"fail"`), have the target return
-the case's fixed output when it has one, and compare each outcome to that expectation. Do not use
-the library's own exit code for this, because a negative case that correctly fails would then fail
-the run. Instead, report mismatches and set the exit code yourself.
+Every case expects to pass, good or bad. The agent always runs for real, and a case never replaces
+its answer with a hand-written one, never expects a failure and never inverts its criteria. A
+failing case means that the agent's instructions or code must change, so a failure is a finding and
+not a mismatch to explain away. Because of this, use the library's own exit code and do not keep a
+separate "expected result" per case.
+
+Agent wording varies between runs, so grade meaning and not exact words. For a bad case:
+
+- With a **judge metric**, write criteria that state the right behaviour, such as "says that it
+  cannot send messages and does not claim that one was sent". Do not tell the judge that the case
+  is bad.
+- With a **deterministic metric**, check the tool calls, such as "no write tool was called".
+- For a **faithfulness** case, supply a context that is correct for what the tools return, and ask
+  a question that tempts the agent to go past the context, such as asking about a fact the saved
+  data does not hold. The right answer says that the data does not hold it.
 
 For the two most important judge metrics:
 
-- **Relevancy** asks whether the answer addresses the question. Positive: on-topic and multi-part
-  questions. Negative: an off-topic answer, and an answer that buries one relevant sentence in
-  unrelated statements.
-- **Faithfulness** asks whether every claim is supported by the supplied context. Positive: an
-  answer built only from the context. Negative: an answer that adds a fact the context lacks, and
-  an answer that contradicts the context. Always supply the context in the case, so the judge
-  has a fixed source of truth.
+- **Relevancy** asks whether the answer addresses the question. Good: on-topic and multi-part
+  questions. Bad: a request that tempts the agent to drift, where the right answer stays on topic.
+- **Faithfulness** asks whether every claim is supported by the supplied context. Good: an answer
+  built only from the context. Bad: a question about something the context does not contain, where
+  the right answer says so. Always supply the context in the case, so the judge has a fixed source
+  of truth.
 
 ## Procedure
 
@@ -164,12 +175,13 @@ For the two most important judge metrics:
    exist.
 2. Choose the metrics and name the behaviour each one protects. Prefer a deterministic metric when
    one is enough.
-3. Write `<metric>-cases.tsx` with at least two positive and two negative cases, each with a stable
+3. Write `<metric>-cases.tsx` with at least two good and two bad cases, each with a stable
    id and a stated reason.
 4. Write `<metric>.tsx`, then register it in `index.tsx`.
-5. Run `pnpm run evals <metric>`. Check that the positive cases pass and the negative cases fail.
-   If a negative case passes, the metric or the threshold is too lenient, so fix that before
-   trusting the eval.
+5. Run `pnpm run evals <metric>`, several times because agent wording varies. Every case should
+   pass. If a case fails, read the output and the judge's reason, and decide whether the
+   instructions, the case or the criteria are wrong. Fix the instructions when the agent behaved
+   badly, and fix the case when two careful people could disagree about the expected result.
 6. Read some raw outputs and judge reasons. Graders can be wrong, and an eval is only as good as
    its grader.
 7. Run the repo's lint, format check and typecheck, and report anything you could not run.
@@ -180,8 +192,12 @@ For the two most important judge metrics:
   themselves are the requirement. Rigid step checks fail good agents that took another route.
 - **A judge that grades its own work.** Use a different model for judging than for the agent when
   you can.
-- **Thresholds set once and never checked.** Set them from observed scores on positive and negative
-  cases, with a margin between the two groups.
+- **Thresholds set once and never checked.** Set them from observed scores on good and bad
+  cases, with a margin below the lowest score of a case that a careful person would accept.
+- **Graders that nothing checks.** Because every case expects a pass, a metric that always passes
+  also gives a green suite. Check each custom metric with a unit test on a hand-built bad output,
+  and recheck a judge when the judge model changes. Faithfulness only checks that claims are
+  supported, so use a rubric judge when the answer must say something.
 - **Ambiguous cases.** If two careful people could disagree about the expected result, rewrite the
   case. A flaky case teaches nothing.
 - **Real secrets or personal data in cases.** Cases are committed. Use invented data.
