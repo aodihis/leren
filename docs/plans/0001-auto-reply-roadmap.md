@@ -124,11 +124,7 @@ Status: Todo. Branch: `feat/10-assistant-agent`.
 
 ### F11 Routing rules
 
-Status: Todo. Branch: `feat/11-routing-rules`.
-
-- [ ] Add the schema: conditions, action `answer|delegate|ignore|escalate`, priority, validity, designated contact. Automatic sending is not available.
-- [ ] Add a deterministic evaluator with unit tests.
-- [ ] Add the API module, the editor and templates for the five PRD example rules.
+Status: Dropped. Playbooks cover it (ADR 0037).
 
 ### F12a Channel accounts
 
@@ -194,9 +190,9 @@ Status: Todo. Branch: `feat/17-hardening-docs`.
 
 ## Order
 
-F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F11 → F12a → F12 → F13 → F14 → F15 → F16 → F17.
+F00 → F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08 → F09 → F10 → F12a → F12 → F13 → F14 → F15 → F16 → F17.
 
-F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delayed.
+F02 and F03 can swap if Anvia access is delayed.
 
 ## Status
 
@@ -213,7 +209,7 @@ F11 can run in parallel with F10. F02 and F03 can swap if Anvia access is delaye
 | F08     | Retrieval                    | In progress |                                                                                              |
 | F09     | MCP server and sessions      | In progress |                                                                                              |
 | F10     | Assistant Agent              | Todo        |                                                                                              |
-| F11     | Routing rules                | Todo        |                                                                                              |
+| F11     | Routing rules                | Dropped     |                                                                                              |
 | F12a    | Channel accounts             | Todo        |                                                                                              |
 | F12     | Email ingestion and gate     | Todo        |                                                                                              |
 | F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
