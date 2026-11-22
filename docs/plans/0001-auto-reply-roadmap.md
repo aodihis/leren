@@ -128,13 +128,14 @@ Status: Dropped. Playbooks cover it (ADR 0037).
 
 ### F12a Channel accounts
 
-Status: Todo. Branch: `feat/12a-channel-accounts`.
+Status: In progress. Branch: `feat/12a-channel-accounts`.
 
-- [ ] Add an ADR for the first OAuth provider, its scopes and the token encryption key.
-- [ ] Add the `channel_accounts` table and a nullable `channel_account_id` on `reply_conditions` (ADRs 0021 and 0033).
-- [ ] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
-- [ ] Add the platform screen to connect and disconnect the account, and let a rule choose it.
-- [ ] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.
+- [x] Add an ADR for the first OAuth provider, its scopes and the token encryption key (ADR 0038).
+- [x] Add the `channel_accounts` table and a nullable `channel_account_id` on `reply_conditions` (ADRs 0021, 0033 and 0038).
+- [x] Add the API routes that start and finish the OAuth connection, with a state value and PKCE, and refresh and revoke tokens. Allow one email account for each user.
+- [x] Add the platform screen to connect and disconnect the account, and let a playbook choose it.
+- [x] Test that user A cannot see or use user B's account, and that one provider account cannot belong to two users.
+- [x] Connect a real Google account once by hand, with the project in testing mode and a test user.
 
 ### F12 Email ingestion and gate
 
@@ -210,7 +211,7 @@ F02 and F03 can swap if Anvia access is delayed.
 | F09     | MCP server and sessions      | In progress |                                                                                              |
 | F10     | Assistant Agent              | Todo        |                                                                                              |
 | F11     | Routing rules                | Dropped     |                                                                                              |
-| F12a    | Channel accounts             | Todo        |                                                                                              |
+| F12a    | Channel accounts             | In progress | [#29](https://github.com/aodihis/leren/pull/29)                                              |
 | F12     | Email ingestion and gate     | Todo        |                                                                                              |
 | F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
 | F14     | Approval and sending         | Todo        |                                                                                              |

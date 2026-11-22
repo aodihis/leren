@@ -22,6 +22,7 @@ import {
   InfoIcon,
   LogOutIcon,
   MenuIcon,
+  PlugIcon,
   SquarePenIcon,
   UserIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ import { Logo } from "../modules/layout/components/logo";
 const NAV_ITEMS = [
   { to: "/", label: "Overview", icon: HouseIcon },
   { to: "/playbooks", label: "Playbooks", icon: BookOpenIcon },
+  { to: "/channels", label: "Channels", icon: PlugIcon },
   { to: "/profile", label: "Profile", icon: UserIcon },
   { to: "/about", label: "About", icon: InfoIcon },
 ] as const;

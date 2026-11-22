@@ -21,10 +21,13 @@ function isTimezone(timezone: string): boolean {
 
 /**
  * The conditions of the `email` channel. A sender allowlist holds full addresses and `@domain`
- * entries.
+ * entries. `channelAccountId` names the channel account that the playbook listens on, and null or
+ * absent means none. The service rejects an account that does not belong to the playbook's owner
+ * or is on another channel (decision 0038).
  */
 export const emailConditionsSchema = z.object({
   channel: z.literal("email"),
+  channelAccountId: z.uuid().nullable().optional(),
   senderMode: z.enum(["any", "allowlist"]),
   senderAllowlist: z
     .array(

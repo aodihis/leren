@@ -47,7 +47,9 @@ A missing bound is open, and both bounds are inclusive. The interface shows one 
 
 A **channel** is a kind of medium that messages arrive on, such as email or Slack. A user connects a **channel account** with OAuth, for example a Gmail mailbox. A message belongs to the user who owns the account it was fetched through. The address the user signs in with is not used to match messages, and it can differ from every connected address.
 
-A user has many playbooks. A playbook listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. Channels and channel accounts are specified in decision 0021 and are not built yet.
+A user has many playbooks. A playbook listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. A user connects and disconnects accounts on the Channels page, and chooses the account of a playbook on its Rules tab. A user can have one email account in the first version, and an account cannot belong to two users.
+
+The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0021 and 0038 specify this. Reading and sending mail through an account is not built yet.
 
 ## Agents
 

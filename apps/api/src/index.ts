@@ -14,6 +14,8 @@ import type { AppType } from "./app";
 import { loadConfig } from "./config";
 import { createAgent } from "./modules/assistant/agent";
 import { createAuth } from "./modules/auth/service";
+import { parseEncryptionKey } from "./modules/channel-accounts/crypto";
+import { createChannelProviders } from "./modules/channel-accounts/providers";
 import { createKnowledgeIndexRequester } from "./modules/playbooks/indexing";
 
 const logger = createLogger({ name: "api" });
@@ -96,6 +98,15 @@ const app = createApp({
   logger,
   requestKnowledgeIndex: createKnowledgeIndexRequester(queue, logger),
   assistant: await createAssistant(),
+  channelAccounts: {
+    providers: createChannelProviders(config),
+    encryptionKey: config.CHANNEL_TOKEN_ENCRYPTION_KEY
+      ? parseEncryptionKey(config.CHANNEL_TOKEN_ENCRYPTION_KEY)
+      : undefined,
+    cookieSecret: config.BETTER_AUTH_SECRET,
+    apiUrl: config.API_URL,
+    platformUrl: config.PLATFORM_URL,
+  },
   mcp: { secret: config.MCP_SESSION_SECRET, search: createSearchDependencies() },
 });
 

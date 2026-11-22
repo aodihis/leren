@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
 import { api } from "../../../modules/api/api-client";
+import { loadAccountsOrNone } from "../../../modules/channels/load-channel-accounts";
 import { PlaybookForm } from "../../../modules/playbooks/components/playbook-form";
 
 export const Route = createFileRoute("/_authed/playbooks/$playbookId")({
@@ -17,14 +18,14 @@ export const Route = createFileRoute("/_authed/playbooks/$playbookId")({
 
     const { playbook } = await response.json();
 
-    return playbook;
+    return { playbook, accounts: await loadAccountsOrNone() };
   },
   notFoundComponent: () => <p className="text-muted-foreground">This playbook does not exist.</p>,
   component: EditPlaybookPage,
 });
 
 function EditPlaybookPage() {
-  const playbook = Route.useLoaderData();
+  const { playbook, accounts } = Route.useLoaderData();
 
-  return <PlaybookForm key={playbook.id} playbook={playbook} />;
+  return <PlaybookForm key={playbook.id} playbook={playbook} accounts={accounts} />;
 }

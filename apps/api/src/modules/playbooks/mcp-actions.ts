@@ -41,7 +41,9 @@ const playbookFields = z.object({
   startsAt: instant.nullable().optional().describe("When the playbook starts, or null for none."),
   endsAt: instant.nullable().optional().describe("When the playbook ends, or null for none."),
   conditions: z
-    .array(emailConditionsSchema.partial().required({ channel: true }))
+    .array(
+      emailConditionsSchema.omit({ channelAccountId: true }).partial().required({ channel: true }),
+    )
     .optional()
     .describe(
       "The reply conditions for each channel, such as who may be answered. Name the channel in each entry. Anything left out keeps its current or default value, and a channel that is not named is unchanged.",
