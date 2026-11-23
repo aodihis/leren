@@ -11,12 +11,12 @@
 ## Decision
 
 - The observer exports with the capture mode `full`. A trace holds the prompts and the answers of the model calls, the arguments and results of the MCP tool calls, and the input and output of each stage of a pipeline. The mode is fixed in the code of `packages/observability` and has no environment variable.
-- The redaction patterns of the library keep applying to what is exported. Credentials and tokens are never put in a prompt, and the session token is sent in a header, so it is not part of a payload.
+- The observer turns on the redaction of the library for the inputs and the outputs that it exports, because the library does not redact unless it is asked to. Its default patterns mask email addresses and phone numbers. Credentials and tokens are never put in a prompt, and the session token is sent in a header, so it is not part of a payload.
 - This changes the statement of decision 0010 about the capture mode. The rest of 0010 stays in force.
 
 ## Consequences
 
-- The text of the emails that the assistant reads, and of the replies that it writes, is stored on the Lens server. The Lens server must be run where that is acceptable, and access to it is access to that text.
-- A person who debugs a message can open its trace and read what each stage received and returned.
+- The text of the emails that the assistant reads, and of the replies that it writes, is stored on the Lens server, without the addresses and the phone numbers that the patterns mask. The Lens server must be run where that is acceptable, and access to it is access to that text.
+- A person who debugs a message can open its trace and read what each stage received and returned. An email address or a phone number in a payload, such as a contact in a reply, appears as `[redacted]`, so the stored decision and the message record are the place to read it.
 - The overview no longer says that bodies are not exported.
 - A deployment that needs the safe mode again has to change the code, and a later decision can add a setting.

@@ -188,7 +188,7 @@ In development, emails are delivered to Mailpit and can be read at http://localh
 
 ## Observability
 
-Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a span correlated by message id. A trace holds the prompts, the replies and the input and output of each stage, so the email, the playbooks and the reply can be read in Lens. The redaction patterns of the library still apply, and the Lens server stores the text of the emails (decision 0047). Evaluation cases run against the Reply Agent, and their results link to traces. Failed evaluations and escalated messages become new cases.
+Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a span correlated by message id. A trace holds the prompts, the replies and the input and output of each stage, so the email, the playbooks and the reply can be read in Lens. The observer turns on the redaction of the library, so email addresses and phone numbers appear as `[redacted]`, and the Lens server stores the rest of the text of the emails (decision 0047). Evaluation cases run against the Reply Agent, and their results link to traces. Failed evaluations and escalated messages become new cases.
 
 ## Shared packages
 

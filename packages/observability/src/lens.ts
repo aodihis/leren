@@ -9,7 +9,8 @@ import { createNoopObserver } from "./noop";
  * configuration throws, so a misconfigured deployment fails at startup instead of silently
  * dropping traces. Payload capture is `full` (decision 0047): a trace holds the prompts, the replies
  * and the input and output of each pipeline stage, so the email, the playbooks and the reply can be
- * read in Lens. The default redaction patterns of the library still apply.
+ * read in Lens. The redaction of the library is off unless it is asked for, so the client turns it on
+ * for inputs and outputs. Its default patterns mask email addresses and phone numbers.
  */
 export function createLensObserver(env: Environment): Observer {
   const client = new LensClient({
@@ -19,6 +20,8 @@ export function createLensObserver(env: Environment): Observer {
     serviceName: env.ANVIA_LENS_SERVICE_NAME,
     environment: env.ANVIA_LENS_ENVIRONMENT,
     captureMode: "full",
+    redactInputs: true,
+    redactOutputs: true,
     optional: true,
   });
 
