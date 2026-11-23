@@ -117,9 +117,11 @@ export class ChannelAccountRequiredError extends Error {
 
 /**
  * Checks that every channel account named by `conditions` belongs to `userId` and is on the
- * channel of the entry that names it. When `enabled` is true, every entry must also name an account
- * and the account must be active, because a playbook that is on and has no usable account handles no
- * email (decision 0044). A disabled playbook may have no account. It runs inside the write's
+ * channel of the entry that names it. When `enabled` is true, every entry must also name an account,
+ * because a playbook that is on and has none handles no email (decision 0044). A disabled playbook
+ * may have no account. When `requireActive` is true the account must also be active. A playbook
+ * that is created or turned on needs an active account, and a playbook that is replaced does not,
+ * so that its owner can still edit it after the account was revoked. It runs inside the write's
  * transaction, so a playbook never listens through another user's account. The account row is
  * locked with `FOR KEY SHARE`, so a disconnect waits until the transaction commits and then clears
  * the new reference through the foreign key's `ON DELETE SET NULL`.
@@ -128,11 +130,11 @@ async function assertAccountsAvailable(
   tx: Pick<Db, "select">,
   userId: string,
   conditions: { channel: string; channelAccountId: string | null }[],
-  enabled: boolean,
+  rule: { enabled: boolean; requireActive: boolean },
 ): Promise<void> {
   for (const entry of conditions) {
     if (entry.channelAccountId === null) {
-      if (enabled) {
+      if (rule.enabled) {
         throw new ChannelAccountRequiredError();
       }
 
@@ -147,7 +149,7 @@ async function assertAccountsAvailable(
           eq(channelAccounts.id, entry.channelAccountId),
           eq(channelAccounts.userId, userId),
           eq(channelAccounts.channel, entry.channel),
-          enabled ? eq(channelAccounts.status, "active") : undefined,
+          rule.requireActive ? eq(channelAccounts.status, "active") : undefined,
         ),
       )
       .for("key share");
@@ -238,7 +240,10 @@ export async function createPlaybook(
   const { playbook, conditions } = toRows(input);
 
   return db.transaction(async (tx) => {
-    await assertAccountsAvailable(tx, userId, conditions, playbook.enabled);
+    await assertAccountsAvailable(tx, userId, conditions, {
+      enabled: playbook.enabled,
+      requireActive: playbook.enabled,
+    });
 
     const [created] = await tx
       .insert(playbooks)
@@ -255,8 +260,9 @@ export async function createPlaybook(
 }
 
 /**
- * Replaces a playbook and its conditions, including the account of each channel. A channel that the input leaves out loses its
- * conditions. Returns `not_found` when the playbook does not exist or belongs to another user, in
+ * Replaces a playbook and its conditions, including the account of each channel. An enabled
+ * playbook may keep an account that was revoked, unless the replacement turns the playbook on. A
+ * channel that the input leaves out loses its conditions. Returns `not_found` when the playbook does not exist or belongs to another user, in
  * which case nothing is written.
  */
 export async function updatePlaybook(
@@ -269,7 +275,20 @@ export async function updatePlaybook(
   const { playbook, conditions } = toRows(input);
 
   return db.transaction(async (tx) => {
-    await assertAccountsAvailable(tx, userId, conditions, playbook.enabled);
+    const [current] = await tx
+      .select({ enabled: playbooks.enabled })
+      .from(playbooks)
+      .where(and(eq(playbooks.id, id), eq(playbooks.userId, userId)))
+      .for("update");
+
+    if (!current) {
+      return { status: "not_found" };
+    }
+
+    await assertAccountsAvailable(tx, userId, conditions, {
+      enabled: playbook.enabled,
+      requireActive: playbook.enabled && !current.enabled,
+    });
 
     const [updated] = await tx
       .update(playbooks)
@@ -341,7 +360,7 @@ export async function setPlaybookEnabled(
         .from(replyConditions)
         .where(eq(replyConditions.playbookId, id));
 
-      await assertAccountsAvailable(tx, userId, conditions, true);
+      await assertAccountsAvailable(tx, userId, conditions, { enabled: true, requireActive: true });
     }
 
     await tx.update(playbooks).set({ enabled, updatedAt: now }).where(eq(playbooks.id, id));

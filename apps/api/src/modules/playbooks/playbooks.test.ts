@@ -374,6 +374,42 @@ describe("playbooks API", () => {
         expect((await setEnabled(cookie, own.id, false)).status).toBe(200);
       });
 
+      it("lets an enabled playbook keep a revoked account when it is replaced, but not be turned on with it", async () => {
+        const cookie = await signIn("keeper@example.com");
+        const accountId = await addAccount("keeper@example.com", "sub-keeper");
+        const created = await create(cookie, withAccount(accountId));
+
+        await database.db
+          .update(channelAccounts)
+          .set({ status: "revoked" })
+          .where(eq(channelAccounts.id, accountId));
+
+        const renamed = await call(
+          cookie,
+          "PUT",
+          `${PATH}/${created.id}`,
+          body({ ...withAccount(accountId), topic: "Renamed" }),
+        );
+
+        expect(renamed.status).toBe(200);
+        expect((await setEnabled(cookie, created.id, false)).status).toBe(200);
+
+        const turnedOn = await setEnabled(cookie, created.id, true);
+
+        const replacedOn = await call(
+          cookie,
+          "PUT",
+          `${PATH}/${created.id}`,
+          body({ ...withAccount(accountId), enabled: true }),
+        );
+
+        expect(turnedOn.status).toBe(400);
+        expect(replacedOn.status).toBe(400);
+        expect(await replacedOn.json()).toEqual({
+          fieldErrors: { channelAccountId: ["Choose one of your own connected accounts"] },
+        });
+      });
+
       it("rejects a revoked account for an enabled playbook and accepts it for a disabled one", async () => {
         const cookie = await signIn("revoked@example.com");
         const accountId = await addAccount("revoked@example.com", "sub-revoked");

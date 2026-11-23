@@ -275,10 +275,51 @@ describe("playbook MCP actions", () => {
       expect(updated.data).toMatchObject({ conditions: [{ channelAccountId: accountId }] });
     });
 
-    it("lists the active accounts when the account of a playbook that is on was revoked", async () => {
+    it("keeps a revoked account so that a playbook that is on can still be edited", async () => {
       const created = await newPlaybook();
-      const second = await addAccount(userId, "second@example.com");
 
+      await database.db
+        .update(channelAccounts)
+        .set({ status: "revoked" })
+        .where(eq(channelAccounts.id, accountId));
+
+      const updated = (await run(actions.updatePlaybook, userId, {
+        playbookId: created.id,
+        response: "Free parking after 5 pm",
+      })) as Saved;
+
+      expect(updated.data).toMatchObject({
+        response: "Free parking after 5 pm",
+        conditions: [{ channelAccountId: accountId }],
+      });
+    });
+
+    it("lists the active accounts when the assistant names a revoked account that the playbook does not use", async () => {
+      const created = await newPlaybook();
+      const old = await addAccount(userId, "old@example.com", "revoked");
+
+      const result = (await run(actions.updatePlaybook, userId, {
+        playbookId: created.id,
+        conditions: [{ channel: "email", channelAccountId: old }],
+      })) as { status: string; message: string };
+
+      expect(result.status).toBe("invalid");
+      expect(result.message).toContain(`The account ${old} is not one of the user`);
+      expect(result.message).toContain(`a@example.com (${accountId})`);
+    });
+
+    it("needs an active account when a playbook is turned on", async () => {
+      const created = (await run(actions.createPlaybook, userId, {
+        topic: "Parking",
+        response: "Free parking",
+        timezone: "UTC",
+        enabled: false,
+      })) as Saved;
+
+      await database.db
+        .update(replyConditions)
+        .set({ channelAccountId: accountId })
+        .where(eq(replyConditions.playbookId, created.id));
       await database.db
         .update(channelAccounts)
         .set({ status: "revoked" })
@@ -286,12 +327,11 @@ describe("playbook MCP actions", () => {
 
       const result = (await run(actions.updatePlaybook, userId, {
         playbookId: created.id,
-        response: "Free parking after 5 pm",
+        enabled: true,
       })) as { status: string; message: string };
 
       expect(result.status).toBe("invalid");
-      expect(result.message).toContain(`The account ${accountId} is not one of the user`);
-      expect(result.message).toContain(`second@example.com (${second})`);
+      expect(result.message).toContain("no connected email account");
     });
 
     it("asks which account to use when a playbook with none is turned on and there are several", async () => {

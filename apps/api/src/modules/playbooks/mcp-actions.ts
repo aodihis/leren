@@ -120,15 +120,18 @@ function describeAccountProblem(
 /**
  * Names the account for every entry that has none, when the playbook is on. An entry takes the
  * only active account that the user has on its channel. An entry that names an account that is not
- * active, such as one that was revoked after the playbook was saved, is not replaced silently: the
- * result is the message that lists the active accounts. The same message tells the assistant what to
- * do when the user has none or has several. A playbook that is off keeps its entries as they are.
+ * active is not replaced silently: the result is the message that lists the active accounts. The
+ * exception is an account that the playbook already names, in `kept`, which may have been revoked
+ * after the playbook was saved and stays so that the playbook can still be edited. The same message
+ * tells the assistant what to do when the user has none or has several. A playbook that is off keeps
+ * its entries as they are.
  */
 async function resolveAccounts(
   db: Db,
   userId: string,
   conditions: readonly ReplyConditionsInput[],
   enabled: boolean,
+  kept: ReadonlySet<string> = new Set(),
 ): Promise<{ conditions: ReplyConditionsInput[] } | { message: string }> {
   const resolved: ReplyConditionsInput[] = [];
 
@@ -141,7 +144,9 @@ async function resolveAccounts(
     const accounts = await listActiveAccounts(db, userId, entry.channel);
 
     if (entry.channelAccountId) {
-      if (!accounts.some((account) => account.id === entry.channelAccountId)) {
+      const active = accounts.some((account) => account.id === entry.channelAccountId);
+
+      if (!active && !kept.has(entry.channelAccountId)) {
         return { message: describeAccountProblem(entry.channel, accounts, entry.channelAccountId) };
       }
 
@@ -279,6 +284,9 @@ export function createPlaybookMcpActions(
           userId,
           mergeConditions(existing.conditions, conditions ?? []),
           fields.enabled ?? existing.enabled,
+          fields.enabled === true && !existing.enabled
+            ? new Set()
+            : new Set(existing.conditions.flatMap((entry) => entry.channelAccountId ?? [])),
         );
 
         if ("message" in accounts) {
