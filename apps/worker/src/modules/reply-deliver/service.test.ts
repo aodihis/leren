@@ -13,6 +13,7 @@ import {
   DELIVERY_UNKNOWN,
   deliverReply,
   failDelivery,
+  failUnfinishedDelivery,
 } from "./service";
 
 vi.mock("@leren/channels", async (importOriginal) => ({
@@ -321,7 +322,7 @@ describe("deliverReply", () => {
 
       expect(await decision()).toMatchObject({
         deliveryState: "failed",
-        deliveryError: "no scope",
+        deliveryError: "forbidden: no scope",
       });
       expect(await status()).toEqual({ status: "failed", reason: "forbidden" });
     });
@@ -402,6 +403,53 @@ describe("deliverReply", () => {
         "token",
         expect.objectContaining({ references: "<first@example.com> <original@example.com>" }),
       );
+    });
+
+    it("keeps the receipt and the state when a second run declared the delivery unknown during the call", async () => {
+      await insertReply({ mode: "send" });
+      sender.sendReply.mockImplementationOnce(async () => {
+        await run();
+
+        return { id: "sent-1", response: { id: "sent-1" } };
+      });
+
+      await run();
+
+      expect(await decision()).toMatchObject({
+        deliveryState: "failed",
+        deliveryError: DELIVERY_UNKNOWN,
+        sentMessageId: "sent-1",
+        deliveryResponse: { id: "sent-1" },
+      });
+      expect(await status()).toMatchObject({ status: "failed" });
+    });
+
+    it("ends a delivery that is still started on the last attempt as unknown", async () => {
+      await insertReply({ state: "started" });
+
+      expect(await failUnfinishedDelivery(database.db, messageId, "socket hang up")).toBe(true);
+      expect(await decision()).toMatchObject({ deliveryError: "delivery_unknown: socket hang up" });
+      expect(await status()).toEqual({ status: "failed", reason: DELIVERY_UNKNOWN });
+    });
+
+    it("ends a delivery that is pending on the last attempt as an error", async () => {
+      await insertReply();
+
+      await failUnfinishedDelivery(database.db, messageId, "queue down");
+
+      expect(await status()).toEqual({ status: "failed", reason: "delivery_error" });
+    });
+
+    it("keeps the code of the cause as the reason when a retry finishes the move to failed", async () => {
+      await insertReply();
+      await database.db
+        .update(replyDecisions)
+        .set({ deliveryState: "failed", deliveryError: "forbidden: no scope" })
+        .where(eq(replyDecisions.messageId, messageId));
+
+      await run();
+
+      expect(await status()).toEqual({ status: "failed", reason: "forbidden" });
     });
 
     it("refuses to reply to bulk mail, without a call", async () => {

@@ -34,20 +34,24 @@ function statusesBefore(to: MessageStatus): MessageStatus[] {
  * Moves a message to `to` and stores the reason, but only when its stored status allows the move.
  * The check and the write are one conditional update, so two workers that race, a repeated
  * message and a message that arrives late cannot move a record backwards. Returns whether the
- * status changed. A message that is already in `to` is left alone and reports `false`.
+ * status changed. A message that is already in `to` is left alone and reports `false`. When
+ * `only` is given, the move is also limited to messages that are in one of those statuses, so a
+ * stage cannot fail a message that a later stage has taken over.
  */
 export async function transitionMessage(
   db: Db,
   messageId: string,
   to: MessageStatus,
   reason: string | null = null,
+  only?: readonly MessageStatus[],
 ): Promise<boolean> {
   const now = new Date();
+  const allowed = statusesBefore(to).filter((from) => !only || only.includes(from));
 
   const changed = await db
     .update(messages)
     .set({ status: to, statusReason: reason, statusChangedAt: now, updatedAt: now })
-    .where(and(eq(messages.id, messageId), inArray(messages.status, statusesBefore(to))))
+    .where(and(eq(messages.id, messageId), inArray(messages.status, allowed)))
     .returning({ id: messages.id });
 
   return changed.length > 0;

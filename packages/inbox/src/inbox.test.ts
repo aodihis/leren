@@ -168,6 +168,19 @@ describe("the message record", () => {
     expect(await database.db.select().from(messages)).toHaveLength(2);
   });
 
+  it("moves only from the statuses that the caller allows", async () => {
+    const { messageId } = await record();
+
+    await transitionMessage(database.db, messageId, "queued");
+    await transitionMessage(database.db, messageId, "processing");
+    await transitionMessage(database.db, messageId, "drafted");
+
+    expect(
+      await transitionMessage(database.db, messageId, "failed", null, ["queued", "processing"]),
+    ).toBe(false);
+    expect(await transitionMessage(database.db, messageId, "failed", null, ["drafted"])).toBe(true);
+  });
+
   it("moves a status forward once, and never backwards", async () => {
     const { messageId } = await record();
 

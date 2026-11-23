@@ -3,14 +3,11 @@ import { NonRetryableError } from "@leren/queue";
 
 import { defineJob } from "../../job";
 import { logger } from "../../logger";
-import { deliverReply, failDelivery } from "./service";
+import { deliverReply, failUnfinishedDelivery } from "./service";
 import type { ReplyDeliverDependencies } from "./service";
 
 /** The number of deliveries after which a reply that cannot be delivered is marked as failed. */
 export const REPLY_DELIVER_MAX_ATTEMPTS = 5;
-
-/** The reason that is stored when a delivery could not be finished. */
-export const DELIVERY_ERROR = "delivery_error";
 
 /**
  * Consumes `email.deliver`: delivers the reply of one message as a draft or as a sent mail
@@ -35,11 +32,10 @@ export function createReplyDeliverJob(dependencies: ReplyDeliverDependencies) {
           error instanceof NonRetryableError || context.attempt >= REPLY_DELIVER_MAX_ATTEMPTS;
 
         if (final) {
-          await failDelivery(
+          await failUnfinishedDelivery(
             dependencies.db,
             payload.messageId,
-            DELIVERY_ERROR,
-            error instanceof Error ? error.message : DELIVERY_ERROR,
+            error instanceof Error ? error.message : String(error),
           );
         }
 

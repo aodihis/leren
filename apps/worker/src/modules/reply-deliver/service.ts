@@ -30,6 +30,9 @@ export const DELIVERY_REFUSED = "delivery_refused";
 /** The reason that is stored when the account or its provider cannot deliver. */
 export const DELIVERY_UNAVAILABLE = "delivery_unavailable";
 
+/** The reason that is stored when a delivery could not be finished. */
+export const DELIVERY_ERROR = "delivery_error";
+
 /** The reason that is stored when a delivery has no recorded end, so that its outcome is unknown. */
 export const DELIVERY_UNKNOWN = "delivery_unknown";
 
@@ -71,8 +74,10 @@ function withReplyPrefix(subject: string): string {
 
 /**
  * Ends a delivery that is `pending` or `started` as failed and moves the message to `failed`. The
- * record keeps the request and the times, and `reason` names why. A delivery that has already ended
- * is left alone, and so is its message. Returns whether the record was changed.
+ * record keeps the request and the times. `reason` is the code of the cause and is the status reason
+ * of the message. The stored error is the code alone, or the code, a colon and a description, so the
+ * code can always be read back from it. A delivery that has already ended is left alone, and so is
+ * its message. Returns whether the record was changed.
  */
 export async function failDelivery(
   db: Db,
@@ -84,7 +89,7 @@ export async function failDelivery(
     .update(replyDecisions)
     .set({
       deliveryState: "failed",
-      deliveryError: error.slice(0, ERROR_LENGTH),
+      deliveryError: (error === reason ? reason : `${reason}: ${error}`).slice(0, ERROR_LENGTH),
       deliveryFinishedAt: new Date(),
     })
     .where(
@@ -102,6 +107,29 @@ export async function failDelivery(
   await transitionMessage(db, messageId, "failed", reason);
 
   return true;
+}
+
+/**
+ * Ends a delivery whose job ran out of attempts. A delivery that is still `started` has a call
+ * whose outcome is not known, so it ends as `delivery_unknown`, and any other delivery ends with
+ * `delivery_error`. `error` describes the failure of the last attempt.
+ */
+export async function failUnfinishedDelivery(
+  db: Db,
+  messageId: string,
+  error: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ state: replyDecisions.deliveryState })
+    .from(replyDecisions)
+    .where(eq(replyDecisions.messageId, messageId));
+
+  return failDelivery(
+    db,
+    messageId,
+    row?.state === "started" ? DELIVERY_UNKNOWN : DELIVERY_ERROR,
+    error,
+  );
 }
 
 async function readRecord(db: Db, messageId: string): Promise<DeliveryRecord | undefined> {
@@ -168,7 +196,12 @@ export async function deliverReply(
   }
 
   if (decision.deliveryState === "failed") {
-    await transitionMessage(db, message.id, "failed", decision.deliveryError);
+    await transitionMessage(
+      db,
+      message.id,
+      "failed",
+      decision.deliveryError?.split(":")[0] ?? null,
+    );
 
     return "ignored";
   }
@@ -264,14 +297,19 @@ async function callProvider(
     await db
       .update(replyDecisions)
       .set({
-        deliveryState: "completed",
         deliveryResponse: receipt.response,
         deliveryFinishedAt: new Date(),
         ...(mode === "send" ? { sentMessageId: receipt.id } : { mailboxDraftId: receipt.id }),
       })
       .where(eq(replyDecisions.id, decision.id));
 
-    if (mode === "send") {
+    const completed = await db
+      .update(replyDecisions)
+      .set({ deliveryState: "completed" })
+      .where(and(eq(replyDecisions.id, decision.id), eq(replyDecisions.deliveryState, "started")))
+      .returning({ id: replyDecisions.id });
+
+    if (mode === "send" && completed.length > 0) {
       await transitionMessage(db, message.id, "sent");
     }
 

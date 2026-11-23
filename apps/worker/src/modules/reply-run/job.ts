@@ -43,7 +43,10 @@ export function createReplyRunJob(dependencies: ReplyRunJobDependencies) {
           error instanceof NonRetryableError || context.attempt >= REPLY_RUN_MAX_ATTEMPTS;
 
         if (final) {
-          await transitionMessage(db, payload.messageId, "failed", PIPELINE_ERROR);
+          await transitionMessage(db, payload.messageId, "failed", PIPELINE_ERROR, [
+            "queued",
+            "processing",
+          ]);
         }
 
         throw error;
