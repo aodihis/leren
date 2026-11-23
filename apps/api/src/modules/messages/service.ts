@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import { channelAccounts, messages } from "@leren/db";
+import { channelAccounts, messages, playbooks, replyDecisions } from "@leren/db";
 import type { Db } from "@leren/db";
 import { truncate } from "@leren/inbox";
 import type { InboundEmail } from "@leren/inbox";
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { z } from "zod";
 
 import { encodeCursor } from "./schema";
 import type { MessageListQuery, SimulateEmailInput } from "./schema";
@@ -16,15 +17,49 @@ export const SIMULATION_PROVIDER = "mailpit";
 
 type MessageRow = typeof messages.$inferSelect;
 
+type DecisionRow = typeof replyDecisions.$inferSelect;
+
 /**
  * A message as the list returns it. `preview` is the start of the body, and the full body is
- * returned only for one message.
+ * returned only for one message. `outcome` and `deliveryState` come from the decision of the
+ * pipeline and are null while there is none, and `deliveryState` is also null for a decision that
+ * has no reply to deliver (decisions 0043 and 0046).
  */
 export type MessageSummary = ReturnType<typeof toSummary>;
 
-export type MessageDetail = MessageSummary & { body: string };
+export type MessageDetail = MessageSummary & {
+  body: string;
+  decision: ReturnType<typeof toDecision> | null;
+};
 
-function toSummary(row: MessageRow) {
+function toDecision(row: DecisionRow, cited: { id: string; topic: string }[]) {
+  return {
+    outcome: row.outcome,
+    body: row.body,
+    category: row.category,
+    citations: row.citations,
+    citedPlaybooks: cited,
+    playbookIds: row.playbookIds,
+    reasons: row.reasons,
+    revisions: row.revisions,
+    evaluations: row.evaluations,
+    createdAt: row.createdAt.toISOString(),
+    delivery: {
+      mode: row.deliveryMode,
+      state: row.deliveryState,
+      request: row.deliveryRequest,
+      response: row.deliveryResponse,
+      attempts: row.deliveryAttempts,
+      startedAt: row.deliveryStartedAt?.toISOString() ?? null,
+      finishedAt: row.deliveryFinishedAt?.toISOString() ?? null,
+      mailboxDraftId: row.mailboxDraftId,
+      sentMessageId: row.sentMessageId,
+      error: row.deliveryError,
+    },
+  };
+}
+
+function toSummary(row: MessageRow, decision: DecisionRow | null) {
   return {
     id: row.id,
     channel: row.channel,
@@ -44,6 +79,8 @@ function toSummary(row: MessageRow) {
     status: row.status,
     statusReason: row.statusReason,
     statusChangedAt: row.statusChangedAt.toISOString(),
+    outcome: decision?.outcome ?? null,
+    deliveryState: decision?.deliveryState ?? null,
   };
 }
 
@@ -60,8 +97,9 @@ export async function listMessages(
   const { status, channel, channelAccountId, cursor, limit } = query;
 
   const rows = await db
-    .select()
+    .select({ message: messages, decision: replyDecisions })
     .from(messages)
+    .leftJoin(replyDecisions, eq(replyDecisions.messageId, messages.id))
     .where(
       and(
         eq(messages.userId, userId),
@@ -80,26 +118,55 @@ export async function listMessages(
     .limit(limit + 1);
 
   const page = rows.slice(0, limit);
-  const last = page.at(-1);
+  const last = page.at(-1)?.message;
 
   return {
-    messages: page.map(toSummary),
+    messages: page.map((row) => toSummary(row.message, row.decision)),
     nextCursor: rows.length > limit && last ? encodeCursor(last) : null,
   };
 }
 
-/** Returns one message record with its stored body, or `null` when the user has no such record. */
+/**
+ * Returns one message record with its stored body and its decision, or `null` when the user has no
+ * such record. The cited playbooks are the ones of the user that still exist, in the order of the
+ * citations.
+ */
 export async function getMessage(
   db: Db,
   userId: string,
   messageId: string,
 ): Promise<MessageDetail | null> {
   const [row] = await db
-    .select()
+    .select({ message: messages, decision: replyDecisions })
     .from(messages)
+    .leftJoin(replyDecisions, eq(replyDecisions.messageId, messages.id))
     .where(and(eq(messages.id, messageId), eq(messages.userId, userId)));
 
-  return row ? { ...toSummary(row), body: row.body } : null;
+  if (!row) {
+    return null;
+  }
+
+  const { message, decision } = row;
+
+  const citedIds = [...new Set(decision?.citations ?? [])].filter(
+    (id) => z.uuid().safeParse(id).success,
+  );
+
+  const found =
+    citedIds.length > 0
+      ? await db
+          .select({ id: playbooks.id, topic: playbooks.topic })
+          .from(playbooks)
+          .where(and(eq(playbooks.userId, userId), inArray(playbooks.id, citedIds)))
+      : [];
+
+  const cited = citedIds.flatMap((id) => found.filter((playbook) => playbook.id === id));
+
+  return {
+    ...toSummary(message, decision),
+    body: message.body,
+    decision: decision ? toDecision(decision, cited) : null,
+  };
 }
 
 /**

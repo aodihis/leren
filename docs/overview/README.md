@@ -50,7 +50,7 @@ A **channel** is a kind of medium that messages arrive on, such as email or Slac
 
 A user has many playbooks. A playbook listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. A user connects and disconnects accounts on the Channels page, and chooses the account of a playbook on its Rules tab. A user can have one email account in the first version, and an account cannot belong to two users.
 
-The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0021 and 0038 specify this. The worker reads new mail from a Gmail mailbox every `EMAIL_POLL_INTERVAL_SECONDS` seconds, 60 by default, and records only mail that arrives after the account is connected. Mail that arrives while an account is disconnected or revoked is not read later. Sending mail through an account is not built yet. While `mailpit` is enabled, `POST /api/messages/simulate` records an email as if the mailbox had received it.
+The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0021 and 0038 specify this. The worker reads new mail from a Gmail mailbox every `EMAIL_POLL_INTERVAL_SECONDS` seconds, 60 by default, and records only mail that arrives after the account is connected. Mail that arrives while an account is disconnected or revoked is not read later. While `mailpit` is enabled, `POST /api/messages/simulate` records an email as if the mailbox had received it.
 
 ## Agents
 
@@ -146,7 +146,9 @@ The status is updated as the message passes through the pipeline, and it only mo
 
 The result of the pipeline for each message, with its draft, is stored in `reply_decisions` (decision 0043). When a playbook asks for a mention check and the email does not address the user, the message becomes `not_applicable` with the reason `not_addressed`.
 
-`GET /api/messages` lists the user's records, newest first, and takes `status`, `channel`, `channelAccountId`, `limit` and `cursor`. `GET /api/messages/:id` returns one record with its stored body (decision 0039).
+`GET /api/messages` lists the user's records, newest first, and takes `status`, `channel`, `channelAccountId`, `limit` and `cursor`. Each item has the `outcome` and the `deliveryState` of its decision, which are null until the pipeline has decided. `GET /api/messages/:id` returns one record with its stored body and its whole decision: the reply, the cited playbooks, the reasons, the evaluations and the delivery record (decisions 0039 and 0046).
+
+The **Processed emails** page of the platform shows these records: a list with a status filter, and for each email the reply, the playbooks it cites, why the pipeline ended as it did, and the delivery record with the stored request and the answer of the provider. The page is read only, and a draft is acted on in the mailbox (decision 0046).
 
 ## Worker roles
 
