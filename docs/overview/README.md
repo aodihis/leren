@@ -6,7 +6,7 @@ Leren is an AI email assistant. The user defines **playbooks** that say what the
 
 | Component  | Role                                                                                                              |
 | ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| `platform` | The web application: playbook management, an optional assistant chat, the approval inbox, a dashboard.            |
+| `platform` | The web application: playbook management, an optional assistant chat, a message log, a dashboard.                 |
 | `api`      | The only service that reads or writes PostgreSQL and Qdrant. It validates every request and hosts the MCP server. |
 | `worker`   | Runs the queue consumers: email listener, gate, pipeline runner and reply sender.                                 |
 | RabbitMQ   | Durable queues between the stages, with retries and dead-letter queues.                                           |
@@ -28,7 +28,7 @@ The rules part has an optional start, an optional end, a timezone and conditions
 - Whether a message that mentions the user by name is answered even when the role or the recipient count would otherwise exclude it. Names are matched against the user's name and a list of aliases. A playbook can also ask a model to decide when no alias matches.
 - Whether new threads, replies in an existing thread, or both are answered.
 - Whether mailing lists and automatically generated messages are skipped.
-- What happens to a reply: it is saved as a draft for the user to approve, which is the default, or it is sent without approval. The assistant cannot change this setting, and the user chooses it on the Rules tab (product decision 0001 and decision 0039).
+- What happens to a reply: it is created as a draft in the user's mailbox, which is the default, or it is sent without approval. The assistant cannot change this setting, and the user chooses it on the Rules tab (product decision 0002 and decision 0039).
 
 ## Enabling and derived status
 
@@ -103,10 +103,9 @@ Email listener ─▶ message record (status: received) ─▶ [email.received]
                                           MCP server (in api) ─▶ PostgreSQL / Qdrant
                                 │ decision and draft
                                 ▼
-                  Approval inbox (platform): approve, edit or reject
-                                │ approved
-                                ▼
-                          [email.send] ─▶ Reply sender (worker) ─▶ Email provider
+                          [email.deliver] ─▶ Reply deliverer (worker) ─▶ Email provider
+                                                   draft mode: a draft in the user's mailbox
+                                                   send mode: the reply is sent
 ```
 
 Whether an email is handled at all is decided by the gate, in code, from stored playbooks and their conditions. The Reply Agent is never asked whether to reply to a message outside an active playbook. The gate makes no model call. The optional mention check of a playbook that asks for it is made by the pipeline, and the gate passes such a playbook on with the verdict `check_mention`.
@@ -140,7 +139,7 @@ The status is updated as the message passes through the pipeline, and it only mo
 | `not_applicable` | No playbook handles it. The reason is stored with it.  |
 | `queued`         | The gate passed it to the pipeline.                    |
 | `processing`     | The pipeline is working on it.                         |
-| `drafted`        | A reply was saved as a draft and waits for the user.   |
+| `drafted`        | A reply is ready. In draft mode it is in the mailbox.  |
 | `escalated`      | The user must handle it. The reason is stored with it. |
 | `sent`           | A reply was sent.                                      |
 | `failed`         | A step failed. The reason is stored with it.           |
@@ -151,7 +150,7 @@ The result of the pipeline for each message, with its draft, is stored in `reply
 
 ## Queues
 
-The queues are `email.received`, `email.process`, `email.send` and `knowledge.index`, each with a dead-letter queue named `<queue>.dlq`. A failed message is retried with exponential backoff and moved to the dead-letter queue when its attempts are used up. A consumer acknowledges a message only after its work is durable. Every message carries an idempotency key, and every handler is safe to retry.
+The queues are `email.poll`, `email.received`, `email.process`, `email.deliver`, `knowledge.index` and `knowledge.drift`, each with a dead-letter queue named `<queue>.dlq`. A failed message is retried with exponential backoff and moved to the dead-letter queue when its attempts are used up. A consumer acknowledges a message only after its work is durable. Every message carries an idempotency key, and every handler is safe to retry.
 
 ## Knowledge indexing
 
@@ -189,7 +188,7 @@ In development, emails are delivered to Mailpit and can be read at http://localh
 
 ## Observability
 
-Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a span correlated by message id. Telemetry is redacted by default, so full email bodies, prompts and replies are not exported unless explicitly enabled. Evaluation cases run against the Reply Agent, and their results link to traces. Failed evaluations and rejected drafts become new cases.
+Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a span correlated by message id. A trace holds the prompts, the replies and the input and output of each stage, so the email, the playbooks and the reply can be read in Lens. The redaction patterns of the library still apply, and the Lens server stores the text of the emails (decision 0047). Evaluation cases run against the Reply Agent, and their results link to traces. Failed evaluations and escalated messages become new cases.
 
 ## Shared packages
 
