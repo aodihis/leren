@@ -1,7 +1,9 @@
+import { MaxTurnsError } from "@anvia/core";
 import type { CompletionModel } from "@anvia/core";
 import type { McpOptions } from "@leren/agents";
 import type { Observer } from "@leren/observability";
 import { generateReply } from "../agent";
+import type { ReplyRun } from "../agent";
 import { checkDraft } from "./guardrails";
 import { InvalidModelOutputError, generateJson, parseJsonOutput } from "./llm";
 import {
@@ -188,6 +190,13 @@ export interface DraftOutcome {
  */
 const UNREADABLE_DRAFT = "(the previous output could not be read)";
 
+/** What the evaluation records when the drafting agent uses all its turns without an answer. */
+const TURN_LIMIT_REACHED = "The drafting agent reached its turn limit without an answer.";
+
+/** What the next prompt tells the drafter after it used all its turns. */
+const TURN_LIMIT_FEEDBACK =
+  "You used all your turns without an answer. Do not search again. Answer from the playbooks you have, and say that the sender will get an answer later for any question they do not cover.";
+
 /** The problems that make a verdict fail, in words the drafter can act on. */
 function describeVerdict(failed: readonly string[], feedback: string): string[] {
   const lines = failed.map((criterion) => `The draft fails the criterion ${criterion}.`);
@@ -214,22 +223,35 @@ export async function draftAndEvaluate(
   let previousBody: string | undefined;
 
   for (let attempt = 0; attempt <= MAX_REVISIONS; attempt += 1) {
-    const run = await generateReply({
-      instructions,
-      prompt: buildDraftPrompt({
-        email: context.email,
-        category: context.category,
-        questions: context.questions,
-        unmatched: context.unmatched,
-        playbooks: known,
-        feedback,
-        previousBody,
-      }),
-      model: deps.models.draft,
-      observer: deps.observer,
-      mcp: deps.mcp,
-      abortSignal: deps.abortSignal,
-    });
+    let run: ReplyRun;
+
+    try {
+      run = await generateReply({
+        instructions,
+        prompt: buildDraftPrompt({
+          email: context.email,
+          category: context.category,
+          questions: context.questions,
+          unmatched: context.unmatched,
+          playbooks: known,
+          feedback,
+          previousBody,
+        }),
+        model: deps.models.draft,
+        observer: deps.observer,
+        mcp: deps.mcp,
+        abortSignal: deps.abortSignal,
+      });
+    } catch (error) {
+      if (!(error instanceof MaxTurnsError)) {
+        throw error;
+      }
+
+      evaluations.push({ pass: false, issues: [TURN_LIMIT_REACHED] });
+      feedback = [TURN_LIMIT_FEEDBACK];
+      previousBody = UNREADABLE_DRAFT;
+      continue;
+    }
 
     known = mergePlaybooks(
       known,

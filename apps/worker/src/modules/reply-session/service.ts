@@ -4,7 +4,7 @@ import type { EmailProcessMessage } from "@leren/inbox";
 import { mintSession, revokeSession } from "@leren/mcp-server";
 import type { MintedSession } from "@leren/mcp-server";
 import { NonRetryableError } from "@leren/queue";
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 /**
  * How long the session of one reply run lasts, in seconds. It covers the longest run: three drafts
@@ -25,8 +25,10 @@ export type ReplySessionDependencies = {
  * message record and never from the job: the token is bound to the owner of the record, to the
  * message id and to the read-only scopes of the reply role.
  *
- * Throws when the record does not exist, or when a playbook of the job is not the owner's, because
- * such a job was not produced by the gate and must not run. The error is not retried.
+ * Throws when the record does not exist, or when a playbook of the job belongs to another user, because
+ * such a job was not produced by the gate and must not run. The error is not retried. A playbook
+ * that no longer exists is not an error: the user may have deleted it after the gate queued the
+ * message, and the pipeline escalates when no playbook is left to use.
  */
 export async function openReplySession(
   { db, secret, now }: ReplySessionDependencies,
@@ -43,12 +45,12 @@ export async function openReplySession(
 
   const ids = [...new Set(message.playbooks.map((entry) => entry.playbookId))];
 
-  const owned = await db
-    .select({ id: playbooks.id })
+  const found = await db
+    .select({ userId: playbooks.userId })
     .from(playbooks)
-    .where(and(inArray(playbooks.id, ids), eq(playbooks.userId, record.userId)));
+    .where(inArray(playbooks.id, ids));
 
-  if (owned.length !== ids.length) {
+  if (found.some((playbook) => playbook.userId !== record.userId)) {
     throw new NonRetryableError(
       `A playbook of the message ${message.messageId} is not the owner's.`,
     );

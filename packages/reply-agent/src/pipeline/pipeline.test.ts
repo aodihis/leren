@@ -271,6 +271,35 @@ describe("runReplyPipeline", () => {
     expect(retrieve).not.toHaveBeenCalled();
   });
 
+  describe("a drafting agent that uses all its turns", () => {
+    const search: FakeStep = {
+      toolCalls: [{ name: "search_playbooks", input: { query: "again" } }],
+    };
+
+    const searches = Array.from({ length: 6 }, () => search);
+
+    it("counts the run as a failed draft and revises with feedback", async () => {
+      const { deps, models } = setup({ draft: [...searches, goodDraft] });
+
+      const result = await runReplyPipeline(deps, input);
+
+      expect(result.outcome).toBe("answer");
+      expect(result.revisions).toBe(1);
+      expect(result.evaluations[0]?.issues[0]).toContain("turn limit");
+      expect(JSON.stringify(models.draft.requests.at(-1))).toContain("Do not search again");
+    });
+
+    it("escalates, and does not throw, when every attempt uses all its turns", async () => {
+      const { deps } = setup({ draft: [...searches, ...searches, ...searches] });
+
+      const result = await runReplyPipeline(deps, input);
+
+      expect(result.outcome).toBe("escalate");
+      expect(result.reasons[0]).toContain("turn limit");
+      expect(result.revisions).toBe(2);
+    });
+  });
+
   it("throws when the judge call fails, so that the queue retries the message", async () => {
     const { deps } = setup({ judge: [] });
 

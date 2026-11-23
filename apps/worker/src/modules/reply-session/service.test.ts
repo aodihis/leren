@@ -93,6 +93,14 @@ describe("the reply session", () => {
     );
   });
 
+  it("opens a session when a playbook of the job was deleted after the gate queued it", async () => {
+    await database.db.delete(playbooks).where(eq(playbooks.id, ownPlaybookId));
+
+    const minted = await openReplySession(deps(), job(ownPlaybookId));
+
+    expect(await verifySession(deps(), minted.token)).toMatchObject({ userId: ownerId });
+  });
+
   it("refuses a message that does not exist", async () => {
     await database.db.delete(messages).where(eq(messages.id, messageId));
 
