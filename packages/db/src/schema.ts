@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -264,31 +266,83 @@ export const replyOutcomeEnum = pgEnum("reply_outcome", [
 ]);
 
 /**
+ * How a reply is delivered (decision 0046): as a draft in the user's mailbox, or sent at once.
+ */
+export const deliveryModeEnum = pgEnum("delivery_mode", ["draft", "send"]);
+
+/**
+ * How far the delivery of a reply got (decision 0046). `pending` means that it is queued, `started`
+ * that the deliverer is about to call the provider or has called it and has no answer, `completed`
+ * that the provider answered and its id is stored, and `failed` that it ended with an error.
+ */
+export const deliveryStateEnum = pgEnum("delivery_state", [
+  "pending",
+  "started",
+  "completed",
+  "failed",
+]);
+
+/**
  * The result of the reply pipeline for one message, at most one row for each message (decision
  * 0043). `body` is the draft when the outcome is `answer` or `delegate` and is null otherwise.
  * `citations` are the ids of the playbooks that the draft cites, `playbookIds` are all the playbooks
  * that the run used, `reasons` say why the pipeline ended as it did, and `evaluations` keeps what
  * the evaluator found for each draft. The rows go with their message and their user.
+ *
+ * The `delivery*` columns, `mailboxDraftId` and `sentMessageId` are the record of delivering the
+ * reply (decision 0046). They are empty until a delivery is queued. `deliveryRequest` is written
+ * before the provider is called and holds the exact reply, and `deliveryResponse` holds the whole
+ * answer of the provider, so that a delivery that lost its answer can be investigated afterwards.
+ * Three checks keep that record whole: a delivery that has a state has a mode, a delivery that
+ * started or completed has the request and the time it started, and a completed delivery has the id
+ * that the provider returned.
  */
-export const replyDecisions = pgTable("reply_decisions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  messageId: uuid("message_id")
-    .notNull()
-    .unique()
-    .references(() => messages.id, { onDelete: "cascade" }),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  outcome: replyOutcomeEnum("outcome").notNull(),
-  body: text("body"),
-  category: text("category"),
-  citations: text("citations").array().notNull().default([]),
-  playbookIds: text("playbook_ids").array().notNull().default([]),
-  reasons: text("reasons").array().notNull().default([]),
-  revisions: integer("revisions").notNull().default(0),
-  evaluations: jsonb("evaluations").notNull().default([]),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const replyDecisions = pgTable(
+  "reply_decisions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .unique()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    outcome: replyOutcomeEnum("outcome").notNull(),
+    body: text("body"),
+    category: text("category"),
+    citations: text("citations").array().notNull().default([]),
+    playbookIds: text("playbook_ids").array().notNull().default([]),
+    reasons: text("reasons").array().notNull().default([]),
+    revisions: integer("revisions").notNull().default(0),
+    evaluations: jsonb("evaluations").notNull().default([]),
+    deliveryMode: deliveryModeEnum("delivery_mode"),
+    deliveryState: deliveryStateEnum("delivery_state"),
+    deliveryRequest: jsonb("delivery_request"),
+    deliveryResponse: jsonb("delivery_response"),
+    deliveryAttempts: integer("delivery_attempts").notNull().default(0),
+    deliveryStartedAt: timestamp("delivery_started_at", { withTimezone: true }),
+    deliveryFinishedAt: timestamp("delivery_finished_at", { withTimezone: true }),
+    mailboxDraftId: text("mailbox_draft_id"),
+    sentMessageId: text("sent_message_id"),
+    deliveryError: text("delivery_error"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      "reply_decisions_delivery_state_has_mode",
+      sql`${table.deliveryState} IS NULL OR ${table.deliveryMode} IS NOT NULL`,
+    ),
+    check(
+      "reply_decisions_delivery_started_has_request",
+      sql`${table.deliveryState} IS NULL OR ${table.deliveryState} NOT IN ('started', 'completed') OR (${table.deliveryRequest} IS NOT NULL AND ${table.deliveryStartedAt} IS NOT NULL)`,
+    ),
+    check(
+      "reply_decisions_delivery_completed_has_id",
+      sql`${table.deliveryState} IS DISTINCT FROM 'completed' OR ${table.mailboxDraftId} IS NOT NULL OR ${table.sentMessageId} IS NOT NULL`,
+    ),
+  ],
+);
 
 export const mcpClientRoleEnum = pgEnum("mcp_client_role", ["assistant", "reply"]);
 

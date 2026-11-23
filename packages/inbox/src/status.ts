@@ -5,15 +5,16 @@ import { and, eq, inArray } from "drizzle-orm";
 export type MessageStatus = (typeof messages.$inferSelect)["status"];
 
 /**
- * The statuses that a message may move to from each status (decision 0039). A status that maps to
- * an empty list is final. A status only moves forward, so no path leads back to an earlier one.
+ * The statuses that a message may move to from each status (decisions 0039 and 0046). A status that
+ * maps to an empty list is final. A status only moves forward, so no path leads back to an earlier
+ * one. A reply that is ready, `drafted`, is then sent or fails to be delivered.
  */
 const TRANSITIONS: Record<MessageStatus, readonly MessageStatus[]> = {
   received: ["not_applicable", "queued", "failed"],
   queued: ["processing", "failed"],
   processing: ["drafted", "sent", "escalated", "not_applicable", "failed"],
   not_applicable: [],
-  drafted: [],
+  drafted: ["sent", "failed"],
   sent: [],
   escalated: [],
   failed: [],
