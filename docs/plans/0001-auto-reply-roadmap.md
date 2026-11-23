@@ -174,15 +174,21 @@ Status: In progress. Branch: `feat/13-reply-agent`.
 - [x] Add `MCP_SESSION_SECRET` and `MCP_URL` to the worker config. The worker does not consume `email.process` when the secret, the models or the prompt are not available.
 - [x] Create one observer in the worker, pass it to the pipeline, flush it after each message and close it in the worker's `shutdown`, so that the last batch of telemetry is delivered.
 - [ ] Later: reply instructions written by the user (needs a product decision) and reply templates.
+- [ ] Require a channel account for an enabled playbook (ADR 0044): validate in the API schema and service, let the assistant tools take the account and default to the only one, update the assistant prompt, mark playbooks without a mailbox in the list, and add assistant eval cases. Found when a playbook created in the chat never handled an email, because the chat tool could not name a mailbox.
 
-### F14 Approval and sending
+### F14 Reply delivery
 
-Status: Todo. Branch: `feat/14-approval-send`.
+Status: In progress. Branch: `feat/14-approval-send`. Decisions: 0045 and 0046, and product decision 0002.
 
-- [ ] Add the API for pending drafts: approve, edit and approve, reject with a reason.
-- [ ] Send a reply at once when its playbook is in `send` mode, and after approval in `draft` mode (product decision 0001).
-- [ ] Add the `email.send` consumer with retry, delivery status, failure notification and idempotency.
-- [ ] Add the approval inbox UI and escalation notifications.
+- [ ] Add worker roles (`WORKER_ROLES`: `listener`, `processor`, `indexer`) so that reading mail, processing and indexing can run in separate processes (ADR 0045).
+- [ ] Add the delivery record to the decision (state, the stored request and response, attempts, times, ids and error), and let `drafted` move to `sent` and `failed` (ADR 0046).
+- [ ] Choose the mode when the pipeline ends: deliver as a mailbox draft, or send at once only when every playbook that the decision used is in `send` mode (product decision 0002).
+- [ ] Add `createDraft` and `sendReply` to the Gmail provider, and the `gmail.compose` scope.
+- [ ] Add the `email.deliver` consumer: it writes the record before the call, never repeats a delivery that started, applies the loop and bulk-mail guards, and stores the ids and errors.
+- [ ] Return the outcome and the delivery state with `GET /api/messages`, and the whole decision with `GET /api/messages/:id`.
+- [ ] Add the Processed emails page to the platform: the list with the status filter, and the detail with the email, the reply, the cited playbooks and the delivery record.
+- [ ] Capture the payloads in the telemetry (ADR 0047).
+- [ ] Later: email notifications for an escalation or a failed delivery, and a limit on sends for each hour.
 
 ### F15 Dashboard and report
 

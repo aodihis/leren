@@ -1,8 +1,9 @@
 # 0001. A playbook saves replies as drafts or sends them
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-22
 - Affects: playbooks, the approval inbox, packages/db, apps/api, apps/worker, apps/platform, docs/overview/README.md, docs/plans/0001-auto-reply-roadmap.md
+- Superseded by: [0002](0002-draft-mode-creates-a-mailbox-draft.md)
 
 ## Context
 
