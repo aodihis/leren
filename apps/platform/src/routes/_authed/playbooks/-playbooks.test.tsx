@@ -10,10 +10,12 @@ const playbooksApi = vi.hoisted(() => ({
   ":id": { $get: vi.fn(), $put: vi.fn(), $patch: vi.fn(), $delete: vi.fn() },
 }));
 
+const channelAccountsApi = vi.hoisted(() => ({ $get: vi.fn() }));
+
 vi.mock("../../../modules/auth/auth-client", () => ({ authClient }));
 
 vi.mock("../../../modules/api/api-client", () => ({
-  api: { api: { playbooks: playbooksApi } },
+  api: { api: { playbooks: playbooksApi, "channel-accounts": channelAccountsApi } },
 }));
 
 import { renderApp } from "../../../testing";
@@ -25,8 +27,16 @@ function jsonResponse(body: unknown, status: number) {
   });
 }
 
+const ACCOUNT_ID = "88888888-8888-4888-8888-888888888888";
+
+async function chooseAccount(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("tab", { name: "Rules" }));
+  await user.selectOptions(await screen.findByLabelText("Email account"), ACCOUNT_ID);
+}
+
 const email = {
   channel: "email",
+  channelAccountId: ACCOUNT_ID,
   senderMode: "any",
   senderAllowlist: [],
   replyWhenTo: true,
@@ -90,6 +100,24 @@ describe("playbooks routes", () => {
       error: null,
     });
     playbooksApi.$get.mockImplementation(() => jsonResponse({ playbooks: [] }, 200));
+    channelAccountsApi.$get.mockImplementation(() =>
+      jsonResponse(
+        {
+          providers: [],
+          accounts: [
+            {
+              id: ACCOUNT_ID,
+              channel: "email",
+              provider: "google",
+              label: "me@example.com",
+              status: "active",
+              usable: true,
+            },
+          ],
+        },
+        200,
+      ),
+    );
   });
 
   describe("list", () => {
@@ -157,6 +185,87 @@ describe("playbooks routes", () => {
       expect(await screen.findByText("Could not disable the playbook")).toBeTruthy();
     });
 
+    it("marks a playbook that is on and names no account", async () => {
+      const withoutAccount = { ...active, conditions: [{ ...email, channelAccountId: null }] };
+
+      playbooksApi.$get.mockImplementation(() =>
+        jsonResponse({ playbooks: [withoutAccount, scheduled, disabled] }, 200),
+      );
+
+      await renderApp("/playbooks");
+
+      expect(await screen.findAllByText("No mailbox")).toHaveLength(1);
+    });
+
+    it("marks a playbook that is on and names an account that was revoked", async () => {
+      channelAccountsApi.$get.mockImplementation(() =>
+        jsonResponse(
+          {
+            providers: [],
+            accounts: [
+              {
+                id: ACCOUNT_ID,
+                channel: "email",
+                provider: "google",
+                label: "me@example.com",
+                status: "revoked",
+                usable: false,
+              },
+            ],
+          },
+          200,
+        ),
+      );
+      playbooksApi.$get.mockImplementation(() => jsonResponse({ playbooks: [active] }, 200));
+
+      await renderApp("/playbooks");
+
+      expect(await screen.findAllByText("No mailbox")).toHaveLength(1);
+    });
+
+    it("falls back to a general message when the refusal has no reason", async () => {
+      playbooksApi.$get.mockImplementation(() => jsonResponse({ playbooks: [disabled] }, 200));
+      playbooksApi[":id"].$patch.mockImplementation(
+        () => new Response("<html>Bad request</html>", { status: 400 }),
+      );
+      const user = userEvent.setup();
+
+      await renderApp("/playbooks");
+      await user.click(await screen.findByRole("button", { name: "Enable Gone" }));
+
+      expect(await screen.findByText("Could not enable the playbook")).toBeTruthy();
+    });
+
+    it("shows why a playbook cannot be turned on without an account", async () => {
+      const withoutAccount = { ...disabled, conditions: [{ ...email, channelAccountId: null }] };
+
+      playbooksApi.$get.mockImplementation(() =>
+        jsonResponse({ playbooks: [withoutAccount] }, 200),
+      );
+      playbooksApi[":id"].$patch.mockImplementation(() =>
+        jsonResponse(
+          {
+            fieldErrors: {
+              channelAccountId: [
+                "Choose the account that this playbook answers on, or turn the playbook off",
+              ],
+            },
+          },
+          400,
+        ),
+      );
+      const user = userEvent.setup();
+
+      await renderApp("/playbooks");
+      await user.click(await screen.findByRole("button", { name: "Enable Gone" }));
+
+      expect(
+        await screen.findByText(
+          "Choose the account that this playbook answers on, or turn the playbook off",
+        ),
+      ).toBeTruthy();
+    });
+
     it("deletes a playbook and reloads the list", async () => {
       playbooksApi.$get
         .mockImplementationOnce(() => jsonResponse({ playbooks: [scheduled] }, 200))
@@ -184,7 +293,7 @@ describe("playbooks routes", () => {
       await user.type(screen.getByLabelText("Examples"), "How is it going?{Enter}When?");
       await user.type(screen.getByLabelText("Response"), "On track.");
       await user.type(screen.getByLabelText("Contacts"), "dewi@example.com, @Don");
-      await user.click(screen.getByRole("tab", { name: "Rules" }));
+      await chooseAccount(user);
       await user.click(await screen.findByRole("combobox", { name: "Senders" }));
       await user.click(screen.getByRole("button", { name: "Create playbook" }));
 
@@ -213,7 +322,9 @@ describe("playbooks routes", () => {
       const user = userEvent.setup();
       const router = await renderApp("/playbooks/new");
 
-      await user.click(await screen.findByRole("button", { name: "Create playbook" }));
+      await screen.findByLabelText("Topic");
+      await chooseAccount(user);
+      await user.click(screen.getByRole("button", { name: "Create playbook" }));
 
       expect(await screen.findByText("Enter at least one sender")).toBeTruthy();
       expect(screen.getByRole("tab", { name: "Rules" }).getAttribute("data-state")).toBe("active");
@@ -230,7 +341,9 @@ describe("playbooks routes", () => {
       const user = userEvent.setup();
 
       await renderApp("/playbooks/new");
-      await user.click(await screen.findByRole("button", { name: "Create playbook" }));
+      await screen.findByLabelText("Topic");
+      await chooseAccount(user);
+      await user.click(screen.getByRole("button", { name: "Create playbook" }));
 
       expect(await screen.findByText("Enter a topic")).toBeTruthy();
       expect(screen.getByText("Enter a response")).toBeTruthy();
@@ -241,9 +354,45 @@ describe("playbooks routes", () => {
       const user = userEvent.setup();
 
       await renderApp("/playbooks/new");
-      await user.click(await screen.findByRole("button", { name: "Create playbook" }));
+      await screen.findByLabelText("Topic");
+      await chooseAccount(user);
+      await user.click(screen.getByRole("button", { name: "Create playbook" }));
 
       expect(await screen.findByText("Could not save the playbook")).toBeTruthy();
+    });
+
+    it("asks for an account before it saves a playbook that is on", async () => {
+      const user = userEvent.setup();
+      const router = await renderApp("/playbooks/new");
+
+      await user.click(await screen.findByRole("button", { name: "Create playbook" }));
+
+      expect(
+        await screen.findByText(
+          "Choose the account that this playbook answers on, or turn the playbook off",
+        ),
+      ).toBeTruthy();
+      expect(screen.getByRole("tab", { name: "Rules" }).getAttribute("data-state")).toBe("active");
+      expect(playbooksApi.$post).not.toHaveBeenCalled();
+      expect(router.state.location.pathname).toBe("/playbooks/new");
+    });
+
+    it("shows the account error of the API next to the account field", async () => {
+      playbooksApi.$post.mockResolvedValue(
+        jsonResponse(
+          { fieldErrors: { channelAccountId: ["Choose one of your own connected accounts"] } },
+          400,
+        ),
+      );
+      const user = userEvent.setup();
+
+      await renderApp("/playbooks/new");
+      await screen.findByLabelText("Topic");
+      await chooseAccount(user);
+      await user.click(screen.getByRole("button", { name: "Create playbook" }));
+
+      expect(await screen.findByText("Choose one of your own connected accounts")).toBeTruthy();
+      expect(screen.getByRole("tab", { name: "Rules" }).getAttribute("data-state")).toBe("active");
     });
   });
 

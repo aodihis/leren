@@ -5,6 +5,7 @@ const evals: Record<string, () => Promise<unknown>> = {
   "write-confirmation": () => import("./write-confirmation"),
   "tool-use": () => import("./tool-use"),
   scope: () => import("./scope"),
+  account: () => import("./account"),
   clarification: () => import("./clarification"),
   faithfulness: () => import("./faithfulness"),
 };

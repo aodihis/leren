@@ -22,8 +22,11 @@ function isTimezone(timezone: string): boolean {
 /**
  * The conditions of the `email` channel. A sender allowlist holds full addresses and `@domain`
  * entries. `channelAccountId` names the channel account that the playbook listens on, and null or
- * absent means none. The service rejects an account that does not belong to the playbook's owner
- * or is on another channel (decision 0038). `replyMode` says what happens to a reply: `draft` saves
+ * absent means none. A playbook that is enabled must name one, and a new or newly enabled playbook
+ * must name an active one (decision 0044). The schema cannot check this, because it depends on the
+ * stored state of the playbook and of the account, so the service enforces it for the web routes and
+ * the assistant tools alike. The service also rejects an account that does not belong to the
+ * playbook's owner or is on another channel (decision 0038). `replyMode` says what happens to a reply: `draft` saves
  * it for the user to approve and `send` sends it without approval. A request that leaves it out
  * gets `draft` (decision 0039).
  */

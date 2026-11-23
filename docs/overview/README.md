@@ -32,7 +32,7 @@ The rules part has an optional start, an optional end, a timezone and conditions
 
 ## Enabling and derived status
 
-A playbook is enabled or disabled. The assistant may use a playbook only when it is enabled and the current time is inside its period. The user turns a playbook on or off in the list.
+A playbook is enabled or disabled. The assistant may use a playbook only when it is enabled and the current time is inside its period. The user turns a playbook on or off in the list. A playbook that is on must name the connected email account that it answers on, because the gate passes an email only to the playbooks of the account that received it. The API refuses to save or turn on a playbook without one, the assistant uses the user's only account when it creates a playbook, and the list marks a playbook that is on and has none as "No mailbox" (decision 0044).
 
 The period status is computed from the start, the end and the current time. It is never stored.
 

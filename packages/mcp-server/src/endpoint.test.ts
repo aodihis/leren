@@ -259,6 +259,7 @@ describe("MCP endpoint", () => {
           channel: "email",
           senderMode: "allowlist",
           senderAllowlist: ["a@example.com-friend@x.com"],
+          channelAccountId: null,
         },
       ]);
     });

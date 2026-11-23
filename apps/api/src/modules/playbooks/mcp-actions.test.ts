@@ -1,4 +1,4 @@
-import { replyConditions, users } from "@leren/db";
+import { channelAccounts, playbooks, replyConditions, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { eq, sql } from "drizzle-orm";
@@ -23,6 +23,7 @@ describe("playbook MCP actions", () => {
   let database: TestDatabase;
   let userId: string;
   let otherUserId: string;
+  let accountId: string;
   let actions: ReturnType<typeof createPlaybookMcpActions>;
   const requestIndex = vi.fn(async (_playbookId: string) => {});
 
@@ -43,8 +44,26 @@ describe("playbook MCP actions", () => {
       .values([{ email: "a@example.com" }, { email: "b@example.com" }])
       .returning({ id: users.id });
 
+    accountId = await addAccount(userId, "a@example.com");
+
     actions = createPlaybookMcpActions(database.db, requestIndex);
   });
+
+  async function addAccount(owner: string, label: string, status: "active" | "revoked" = "active") {
+    const [account] = await database.db
+      .insert(channelAccounts)
+      .values({
+        userId: owner,
+        channel: "email",
+        provider: "google",
+        providerAccountId: `sub-${label}`,
+        label,
+        status,
+      })
+      .returning({ id: channelAccounts.id });
+
+    return account?.id ?? "";
+  }
 
   async function newPlaybook() {
     return (await run(actions.createPlaybook, userId, {
@@ -54,6 +73,16 @@ describe("playbook MCP actions", () => {
       examples: ["Where can I park?"],
     })) as Saved;
   }
+
+  const create = (extra: Record<string, unknown> = {}) =>
+    run(actions.createPlaybook, userId, {
+      topic: "Parking",
+      response: "Free parking",
+      timezone: "UTC",
+      ...extra,
+    });
+
+  const playbookCount = async () => (await database.db.select().from(playbooks)).length;
 
   describe("createPlaybook", () => {
     it("saves an enabled playbook with the email defaults and asks for it to be indexed", async () => {
@@ -71,9 +100,75 @@ describe("playbook MCP actions", () => {
         contacts: [],
         startsAt: null,
         endsAt: null,
-        conditions: [{ channel: "email", senderMode: "any", replyWhenTo: true }],
+        conditions: [
+          { channel: "email", senderMode: "any", replyWhenTo: true, channelAccountId: accountId },
+        ],
       });
       expect(requestIndex).toHaveBeenCalledWith(created.id);
+    });
+
+    describe("the account of a playbook that is on (decision 0044)", () => {
+      it("tells the assistant to ask the user to connect an account when there is none", async () => {
+        await database.db.delete(channelAccounts);
+
+        const result = await create();
+
+        expect(result).toMatchObject({ status: "invalid" });
+        expect((result as { message: string }).message).toContain("no connected email account");
+        expect(await playbookCount()).toBe(0);
+        expect(requestIndex).not.toHaveBeenCalled();
+      });
+
+      it("lists the accounts, with their ids, when the user has several", async () => {
+        const second = await addAccount(userId, "second@example.com");
+        const result = (await create()) as { status: string; message: string };
+
+        expect(result.status).toBe("invalid");
+        expect(result.message).toContain(`a@example.com (${accountId})`);
+        expect(result.message).toContain(`second@example.com (${second})`);
+        expect(await playbookCount()).toBe(0);
+      });
+
+      it("uses the account that the assistant names", async () => {
+        const second = await addAccount(userId, "second@example.com");
+
+        const created = (await create({
+          conditions: [{ channel: "email", channelAccountId: second }],
+        })) as Saved;
+
+        expect(created.data).toMatchObject({ conditions: [{ channelAccountId: second }] });
+      });
+
+      it("refuses an account of another user", async () => {
+        const foreign = await addAccount(otherUserId, "b@example.com");
+
+        const result = await create({
+          conditions: [{ channel: "email", channelAccountId: foreign }],
+        });
+
+        expect(result).toMatchObject({ status: "invalid" });
+        expect((result as { message: string }).message).toContain("not one of the user");
+        expect(await playbookCount()).toBe(0);
+      });
+
+      it("ignores a revoked account when it chooses the only account", async () => {
+        await addAccount(userId, "old@example.com", "revoked");
+
+        const created = (await create()) as Saved;
+
+        expect(created.data).toMatchObject({ conditions: [{ channelAccountId: accountId }] });
+      });
+
+      it("saves a playbook that is off without an account", async () => {
+        await database.db.delete(channelAccounts);
+
+        const created = (await create({ enabled: false })) as Saved;
+
+        expect(created.data).toMatchObject({
+          enabled: false,
+          conditions: [{ channelAccountId: null }],
+        });
+      });
     });
 
     it("applies the conditions that the caller names on top of the defaults", async () => {
@@ -162,6 +257,100 @@ describe("playbook MCP actions", () => {
 
       expect(result).toMatchObject({ status: "invalid" });
       expect(unchanged.data).toMatchObject({ topic: "Parking" });
+    });
+
+    it("gives a playbook that has no account the only account when it is changed while on", async () => {
+      const created = await newPlaybook();
+
+      await database.db
+        .update(replyConditions)
+        .set({ channelAccountId: null })
+        .where(eq(replyConditions.playbookId, created.id));
+
+      const updated = (await run(actions.updatePlaybook, userId, {
+        playbookId: created.id,
+        response: "Free parking after 5 pm",
+      })) as Saved;
+
+      expect(updated.data).toMatchObject({ conditions: [{ channelAccountId: accountId }] });
+    });
+
+    it("keeps a revoked account so that a playbook that is on can still be edited", async () => {
+      const created = await newPlaybook();
+
+      await database.db
+        .update(channelAccounts)
+        .set({ status: "revoked" })
+        .where(eq(channelAccounts.id, accountId));
+
+      const updated = (await run(actions.updatePlaybook, userId, {
+        playbookId: created.id,
+        response: "Free parking after 5 pm",
+      })) as Saved;
+
+      expect(updated.data).toMatchObject({
+        response: "Free parking after 5 pm",
+        conditions: [{ channelAccountId: accountId }],
+      });
+    });
+
+    it("lists the active accounts when the assistant names a revoked account that the playbook does not use", async () => {
+      const created = await newPlaybook();
+      const old = await addAccount(userId, "old@example.com", "revoked");
+
+      const result = (await run(actions.updatePlaybook, userId, {
+        playbookId: created.id,
+        conditions: [{ channel: "email", channelAccountId: old }],
+      })) as { status: string; message: string };
+
+      expect(result.status).toBe("invalid");
+      expect(result.message).toContain(`The account ${old} is not one of the user`);
+      expect(result.message).toContain(`a@example.com (${accountId})`);
+    });
+
+    it("needs an active account when a playbook is turned on", async () => {
+      const created = (await run(actions.createPlaybook, userId, {
+        topic: "Parking",
+        response: "Free parking",
+        timezone: "UTC",
+        enabled: false,
+      })) as Saved;
+
+      await database.db
+        .update(replyConditions)
+        .set({ channelAccountId: accountId })
+        .where(eq(replyConditions.playbookId, created.id));
+      await database.db
+        .update(channelAccounts)
+        .set({ status: "revoked" })
+        .where(eq(channelAccounts.id, accountId));
+
+      const result = (await run(actions.updatePlaybook, userId, {
+        playbookId: created.id,
+        enabled: true,
+      })) as { status: string; message: string };
+
+      expect(result.status).toBe("invalid");
+      expect(result.message).toContain("no connected email account");
+    });
+
+    it("asks which account to use when a playbook with none is turned on and there are several", async () => {
+      const created = (await run(actions.createPlaybook, userId, {
+        topic: "Parking",
+        response: "Free parking",
+        timezone: "UTC",
+        enabled: false,
+      })) as Saved;
+
+      await addAccount(userId, "second@example.com");
+
+      const result = await run(actions.updatePlaybook, userId, {
+        playbookId: created.id,
+        enabled: true,
+      });
+
+      expect(result).toMatchObject({ status: "invalid" });
+      expect((result as { message: string }).message).toContain("several email accounts");
     });
 
     it("refuses an empty change, another user's playbook and a missing playbook", async () => {

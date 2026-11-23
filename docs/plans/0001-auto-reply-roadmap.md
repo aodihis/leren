@@ -174,7 +174,7 @@ Status: In progress. Branch: `feat/13-reply-agent`.
 - [x] Add `MCP_SESSION_SECRET` and `MCP_URL` to the worker config. The worker does not consume `email.process` when the secret, the models or the prompt are not available.
 - [x] Create one observer in the worker, pass it to the pipeline, flush it after each message and close it in the worker's `shutdown`, so that the last batch of telemetry is delivered.
 - [ ] Later: reply instructions written by the user (needs a product decision) and reply templates.
-- [ ] Require a channel account for an enabled playbook (ADR 0044): validate in the API schema and service, let the assistant tools take the account and default to the only one, update the assistant prompt, mark playbooks without a mailbox in the list, and add assistant eval cases. Found when a playbook created in the chat never handled an email, because the chat tool could not name a mailbox.
+- [x] Require a channel account for an enabled playbook (ADR 0044): validate in the API schema and service, let the assistant tools take the account and default to the only one, update the assistant prompt, mark playbooks without a mailbox in the list, and add assistant eval cases. Found when a playbook created in the chat never handled an email, because the chat tool could not name a mailbox.
 
 ### F14 Reply delivery
 

@@ -2,7 +2,7 @@ import { getAutoReplyStatus } from "@leren/auto-reply";
 import { channelAccounts, playbooks, replyConditions } from "@leren/db";
 import type { Db } from "@leren/db";
 import { isKnowledgeUsable } from "@leren/knowledge";
-import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 
 import type { PlaybookInput, PlaybookListQuery, ReplyConditionsInput } from "./schema";
 
@@ -93,30 +93,51 @@ function toRows(input: PlaybookInput) {
 }
 
 /**
- * Thrown when a playbook names a channel account that does not exist, belongs to another user or
- * is on another channel than the conditions that name it. The write is rolled back.
+ * Thrown when a playbook names a channel account that does not exist, belongs to another user, is on
+ * another channel than the conditions that name it, or is not active while the playbook is on. The
+ * message is written for the user. The write is rolled back.
  */
 export class ChannelAccountUnavailableError extends Error {
   constructor() {
-    super("The channel account is not available");
+    super("Choose one of your own connected accounts");
     this.name = "ChannelAccountUnavailableError";
   }
 }
 
 /**
+ * Thrown when an enabled playbook has conditions for a channel and does not name a channel account
+ * for them (decision 0044). The message is written for the user. The write is rolled back.
+ */
+export class ChannelAccountRequiredError extends Error {
+  constructor() {
+    super("Choose the account that this playbook answers on, or turn the playbook off");
+    this.name = "ChannelAccountRequiredError";
+  }
+}
+
+/**
  * Checks that every channel account named by `conditions` belongs to `userId` and is on the
- * channel of the entry that names it. It runs inside the write's transaction, so a playbook never
- * listens through another user's account. The account row is locked with `FOR KEY SHARE`, so a
- * disconnect waits until the transaction commits and then clears the new reference through the
- * foreign key's `ON DELETE SET NULL`.
+ * channel of the entry that names it. When `enabled` is true, every entry must also name an account,
+ * because a playbook that is on and has none handles no email (decision 0044). A disabled playbook
+ * may have no account. When `requireActive` is true the account must also be active. A playbook
+ * that is created or turned on needs an active account, and a playbook that is replaced does not,
+ * so that its owner can still edit it after the account was revoked. It runs inside the write's
+ * transaction, so a playbook never listens through another user's account. The account row is
+ * locked with `FOR KEY SHARE`, so a disconnect waits until the transaction commits and then clears
+ * the new reference through the foreign key's `ON DELETE SET NULL`.
  */
 async function assertAccountsAvailable(
   tx: Pick<Db, "select">,
   userId: string,
   conditions: { channel: string; channelAccountId: string | null }[],
+  rule: { enabled: boolean; requireActive: boolean },
 ): Promise<void> {
   for (const entry of conditions) {
     if (entry.channelAccountId === null) {
+      if (rule.enabled) {
+        throw new ChannelAccountRequiredError();
+      }
+
       continue;
     }
 
@@ -128,6 +149,7 @@ async function assertAccountsAvailable(
           eq(channelAccounts.id, entry.channelAccountId),
           eq(channelAccounts.userId, userId),
           eq(channelAccounts.channel, entry.channel),
+          rule.requireActive ? eq(channelAccounts.status, "active") : undefined,
         ),
       )
       .for("key share");
@@ -218,7 +240,10 @@ export async function createPlaybook(
   const { playbook, conditions } = toRows(input);
 
   return db.transaction(async (tx) => {
-    await assertAccountsAvailable(tx, userId, conditions);
+    await assertAccountsAvailable(tx, userId, conditions, {
+      enabled: playbook.enabled,
+      requireActive: playbook.enabled,
+    });
 
     const [created] = await tx
       .insert(playbooks)
@@ -235,8 +260,9 @@ export async function createPlaybook(
 }
 
 /**
- * Replaces a playbook and its conditions, including the account of each channel. A channel that the input leaves out loses its
- * conditions. Returns `not_found` when the playbook does not exist or belongs to another user, in
+ * Replaces a playbook and its conditions, including the account of each channel. An enabled
+ * playbook may keep an account that was revoked, unless the replacement turns the playbook on. A
+ * channel that the input leaves out loses its conditions. Returns `not_found` when the playbook does not exist or belongs to another user, in
  * which case nothing is written.
  */
 export async function updatePlaybook(
@@ -249,7 +275,20 @@ export async function updatePlaybook(
   const { playbook, conditions } = toRows(input);
 
   return db.transaction(async (tx) => {
-    await assertAccountsAvailable(tx, userId, conditions);
+    const [current] = await tx
+      .select({ enabled: playbooks.enabled })
+      .from(playbooks)
+      .where(and(eq(playbooks.id, id), eq(playbooks.userId, userId)))
+      .for("update");
+
+    if (!current) {
+      return { status: "not_found" };
+    }
+
+    await assertAccountsAvailable(tx, userId, conditions, {
+      enabled: playbook.enabled,
+      requireActive: playbook.enabled && !current.enabled,
+    });
 
     const [updated] = await tx
       .update(playbooks)
@@ -290,7 +329,9 @@ export async function updatePlaybook(
 
 /**
  * Turns a playbook on or off without touching anything else. Returns `not_found` when the playbook
- * does not exist or belongs to another user.
+ * does not exist or belongs to another user. Turning a playbook on checks, in the same transaction,
+ * that every channel of its conditions names an active account of the owner, and throws
+ * `ChannelAccountRequiredError` or `ChannelAccountUnavailableError` otherwise (decision 0044).
  */
 export async function setPlaybookEnabled(
   db: Db,
@@ -299,15 +340,62 @@ export async function setPlaybookEnabled(
   enabled: boolean,
   now = new Date(),
 ): Promise<PlaybookResult> {
-  const [updated] = await db
-    .update(playbooks)
-    .set({ enabled, updatedAt: now })
-    .where(and(eq(playbooks.id, id), eq(playbooks.userId, userId)))
-    .returning({ id: playbooks.id });
+  const updated = await db.transaction(async (tx) => {
+    const [owned] = await tx
+      .select({ id: playbooks.id })
+      .from(playbooks)
+      .where(and(eq(playbooks.id, id), eq(playbooks.userId, userId)))
+      .for("update");
+
+    if (!owned) {
+      return false;
+    }
+
+    if (enabled) {
+      const conditions = await tx
+        .select({
+          channel: replyConditions.channel,
+          channelAccountId: replyConditions.channelAccountId,
+        })
+        .from(replyConditions)
+        .where(eq(replyConditions.playbookId, id));
+
+      await assertAccountsAvailable(tx, userId, conditions, { enabled: true, requireActive: true });
+    }
+
+    await tx.update(playbooks).set({ enabled, updatedAt: now }).where(eq(playbooks.id, id));
+
+    return true;
+  });
 
   const view = updated ? await getPlaybook(db, userId, id, now) : null;
 
   return view ? { status: "saved", playbook: view } : { status: "not_found" };
+}
+
+/** A connected account of a user, as the assistant needs to choose between them. */
+export type ActiveAccount = { id: string; label: string };
+
+/**
+ * Lists the user's active accounts on a channel, oldest first. A playbook that is on can only name
+ * one of these (decision 0044).
+ */
+export async function listActiveAccounts(
+  db: Db,
+  userId: string,
+  channel: string,
+): Promise<ActiveAccount[]> {
+  return db
+    .select({ id: channelAccounts.id, label: channelAccounts.label })
+    .from(channelAccounts)
+    .where(
+      and(
+        eq(channelAccounts.userId, userId),
+        eq(channelAccounts.channel, channel),
+        eq(channelAccounts.status, "active"),
+      ),
+    )
+    .orderBy(asc(channelAccounts.createdAt));
 }
 
 /**

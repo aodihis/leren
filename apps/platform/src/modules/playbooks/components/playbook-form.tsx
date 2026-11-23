@@ -69,7 +69,11 @@ const ERROR_FIELDS = {
   startsAt: { field: "startsAt", tab: null },
   endsAt: { field: "endsAt", tab: null },
   conditions: { field: "email.senderAllowlist", tab: "rules" },
+  channelAccountId: { field: "email.channelAccountId", tab: "rules" },
 } as const;
+
+const ACCOUNT_REQUIRED =
+  "Choose the account that this playbook answers on, or turn the playbook off";
 
 /**
  * Returns the IANA timezone that the browser is set to.
@@ -137,6 +141,13 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
   const mentionOverrides = useWatch({ control: form.control, name: "email.mentionOverrides" });
 
   async function handleSubmit(values: PlaybookFormValues) {
+    if (values.enabled && !values.email.channelAccountId) {
+      form.setError("email.channelAccountId", { message: ACCOUNT_REQUIRED });
+      setTab("rules");
+
+      return;
+    }
+
     const json = toRequestBody(values);
     const playbooks = api.api.playbooks;
 
@@ -322,7 +333,7 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                             value={field.value ?? ""}
                             onChange={(event) => field.onChange(event.target.value || null)}
                           >
-                            <NativeSelectOption value="">No account chosen</NativeSelectOption>
+                            <NativeSelectOption value="">Choose an account</NativeSelectOption>
                             {accounts
                               .filter((account) => account.channel === "email")
                               .map((account) => (
@@ -333,8 +344,8 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                           </NativeSelect>
                         </FormControl>
                         <FormDescription>
-                          The connected account that this playbook answers on. Connect accounts on
-                          the Channels page.
+                          The connected account that this playbook answers on. It is required while
+                          the playbook is enabled. Connect accounts on the Channels page.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
