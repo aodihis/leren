@@ -91,23 +91,60 @@ describe("playbooks API", () => {
       body: JSON.stringify(payload),
     });
 
+  const defaultAccounts = new Map<string, string>();
+
+  const ensureDefaultAccount = async (email: string) => {
+    const [existing] = await database.db
+      .select({ id: channelAccounts.id })
+      .from(channelAccounts)
+      .where(eq(channelAccounts.providerAccountId, `default-${email}`));
+
+    return existing?.id ?? addAccount(email, `default-${email}`);
+  };
+
   const signIn = async (email: string) => {
     await post("/api/auth/email-otp/send-verification-otp", { email, type: "sign-in" });
 
     const otp = /\b\d{6}\b/.exec(sender.sent.at(-1)?.text ?? "")?.[0];
     const response = await post("/api/auth/sign-in/email-otp", { email, otp });
 
-    return response.headers
+    const cookie = response.headers
       .getSetCookie()
       .map((value) => value.split(";")[0])
       .join("; ");
+
+    defaultAccounts.set(cookie, await ensureDefaultAccount(email));
+
+    return cookie;
   };
+
+  /**
+   * Names the user's own account in every entry of a request that does not mention one, because an
+   * enabled playbook must have an account (decision 0044). A test that wants no account passes
+   * `null`.
+   */
+  function withDefaultAccount(cookie: string, payload: unknown): unknown {
+    const conditions = (payload as { conditions?: unknown } | null)?.conditions;
+
+    if (!Array.isArray(conditions)) {
+      return payload;
+    }
+
+    return {
+      ...(payload as object),
+      conditions: conditions.map((entry: { channelAccountId?: string | null }) =>
+        entry.channelAccountId === undefined
+          ? { ...entry, channelAccountId: defaultAccounts.get(cookie) }
+          : entry,
+      ),
+    };
+  }
 
   const call = (cookie: string, method: string, path: string, payload?: unknown) =>
     app.request(path, {
       method,
       headers: { "content-type": "application/json", cookie },
-      body: payload === undefined ? undefined : JSON.stringify(payload),
+      body: payload === undefined ? undefined : JSON.stringify(withDefaultAccount(cookie, payload)),
     });
 
   const create = async (cookie: string, overrides: Partial<PlaybookInput> = {}) => {
@@ -196,7 +233,7 @@ describe("playbooks API", () => {
         playbook: {
           ...validBody,
           id: expect.any(String),
-          conditions: [{ ...validEmail, channelAccountId: null }],
+          conditions: [{ ...validEmail, channelAccountId: expect.any(String) }],
           contacts: ["dewi@example.com", "@Don"],
           periodStatus: "active",
           usable: true,
@@ -254,7 +291,7 @@ describe("playbooks API", () => {
       await signIn("lender@example.com");
 
       const foreign = await addAccount("lender@example.com", "sub-lender");
-      const own = await create(cookie, withAccount(null));
+      const own = await create(cookie, { ...withAccount(null), enabled: false });
 
       const created = await call(cookie, "POST", PATH, body(withAccount(foreign)));
       const replaced = await call(cookie, "PUT", `${PATH}/${own.id}`, body(withAccount(foreign)));
@@ -262,7 +299,7 @@ describe("playbooks API", () => {
       expect(created.status).toBe(400);
       expect(replaced.status).toBe(400);
       expect(await replaced.json()).toEqual({
-        fieldErrors: { conditions: ["Choose one of your own channel accounts"] },
+        fieldErrors: { channelAccountId: ["Choose one of your own connected accounts"] },
       });
 
       const [row] = await database.db
@@ -283,6 +320,84 @@ describe("playbooks API", () => {
 
         expect(response.status).toBe(400);
       }
+    });
+
+    describe("the account of an enabled playbook (decision 0044)", () => {
+      const REQUIRED = "Choose the account that this playbook answers on, or turn the playbook off";
+
+      it("rejects an enabled playbook without an account on create and on replace", async () => {
+        const cookie = await signIn("needs-account@example.com");
+        const own = await create(cookie, { ...withAccount(null), enabled: false });
+
+        const created = await call(cookie, "POST", PATH, body(withAccount(null)));
+        const replaced = await call(cookie, "PUT", `${PATH}/${own.id}`, body(withAccount(null)));
+
+        for (const response of [created, replaced]) {
+          expect(response.status).toBe(400);
+          expect(await response.json()).toEqual({ fieldErrors: { channelAccountId: [REQUIRED] } });
+        }
+
+        const listed = (await (await call(cookie, "GET", PATH)).json()).playbooks as Created[];
+
+        expect(listed).toHaveLength(1);
+        expect(listed[0]?.enabled).toBe(false);
+      });
+
+      it("accepts a disabled playbook without an account", async () => {
+        const cookie = await signIn("draft-playbook@example.com");
+        const created = await create(cookie, { ...withAccount(null), enabled: false });
+
+        expect(created).toMatchObject({ enabled: false });
+      });
+
+      it("refuses to turn a playbook on until it names an account, and turns it off at any time", async () => {
+        const cookie = await signIn("toggler@example.com");
+        const own = await create(cookie, { ...withAccount(null), enabled: false });
+
+        const indexRequests = requestKnowledgeIndex.mock.calls.length;
+        const refused = await setEnabled(cookie, own.id, true);
+
+        expect(refused.status).toBe(400);
+        expect(await refused.json()).toEqual({ error: REQUIRED });
+        expect(requestKnowledgeIndex.mock.calls).toHaveLength(indexRequests);
+
+        const named = await call(cookie, "PUT", `${PATH}/${own.id}`, body({ enabled: false }));
+
+        expect(named.status).toBe(200);
+        expect((await setEnabled(cookie, own.id, true)).status).toBe(200);
+
+        await database.db
+          .update(replyConditions)
+          .set({ channelAccountId: null })
+          .where(eq(replyConditions.playbookId, own.id));
+
+        expect((await setEnabled(cookie, own.id, false)).status).toBe(200);
+      });
+
+      it("rejects a revoked account for an enabled playbook and accepts it for a disabled one", async () => {
+        const cookie = await signIn("revoked@example.com");
+        const accountId = await addAccount("revoked@example.com", "sub-revoked");
+
+        await database.db
+          .update(channelAccounts)
+          .set({ status: "revoked" })
+          .where(eq(channelAccounts.id, accountId));
+
+        const enabled = await call(cookie, "POST", PATH, body(withAccount(accountId)));
+
+        const disabled = await call(
+          cookie,
+          "POST",
+          PATH,
+          body({ ...withAccount(accountId), enabled: false }),
+        );
+
+        expect(enabled.status).toBe(400);
+        expect(await enabled.json()).toEqual({
+          fieldErrors: { channelAccountId: ["Choose one of your own connected accounts"] },
+        });
+        expect(disabled.status).toBe(201);
+      });
     });
 
     it("keeps the playbook but drops the choice when the account is deleted", async () => {

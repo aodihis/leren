@@ -26,4 +26,4 @@ The API accepts such a playbook without a complaint, so nothing tells the user. 
 - A user who has not connected a mailbox cannot enable a playbook. The assistant tells them to connect one first.
 - A user with a second account on the channel, if a later decision allows it, is asked which one to use.
 - The decision narrows the meaning of "none" in decision 0038 to disabled playbooks. It does not change the table, and the gate stays as it is.
-- Nothing in this decision is built yet. The roadmap has the work as one item.
+- The API enforces the rule when a playbook is created, replaced or turned on, and the web form, the assistant tools and the playbook list follow it.

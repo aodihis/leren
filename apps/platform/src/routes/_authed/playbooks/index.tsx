@@ -1,6 +1,7 @@
 import {
   Alert,
   AlertDescription,
+  Badge,
   Button,
   Table,
   TableBody,
@@ -14,12 +15,16 @@ import { useState } from "react";
 
 import { api } from "../../../modules/api/api-client";
 import { PlaybookStatusBadge } from "../../../modules/playbooks/components/playbook-status-badge";
-import { getPlaybookStatus } from "../../../modules/playbooks/status";
+import { getPlaybookStatus, hasNoMailbox } from "../../../modules/playbooks/status";
+import { loadChannelAccounts } from "../../../modules/channels/load-channel-accounts";
 import type { Playbook } from "../../../modules/playbooks/types";
 
 export const Route = createFileRoute("/_authed/playbooks/")({
   loader: async () => {
-    const response = await api.api.playbooks.$get({ query: {} });
+    const [response, activeAccountIds] = await Promise.all([
+      api.api.playbooks.$get({ query: {} }),
+      loadActiveAccountIds(),
+    ]);
 
     if (!response.ok) {
       throw new Error("Could not load your playbooks.");
@@ -27,10 +32,24 @@ export const Route = createFileRoute("/_authed/playbooks/")({
 
     const { playbooks } = await response.json();
 
-    return playbooks;
+    return { playbooks, activeAccountIds };
   },
   component: PlaybooksPage,
 });
+
+/**
+ * Loads the ids of the user's active accounts, or `null` when they cannot be loaded, so that the
+ * list still opens and then flags only a playbook that names no account.
+ */
+async function loadActiveAccountIds(): Promise<ReadonlySet<string> | null> {
+  try {
+    const { accounts } = await loadChannelAccounts();
+
+    return new Set(accounts.filter((account) => account.status === "active").map((a) => a.id));
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Describes the period of a playbook in its own timezone, or says that it has no bounds.
@@ -53,7 +72,7 @@ function describePeriod(playbook: Playbook): string {
 }
 
 function PlaybooksPage() {
-  const playbooks = Route.useLoaderData();
+  const { playbooks, activeAccountIds } = Route.useLoaderData();
   const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -65,7 +84,18 @@ function PlaybooksPage() {
       json: { enabled },
     });
 
-    setFailure(response.ok ? null : `Could not ${enabled ? "enable" : "disable"} the playbook`);
+    const failed = `Could not ${enabled ? "enable" : "disable"} the playbook`;
+
+    if (response.status === 400) {
+      const body: unknown = await response.json().catch(() => null);
+      const reason = (body as { error?: unknown } | null)?.error;
+
+      setFailure(typeof reason === "string" ? reason : failed);
+
+      return;
+    }
+
+    setFailure(response.ok ? null : failed);
 
     if (response.ok) {
       await router.invalidate();
@@ -122,7 +152,18 @@ function PlaybooksPage() {
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <PlaybookStatusBadge status={getPlaybookStatus(playbook)} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PlaybookStatusBadge status={getPlaybookStatus(playbook)} />
+                    {hasNoMailbox(playbook, activeAccountIds) ? (
+                      <Badge
+                        variant="secondary"
+                        className="bg-warning-soft text-warning"
+                        title="This playbook answers no email until you choose an email account on its Rules tab."
+                      >
+                        No mailbox
+                      </Badge>
+                    ) : null}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{describePeriod(playbook)}</TableCell>
                 <TableCell className="space-x-2 text-right">

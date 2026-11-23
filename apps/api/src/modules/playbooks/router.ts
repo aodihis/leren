@@ -12,6 +12,7 @@ import {
   playbookSchema,
 } from "./schema";
 import {
+  ChannelAccountRequiredError,
   ChannelAccountUnavailableError,
   createPlaybook,
   deletePlaybook,
@@ -21,20 +22,44 @@ import {
   updatePlaybook,
 } from "./service";
 
-const UNAVAILABLE_ACCOUNT_ERRORS: Record<string, string[] | undefined> = {
-  conditions: ["Choose one of your own channel accounts"],
-};
-
 /**
- * Turns the error of a playbook that names an account its owner may not use into `undefined`, so
- * that the route answers with a field error. Any other error is thrown again.
+ * Turns the error of a playbook whose account is missing or may not be used into its message, which
+ * is written for the user, so that the route answers with a field error (decision 0044). Any other
+ * error is thrown again.
  */
-function rejectUnavailableAccount(error: unknown): undefined {
-  if (error instanceof ChannelAccountUnavailableError) {
-    return undefined;
+function describeAccountError(error: unknown): string {
+  if (
+    error instanceof ChannelAccountRequiredError ||
+    error instanceof ChannelAccountUnavailableError
+  ) {
+    return error.message;
   }
 
   throw error;
+}
+
+/**
+ * The body of a 400 answer for a rejected account. It has the type of the field errors that request
+ * validation returns, so that a client sees one shape for every 400 of a playbook route.
+ */
+function accountFieldErrors(message: string): {
+  fieldErrors: Record<string, string[] | undefined>;
+} {
+  return { fieldErrors: { channelAccountId: [message] } };
+}
+
+type Attempt<Value> = { ok: true; value: Value } | { ok: false; message: string };
+
+/**
+ * Runs a write and reports a rejected account as a message and not as an error, so that the route
+ * can answer with a field error. Any other failure is thrown again.
+ */
+async function attempt<Value>(write: Promise<Value>): Promise<Attempt<Value>> {
+  try {
+    return { ok: true, value: await write };
+  } catch (error) {
+    return { ok: false, message: describeAccountError(error) };
+  }
 }
 
 /**
@@ -58,17 +83,15 @@ export function createPlaybooksRouter(
       return c.json({ playbooks }, 200);
     })
     .post("/api/playbooks", validate("json", playbookSchema), async (c) => {
-      const playbook = await createPlaybook(db, c.get("userId"), c.req.valid("json")).catch(
-        rejectUnavailableAccount,
-      );
+      const created = await attempt(createPlaybook(db, c.get("userId"), c.req.valid("json")));
 
-      if (!playbook) {
-        return c.json({ fieldErrors: UNAVAILABLE_ACCOUNT_ERRORS }, 400);
+      if (!created.ok) {
+        return c.json(accountFieldErrors(created.message), 400);
       }
 
-      await requestIndex(playbook.id);
+      await requestIndex(created.value.id);
 
-      return c.json({ playbook }, 201);
+      return c.json({ playbook: created.value }, 201);
     })
     .get("/api/playbooks/:id", validate("param", playbookParamsSchema), async (c) => {
       const playbook = await getPlaybook(db, c.get("userId"), c.req.valid("param").id);
@@ -80,24 +103,21 @@ export function createPlaybooksRouter(
       validate("param", playbookParamsSchema),
       validate("json", playbookSchema),
       async (c) => {
-        const result = await updatePlaybook(
-          db,
-          c.get("userId"),
-          c.req.valid("param").id,
-          c.req.valid("json"),
-        ).catch(rejectUnavailableAccount);
+        const updated = await attempt(
+          updatePlaybook(db, c.get("userId"), c.req.valid("param").id, c.req.valid("json")),
+        );
 
-        if (!result) {
-          return c.json({ fieldErrors: UNAVAILABLE_ACCOUNT_ERRORS }, 400);
+        if (!updated.ok) {
+          return c.json(accountFieldErrors(updated.message), 400);
         }
 
-        if (result.status !== "saved") {
+        if (updated.value.status !== "saved") {
           return c.json({ error: "Not found" }, 404);
         }
 
-        await requestIndex(result.playbook.id);
+        await requestIndex(updated.value.playbook.id);
 
-        return c.json({ playbook: result.playbook }, 200);
+        return c.json({ playbook: updated.value.playbook }, 200);
       },
     )
     .patch(
@@ -105,20 +125,26 @@ export function createPlaybooksRouter(
       validate("param", playbookParamsSchema),
       validate("json", playbookEnabledSchema),
       async (c) => {
-        const result = await setPlaybookEnabled(
-          db,
-          c.get("userId"),
-          c.req.valid("param").id,
-          c.req.valid("json").enabled,
+        const toggled = await attempt(
+          setPlaybookEnabled(
+            db,
+            c.get("userId"),
+            c.req.valid("param").id,
+            c.req.valid("json").enabled,
+          ),
         );
 
-        if (result.status !== "saved") {
+        if (!toggled.ok) {
+          return c.json({ error: toggled.message }, 400);
+        }
+
+        if (toggled.value.status !== "saved") {
           return c.json({ error: "Not found" }, 404);
         }
 
-        await requestIndex(result.playbook.id);
+        await requestIndex(toggled.value.playbook.id);
 
-        return c.json({ playbook: result.playbook }, 200);
+        return c.json({ playbook: toggled.value.playbook }, 200);
       },
     )
     .delete("/api/playbooks/:id", validate("param", playbookParamsSchema), async (c) => {

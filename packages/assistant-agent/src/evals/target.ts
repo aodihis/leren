@@ -24,7 +24,12 @@ export type PlaybookFixture = {
   contacts: readonly string[];
   startsAt: string | null;
   endsAt: string | null;
+  /** The connected account that the playbook answers on, or null when it names none. */
+  channelAccountId: string | null;
 };
+
+/** A connected email account of the user in the fake store. */
+export type AccountFixture = { id: string; label: string };
 
 /** A tool call that the agent made during the run, in order. */
 export type ToolCall = { name: string; input: Readonly<Record<string, unknown>> };
@@ -40,12 +45,16 @@ export type AssistantEvalOutput = {
 
 /**
  * The input of one eval case. `conversation` ends with the user message to answer, `playbooks`
- * seeds the store.
+ * seeds the store, and `accounts` are the connected email accounts of the user. Without it the user
+ * has one account.
  */
 export type AssistantEvalInput = {
   conversation: readonly Turn[];
   playbooks: readonly PlaybookFixture[];
+  accounts?: readonly AccountFixture[];
 };
+
+const DEFAULT_ACCOUNTS: readonly AccountFixture[] = [{ id: "acct-main", label: "me@example.com" }];
 
 /** Builds a playbook fixture. Anything that is not given is empty, enabled and without a period. */
 export function playbook(
@@ -59,6 +68,7 @@ export function playbook(
     contacts: [],
     startsAt: null,
     endsAt: null,
+    channelAccountId: "acct-main",
     ...fields,
   };
 }
@@ -82,7 +92,7 @@ function toView(item: PlaybookFixture) {
     ...item,
     periodStatus: status,
     usable: item.enabled && status === "active",
-    conditions: [{ channel: "email", senderMode: "any" }],
+    conditions: [{ channel: "email", senderMode: "any", channelAccountId: item.channelAccountId }],
   };
 }
 
@@ -99,8 +109,50 @@ function defined(input: Record<string, unknown>) {
  * in production. The store is the only state, and `search_playbooks` is a keyword match that
  * returns enabled playbooks that are valid now.
  */
-function createFakePlaybookTools(initial: readonly PlaybookFixture[]) {
+function createFakePlaybookTools(
+  initial: readonly PlaybookFixture[],
+  accounts: readonly AccountFixture[],
+) {
   const store = initial.map((item) => ({ ...item }));
+
+  /**
+   * Chooses the account of a playbook the way the real tool does (decision 0044): a playbook that
+   * is on takes the account that is named, or else the only account, and otherwise the tool fails
+   * with the message that tells the assistant what to do.
+   */
+  const chooseAccount = (requested: string | undefined, enabled: boolean): string | null => {
+    if (!enabled) {
+      return requested ?? null;
+    }
+
+    if (requested) {
+      if (!accounts.some((account) => account.id === requested)) {
+        throw new Error(
+          "conditions: channelAccountId is not one of the user's active accounts. Use the id of a connected account.",
+        );
+      }
+
+      return requested;
+    }
+
+    const [only] = accounts;
+
+    if (accounts.length === 1 && only) {
+      return only.id;
+    }
+
+    if (accounts.length === 0) {
+      throw new Error(
+        "conditions: The user has no connected email account. A playbook that is on needs one. Ask the user to connect one on the Channels page, and try again after that.",
+      );
+    }
+
+    const choices = accounts.map((account) => `${account.label} (${account.id})`).join(", ");
+
+    throw new Error(
+      `conditions: The user has several email accounts: ${choices}. Ask the user which one the playbook answers on, and pass its id as channelAccountId.`,
+    );
+  };
 
   const find = (id: string) => {
     const item = store.find((entry) => entry.id === id);
@@ -127,7 +179,19 @@ function createFakePlaybookTools(initial: readonly PlaybookFixture[]) {
       .describe("When the playbook starts, or null for none."),
     endsAt: z.string().nullable().optional().describe("When the playbook ends, or null for none."),
     conditions: z
-      .array(z.object({ channel: z.literal("email") }).passthrough())
+      .array(
+        z
+          .object({
+            channel: z.literal("email"),
+            channelAccountId: z
+              .string()
+              .optional()
+              .describe(
+                "The id of the connected account that the playbook answers on. Leave it out to use the only account that the user has.",
+              ),
+          })
+          .passthrough(),
+      )
       .optional()
       .describe(
         "The reply conditions for each channel, such as who may be answered. Name the channel in each entry. Anything left out keeps its current or default value, and a channel that is not named is unchanged.",
@@ -199,6 +263,10 @@ function createFakePlaybookTools(initial: readonly PlaybookFixture[]) {
           topic: input.topic,
           response: input.response,
           ...defined(input),
+          channelAccountId: chooseAccount(
+            input.conditions?.[0]?.channelAccountId,
+            input.enabled ?? true,
+          ),
         });
 
         store.push(created);
@@ -259,7 +327,11 @@ export const target: EvalTarget<AssistantEvalInput, AssistantEvalOutput> = async
   _testCase,
   context,
 ) => {
-  const { tools, store } = createFakePlaybookTools(input.playbooks);
+  const { tools, store } = createFakePlaybookTools(
+    input.playbooks,
+    input.accounts ?? DEFAULT_ACCOUNTS,
+  );
+
   const { agent, close } = await createAssistantAgent({ model, instructions, observer, tools });
 
   try {

@@ -88,7 +88,11 @@ function toPlaybookView(
     usable: isKnowledgeUsable(playbook, now),
     conditions: conditions
       .toSorted((a, b) => a.channel.localeCompare(b.channel))
-      .map((row) => ({ ...row.settings, channel: row.channel })),
+      .map((row) => ({
+        ...row.settings,
+        channel: row.channel,
+        channelAccountId: row.channelAccountId,
+      })),
   };
 }
 

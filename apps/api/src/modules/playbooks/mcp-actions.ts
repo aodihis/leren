@@ -5,7 +5,15 @@ import { z } from "zod";
 import { NOTHING_TO_CHANGE, definedOnly, invalid } from "../../mcp-write";
 import { emailConditionsSchema, playbookSchema } from "./schema";
 import type { ReplyConditionsInput } from "./schema";
-import { createPlaybook, getPlaybook, updatePlaybook } from "./service";
+import {
+  ChannelAccountRequiredError,
+  ChannelAccountUnavailableError,
+  createPlaybook,
+  getPlaybook,
+  listActiveAccounts,
+  updatePlaybook,
+} from "./service";
+import type { ActiveAccount } from "./service";
 
 /**
  * The conditions of each channel that the web form starts from. A playbook that the assistant
@@ -45,6 +53,14 @@ const playbookFields = z.object({
     .array(
       emailConditionsSchema
         .omit({ channelAccountId: true, replyMode: true })
+        .extend({
+          channelAccountId: z
+            .uuid()
+            .optional()
+            .describe(
+              "The id of the connected account that the playbook answers on. Leave it out to use the only account that the user has.",
+            ),
+        })
         .partial()
         .required({ channel: true }),
     )
@@ -80,6 +96,94 @@ function mergeConditions(
 }
 
 /**
+ * Tells the assistant why no account could be chosen for a playbook that is on (decision 0044): the
+ * user has none, or has several and must say which one.
+ */
+function describeAccountProblem(
+  channel: string,
+  accounts: readonly ActiveAccount[],
+  rejectedId?: string,
+): string {
+  const rejected = rejectedId
+    ? `The account ${rejectedId} is not one of the user's active ${channel} accounts. `
+    : "";
+
+  if (accounts.length === 0) {
+    return `conditions: ${rejected}The user has no connected ${channel} account. A playbook that is on needs one. Ask the user to connect one on the Channels page, and try again after that.`;
+  }
+
+  const choices = accounts.map((account) => `${account.label} (${account.id})`).join(", ");
+
+  return `conditions: ${rejected}The user has ${accounts.length === 1 ? "one" : "several"} ${channel} ${accounts.length === 1 ? "account" : "accounts"}: ${choices}. Ask the user which one the playbook answers on, and pass its id as channelAccountId.`;
+}
+
+/**
+ * Names the account for every entry that has none, when the playbook is on. An entry takes the
+ * only active account that the user has on its channel. An entry that names an account that is not
+ * active, such as one that was revoked after the playbook was saved, is not replaced silently: the
+ * result is the message that lists the active accounts. The same message tells the assistant what to
+ * do when the user has none or has several. A playbook that is off keeps its entries as they are.
+ */
+async function resolveAccounts(
+  db: Db,
+  userId: string,
+  conditions: readonly ReplyConditionsInput[],
+  enabled: boolean,
+): Promise<{ conditions: ReplyConditionsInput[] } | { message: string }> {
+  const resolved: ReplyConditionsInput[] = [];
+
+  for (const entry of conditions) {
+    if (!enabled) {
+      resolved.push(entry);
+      continue;
+    }
+
+    const accounts = await listActiveAccounts(db, userId, entry.channel);
+
+    if (entry.channelAccountId) {
+      if (!accounts.some((account) => account.id === entry.channelAccountId)) {
+        return { message: describeAccountProblem(entry.channel, accounts, entry.channelAccountId) };
+      }
+
+      resolved.push(entry);
+      continue;
+    }
+
+    const [only] = accounts;
+
+    if (accounts.length !== 1 || !only) {
+      return { message: describeAccountProblem(entry.channel, accounts) };
+    }
+
+    resolved.push({ ...entry, channelAccountId: only.id });
+  }
+
+  return { conditions: resolved };
+}
+
+/**
+ * Converts the error of a write whose account was rejected into the outcome that the assistant
+ * reads, or returns `undefined` for any other error, which the caller throws again.
+ */
+function describeAccountError(error: unknown): McpWriteOutcome | undefined {
+  if (error instanceof ChannelAccountRequiredError) {
+    return invalidMessage("conditions: A playbook that is on must name a connected account");
+  }
+
+  if (error instanceof ChannelAccountUnavailableError) {
+    return invalidMessage(
+      "conditions: channelAccountId is not one of the user's active accounts. Use the id of a connected account.",
+    );
+  }
+
+  return undefined;
+}
+
+function invalidMessage(message: string): McpWriteOutcome {
+  return { status: "invalid", message };
+}
+
+/**
  * Converts the result of replacing a playbook.
  */
 function fromUpdate(result: Awaited<ReturnType<typeof updatePlaybook>>): McpWriteOutcome {
@@ -108,6 +212,17 @@ export function createPlaybookMcpActions(
       async run(userId, input: z.infer<typeof createPlaybookArgs>) {
         const { conditions, ...fields } = input;
 
+        const accounts = await resolveAccounts(
+          db,
+          userId,
+          mergeConditions([], conditions ?? [{ channel: "email" }]),
+          fields.enabled ?? true,
+        );
+
+        if ("message" in accounts) {
+          return invalidMessage(accounts.message);
+        }
+
         const parsed = playbookSchema.safeParse({
           enabled: true,
           examples: [],
@@ -116,18 +231,28 @@ export function createPlaybookMcpActions(
           startsAt: null,
           endsAt: null,
           ...definedOnly(fields),
-          conditions: mergeConditions([], conditions ?? [{ channel: "email" }]),
+          conditions: accounts.conditions,
         });
 
         if (!parsed.success) {
           return invalid(parsed.error);
         }
 
-        const playbook = await createPlaybook(db, userId, parsed.data);
+        try {
+          const playbook = await createPlaybook(db, userId, parsed.data);
 
-        await requestIndex(playbook.id);
+          await requestIndex(playbook.id);
 
-        return { status: "saved", id: playbook.id, data: playbook };
+          return { status: "saved", id: playbook.id, data: playbook };
+        } catch (error) {
+          const outcome = describeAccountError(error);
+
+          if (!outcome) {
+            throw error;
+          }
+
+          return outcome;
+        }
       },
     },
     updatePlaybook: {
@@ -149,6 +274,17 @@ export function createPlaybookMcpActions(
 
         const { conditions, ...fields } = changes;
 
+        const accounts = await resolveAccounts(
+          db,
+          userId,
+          mergeConditions(existing.conditions, conditions ?? []),
+          fields.enabled ?? existing.enabled,
+        );
+
+        if ("message" in accounts) {
+          return invalidMessage(accounts.message);
+        }
+
         const parsed = playbookSchema.safeParse({
           enabled: existing.enabled,
           topic: existing.topic,
@@ -160,20 +296,30 @@ export function createPlaybookMcpActions(
           endsAt: existing.endsAt,
           timezone: existing.timezone,
           ...definedOnly(fields),
-          conditions: mergeConditions(existing.conditions, conditions ?? []),
+          conditions: accounts.conditions,
         });
 
         if (!parsed.success) {
           return invalid(parsed.error);
         }
 
-        const result = await updatePlaybook(db, userId, playbookId, parsed.data);
+        try {
+          const result = await updatePlaybook(db, userId, playbookId, parsed.data);
 
-        if (result.status === "saved") {
-          await requestIndex(result.playbook.id);
+          if (result.status === "saved") {
+            await requestIndex(result.playbook.id);
+          }
+
+          return fromUpdate(result);
+        } catch (error) {
+          const outcome = describeAccountError(error);
+
+          if (!outcome) {
+            throw error;
+          }
+
+          return outcome;
         }
-
-        return fromUpdate(result);
       },
     },
   };
