@@ -57,7 +57,6 @@ const scheduled = {
   examples: [],
   response: "On track.",
   restrictions: "",
-  contacts: [],
   startsAt: "2026-12-01T02:00:00.000Z",
   endsAt: null,
   timezone: "Asia/Jakarta",
@@ -292,7 +291,6 @@ describe("playbooks routes", () => {
       await user.type(await screen.findByLabelText("Topic"), "Project status");
       await user.type(screen.getByLabelText("Examples"), "How is it going?{Enter}When?");
       await user.type(screen.getByLabelText("Response"), "On track.");
-      await user.type(screen.getByLabelText("Contacts"), "dewi@example.com, @Don");
       await chooseAccount(user);
       await user.click(await screen.findByRole("combobox", { name: "Senders" }));
       await user.click(screen.getByRole("button", { name: "Create playbook" }));
@@ -306,7 +304,6 @@ describe("playbooks routes", () => {
           examples: ["How is it going?", "When?"],
           response: "On track.",
           restrictions: "",
-          contacts: ["dewi@example.com", "@Don"],
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           startsAt: null,
           endsAt: null,

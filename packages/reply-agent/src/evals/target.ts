@@ -2,7 +2,7 @@ import type { EvalTarget } from "@anvia/core/evals";
 import { loadHarness } from "@leren/agents";
 import { createObserver } from "@leren/observability";
 import { runReplyPipeline } from "../pipeline";
-import type { Outcome, Playbook, ReplyPipelineDeps, Retrieval } from "../pipeline";
+import type { Category, Outcome, Playbook, ReplyPipelineDeps, Retrieval } from "../pipeline";
 
 const harness = await loadHarness();
 const observer = createObserver();
@@ -30,6 +30,10 @@ export type ReplyEvalInput = {
 /** What the pipeline produced for one case. */
 export type ReplyEvalOutput = {
   outcome: Outcome;
+  /** The category that triage chose, or undefined when the run ended before triage. */
+  category: Category | undefined;
+  /** Whether the drafting agent ran. It is false when the pipeline abstained or routed early. */
+  drafted: boolean;
   body: string | undefined;
   citations: readonly string[];
   reasons: readonly string[];
@@ -38,7 +42,10 @@ export type ReplyEvalOutput = {
 
 /** What a case expects. Only the fields that are set are checked. */
 export type ReplyExpectation = {
-  outcome: Outcome;
+  /** The outcome that the pipeline must reach, or the outcomes that are equally acceptable. */
+  outcome: Outcome | readonly Outcome[];
+  /** The category that triage must choose. */
+  category?: Category;
   /** Substrings that the body must contain, ignoring case. */
   mustInclude?: readonly string[];
   /** Substrings that the body must not contain, ignoring case. */
@@ -51,7 +58,7 @@ export type ReplyExpectation = {
 export function playbook(
   fields: Pick<Playbook, "id" | "topic" | "response"> & Partial<Playbook>,
 ): Playbook {
-  return { restrictions: "", contacts: [], examples: [], ...fields };
+  return { restrictions: "", examples: [], ...fields };
 }
 
 export const reporters = [observer.evalReporter()].filter((reporter) => reporter !== undefined);
@@ -86,6 +93,8 @@ export const target: EvalTarget<ReplyEvalInput, ReplyEvalOutput> = async (
 
   return {
     outcome: result.outcome,
+    category: result.triage?.category,
+    drafted: result.evaluations.length > 0,
     body: result.body,
     citations: result.citations,
     reasons: result.reasons,

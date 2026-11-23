@@ -24,7 +24,7 @@ export const CATEGORIES = [
 export type Category = (typeof CATEGORIES)[number];
 
 /** How the pipeline ended for one message. */
-export const OUTCOMES = ["answer", "delegate", "escalate", "ignore"] as const;
+export const OUTCOMES = ["answer", "escalate", "ignore"] as const;
 
 export type Outcome = (typeof OUTCOMES)[number];
 
@@ -56,7 +56,6 @@ export const playbookSchema = z.looseObject({
   topic: z.string(),
   response: z.string(),
   restrictions: z.unknown().optional(),
-  contacts: z.unknown().optional(),
 });
 
 export type Playbook = z.infer<typeof playbookSchema>;
@@ -76,11 +75,10 @@ export const triageSchema = z.object({
 
 export type Triage = z.infer<typeof triageSchema>;
 
-/** What the routing model answers. `contact` is copied from a playbook's contacts. */
+/** What the routing model answers. */
 export const routeSchema = z.object({
-  outcome: z.enum(["answer", "delegate", "escalate"]),
+  outcome: z.enum(["answer", "escalate"]),
   reason: z.string(),
-  contact: z.string().optional(),
 });
 
 export type Route = z.infer<typeof routeSchema>;

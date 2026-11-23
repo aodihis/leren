@@ -1,7 +1,7 @@
 import { Pipeline } from "@anvia/core/pipeline";
 import { checkOutput, prepareEmail, wrapUntrusted } from "./guardrails";
 import type { PreparedEmail } from "./guardrails";
-import { draftAndEvaluate, findContact, route, triage } from "./stages";
+import { draftAndEvaluate, route, triage } from "./stages";
 import type { ReplyPipelineDeps } from "./stages";
 import { keepAllowed, mergePlaybooks } from "./retrieve";
 import { MAX_QUESTIONS, pipelineInputSchema } from "./types";
@@ -71,18 +71,10 @@ function wholeEmailQuery(email: PreparedEmail): string {
 }
 
 /**
- * The text that a delegated reply carries. It is fixed, so a delegated reply cannot contain
- * anything that the model invented.
- */
-function delegationBody(contact: string): string {
-  return `Thank you for your email. The best person to help you with this is ${contact}. Please contact them directly.`;
-}
-
-/**
  * Builds the reply pipeline (decision 0042). The stages run in order: input guardrail, triage,
  * retrieval, routing, drafting with evaluation and revision, and the output guardrail. A stage that
  * decides the outcome ends the run, and the later stages, including every model call after it, are
- * skipped. A run ends in `answer`, `delegate`, `escalate` or `ignore`, and any failure of the
+ * skipped. A run ends in `answer`, `escalate` or `ignore`, and any failure of the
  * checks ends in `escalate`. The caller saves the result and moves the message status.
  */
 export function createReplyPipeline(deps: ReplyPipelineDeps) {
@@ -169,25 +161,6 @@ export function createReplyPipeline(deps: ReplyPipelineDeps) {
           return finish(state, "escalate", { reasons: [decision.reason] });
         }
 
-        if (decision.outcome === "delegate") {
-          const contact = decision.contact && findContact(state.playbooks, decision.contact);
-
-          if (!contact) {
-            return finish(state, "escalate", {
-              reasons: ["The email should be delegated, but no playbook names the contact."],
-            });
-          }
-
-          const body = delegationBody(contact);
-          const guardrail = checkOutput("delegate", { body, citations: [] }, new Set());
-
-          if (guardrail.blocked) {
-            return finish(state, "escalate", { reasons: guardrail.reasons });
-          }
-
-          return finish(state, "delegate", { reasons: [decision.reason], body });
-        }
-
         return state;
       },
     })
@@ -240,7 +213,6 @@ export function createReplyPipeline(deps: ReplyPipelineDeps) {
         }
 
         const guardrail = checkOutput(
-          "answer",
           draft,
           new Set(state.playbooks.map((playbook) => playbook.id)),
         );

@@ -31,7 +31,6 @@ function toView(playbook: PlaybookRow, conditions: ConditionsRow[], now: Date) {
     examples: playbook.examples,
     response: playbook.response,
     restrictions: playbook.restrictions,
-    contacts: playbook.contacts,
     startsAt: playbook.startsAt?.toISOString() ?? null,
     endsAt: playbook.endsAt?.toISOString() ?? null,
     timezone: playbook.timezone,
@@ -52,22 +51,6 @@ function toView(playbook: PlaybookRow, conditions: ConditionsRow[], now: Date) {
 }
 
 /**
- * Removes contacts that repeat an earlier one, ignoring case, and keeps the first spelling.
- */
-function dedupeContacts(contacts: string[]): string[] {
-  const seen = new Set<string>();
-
-  return contacts.filter((contact) => {
-    const key = contact.toLowerCase();
-    const isNew = !seen.has(key);
-
-    seen.add(key);
-
-    return isNew;
-  });
-}
-
-/**
  * Splits a request body into the columns of the playbook and the conditions rows. The channel is a
  * column of its own and is not repeated in the settings.
  */
@@ -79,7 +62,6 @@ function toRows(input: PlaybookInput) {
       examples: input.examples,
       response: input.response,
       restrictions: input.restrictions,
-      contacts: dedupeContacts(input.contacts),
       startsAt: input.startsAt ? new Date(input.startsAt) : null,
       endsAt: input.endsAt ? new Date(input.endsAt) : null,
       timezone: input.timezone,

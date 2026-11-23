@@ -40,11 +40,10 @@ describe("checkOutput", () => {
   const ids = new Set(["p1"]);
 
   const blocked = (body: string, citations: string[]) =>
-    checkOutput("answer", { body, citations }, ids).blocked;
+    checkOutput({ body, citations }, ids).blocked;
 
   it("allows contact details", () => {
     const result = checkOutput(
-      "answer",
       {
         body: "Please call Devi on +62 812 3456 7890 or write to devi@email.com, https://example.com/help.",
         citations: ["p1"],
@@ -62,23 +61,10 @@ describe("checkOutput", () => {
   });
 
   it("blocks a citation that retrieval did not return", () => {
-    const result = checkOutput("answer", { body: "Fine.", citations: ["made-up"] }, ids);
+    const result = checkOutput({ body: "Fine.", citations: ["made-up"] }, ids);
 
     expect(result.blocked).toBe(true);
     expect(result.reasons[0]).toContain("did not return");
-  });
-
-  it("checks a delegated reply for credentials without asking for citations", () => {
-    expect(
-      checkOutput("delegate", { body: "Contact Devi.", citations: [] }, new Set()).blocked,
-    ).toBe(false);
-    expect(
-      checkOutput(
-        "delegate",
-        { body: "Contact sk-abcdefghijklmnopqrstuvwx", citations: [] },
-        new Set(),
-      ).blocked,
-    ).toBe(true);
   });
 });
 

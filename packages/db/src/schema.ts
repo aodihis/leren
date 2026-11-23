@@ -97,12 +97,12 @@ export const verifications = pgTable(
 /**
  * Playbooks. A playbook says when the assistant replies and what it says, one topic for each row.
  * `response` is what the assistant may say about the topic and `restrictions` is what it must not
- * say. `examples` are optional sample messages that help retrieval find the playbook, and
- * `contacts` lists the people a reply may point to, as email addresses or channel handles.
- * `startsAt` and `endsAt` are instants and a null bound is open. `timezone` is the IANA zone the
- * user enters and reads the bounds in. A playbook is usable only when it is `enabled` and the
- * current time is inside its period, and the period status is derived and never stored
- * (decision 0036). The channel conditions of a playbook are rows of `reply_conditions`.
+ * say. `examples` are optional sample messages that help retrieval find the playbook. Whom a
+ * sender may contact is written in `response`. `startsAt` and `endsAt` are instants and a null
+ * bound is open. `timezone` is the IANA zone the user enters and reads the bounds in. A playbook
+ * is usable only when it is `enabled` and the current time is inside its period, and the period
+ * status is derived and never stored (decision 0036). The channel conditions of a playbook are
+ * rows of `reply_conditions`.
  */
 export const playbooks = pgTable(
   "playbooks",
@@ -115,7 +115,6 @@ export const playbooks = pgTable(
     examples: text("examples").array().notNull().default([]),
     response: text("response").notNull(),
     restrictions: text("restrictions").notNull().default(""),
-    contacts: text("contacts").array().notNull().default([]),
     startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     timezone: text("timezone").notNull(),
@@ -255,15 +254,10 @@ export const messages = pgTable(
 );
 
 /**
- * How the reply pipeline ended for one message (decision 0043): a reply to approve, a reply that
- * delegates to a contact, a message that the user must handle, or a message that is not for the user.
+ * How the reply pipeline ended for one message (decision 0043): a reply to approve, a message that
+ * the user must handle, or a message that is not for the user.
  */
-export const replyOutcomeEnum = pgEnum("reply_outcome", [
-  "answer",
-  "delegate",
-  "escalate",
-  "ignore",
-]);
+export const replyOutcomeEnum = pgEnum("reply_outcome", ["answer", "escalate", "ignore"]);
 
 /**
  * How a reply is delivered (decision 0046): as a draft in the user's mailbox, or sent at once.
@@ -284,7 +278,7 @@ export const deliveryStateEnum = pgEnum("delivery_state", [
 
 /**
  * The result of the reply pipeline for one message, at most one row for each message (decision
- * 0043). `body` is the draft when the outcome is `answer` or `delegate` and is null otherwise.
+ * 0043). `body` is the draft when the outcome is `answer` and is null otherwise.
  * `citations` are the ids of the playbooks that the draft cites, `playbookIds` are all the playbooks
  * that the run used, `reasons` say why the pipeline ended as it did, and `evaluations` keeps what
  * the evaluator found for each draft. The rows go with their message and their user.

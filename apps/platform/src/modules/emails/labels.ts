@@ -25,7 +25,6 @@ type Outcome = NonNullable<EmailSummary["outcome"]>;
 /** What the pipeline decided to do with an email. */
 export const OUTCOME_LABELS: Record<Outcome, string> = {
   answer: "Answer",
-  delegate: "Delegate",
   escalate: "Escalate",
   ignore: "Ignore",
 };

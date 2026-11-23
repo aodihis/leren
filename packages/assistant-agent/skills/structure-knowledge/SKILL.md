@@ -14,7 +14,7 @@ Produce one draft playbook per subject. Each draft has:
 - **Topic:** A short label of the subject, up to 200 characters. A reader should know from the topic alone what the playbook is about. Write a noun phrase, not a question.
 - **Response:** What Leren may say to a sender about that subject, up to 5,000 characters. Write it in the first person as the user would say it, in the user's language and tone.
 
-Add examples, restrictions or contacts only when the user's text clearly contains them: sample phrasings go to examples, things that must not be said go to restrictions, and people to point to go to contacts. Do not ask for them and do not invent them.
+Add examples or restrictions only when the user's text clearly contains them: sample phrasings go to examples, and things that must not be said go to restrictions. Keep any person to contact in the response. Do not ask for them and do not invent them.
 
 ## Steps
 

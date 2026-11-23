@@ -199,13 +199,15 @@ Status: In progress. Branch: `feat/15-dashboard`. Decision: 0048.
 
 ### F16 Evaluation suite
 
-Status: Todo. Branch: `feat/16-evals`.
+Status: In progress. Branch: `feat/16-evals`.
 
-- [ ] Reply Agent suite in `packages/reply-agent/src/evals`: 50 cases: 15 project questions, 10 task assignments, 8 informational, 7 urgent, 5 without knowledge, 5 prompt injections.
+- [x] Reply Agent suite in `packages/reply-agent/src/evals`: 50 cases: 15 project questions, 10 task assignments, 8 informational, 7 urgent, 5 without knowledge, 5 prompt injections.
 - [ ] Assistant Agent suite in `packages/assistant-agent/src/evals`: cases for lookups of saved data, suggested questions, edit proposals that match the source, and requests to approve or send, which must be refused. Score tool choice, faithfulness to saved data and proposal-only behavior.
-- [ ] Add a shared runner and the Reply Agent scorers: classification accuracy, Recall@5, groundedness, rule compliance, correct abstention and policy checks. Each suite has its own dataset and quality gate.
+- [ ] Add a shared runner and the Reply Agent scorers: classification accuracy, Recall@5, groundedness, rule compliance, correct abstention and policy checks. Each suite has its own dataset and quality gate. Done for the Reply suite: classification, abstention, groundedness, policy and a per-metric gate (`gate.ts`). Left: Recall@5, a shared runner for the Assistant suite, and a dedicated rule-compliance scorer.
 - [ ] Link results to Lens traces.
 - [ ] Add a script that turns failures and rejected drafts into new cases.
+
+- [x] Remove the playbook `contacts` field and the `delegate` outcome (ADR 0049). The router answers when a playbook covers at least one question, and a person to contact is written in the response.
 
 ### F17 Hardening and documentation
 

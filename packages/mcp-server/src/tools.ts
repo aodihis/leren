@@ -79,7 +79,6 @@ function toPlaybookView(
     examples: playbook.examples,
     response: playbook.response,
     restrictions: playbook.restrictions,
-    contacts: playbook.contacts,
     startsAt: playbook.startsAt?.toISOString() ?? null,
     endsAt: playbook.endsAt?.toISOString() ?? null,
     timezone: playbook.timezone,

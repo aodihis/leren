@@ -75,7 +75,7 @@ export function triage(deps: ReplyPipelineDeps, email: string): Promise<Triage> 
   );
 }
 
-/** Decides whether to answer, delegate or escalate, from the retrieved playbooks. */
+/** Decides whether to answer or escalate, from the retrieved playbooks. */
 export function route(
   deps: ReplyPipelineDeps,
   options: {
@@ -89,55 +89,6 @@ export function route(
     { model: deps.models.triage, instructions: ROUTE_INSTRUCTIONS, schema: routeSchema },
     buildRoutePrompt(options),
   );
-}
-
-/** The longest contact, in characters, that a delegated reply may name. */
-export const MAX_CONTACT_LENGTH = 200;
-
-/** Collects every string in a value of unknown shape, so a contact may be stored in any layout. */
-function stringsOf(value: unknown, found: string[] = []): string[] {
-  if (typeof value === "string") {
-    found.push(value);
-  } else if (Array.isArray(value)) {
-    for (const item of value) {
-      stringsOf(item, found);
-    }
-  } else if (typeof value === "object" && value !== null) {
-    for (const item of Object.values(value)) {
-      stringsOf(item, found);
-    }
-  }
-
-  return found;
-}
-
-/**
- * Finds the contact of a playbook that the routing model named. A contact matches when the model's
- * text equals one stored contact, or the address inside its angle brackets, ignoring case. Returns
- * the stored text, so a delegated reply never carries text that the model wrote, or `undefined`
- * when no stored contact matches.
- */
-export function findContact(playbooks: readonly Playbook[], contact: string): string | undefined {
-  const needle = contact.trim().toLowerCase();
-
-  if (needle.length === 0) {
-    return undefined;
-  }
-
-  for (const playbook of playbooks) {
-    for (const stored of stringsOf(playbook.contacts)) {
-      const address = /<([^<>]+)>/.exec(stored)?.[1];
-
-      if (
-        stored.length <= MAX_CONTACT_LENGTH &&
-        (stored.trim().toLowerCase() === needle || address?.trim().toLowerCase() === needle)
-      ) {
-        return stored.trim();
-      }
-    }
-  }
-
-  return undefined;
 }
 
 /**

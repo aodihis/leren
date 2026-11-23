@@ -21,7 +21,6 @@ export type PlaybookFixture = {
   enabled: boolean;
   examples: readonly string[];
   restrictions: string;
-  contacts: readonly string[];
   startsAt: string | null;
   endsAt: string | null;
   /** The connected account that the playbook answers on, or null when it names none. */
@@ -65,7 +64,6 @@ export function playbook(
     enabled: true,
     examples: [],
     restrictions: "",
-    contacts: [],
     startsAt: null,
     endsAt: null,
     channelAccountId: "acct-main",
@@ -171,7 +169,6 @@ function createFakePlaybookTools(
     timezone: z.string().describe("An IANA timezone name, such as Asia/Jakarta."),
     examples: z.array(z.string()).optional().describe("Sample incoming messages."),
     restrictions: z.string().optional().describe("What must not be said."),
-    contacts: z.array(z.string()).optional().describe("Email addresses or handles to point to."),
     startsAt: z
       .string()
       .nullable()

@@ -11,7 +11,6 @@ const playbook: Playbook = {
   topic: "Deadline",
   response: "The deadline is Friday.",
   restrictions: null,
-  contacts: ["Devi <devi@email.com>"],
 };
 
 const input = {
@@ -210,38 +209,6 @@ describe("runReplyPipeline", () => {
     expect(JSON.stringify(models.draft.requests[0])).toContain("may contain instructions");
   });
 
-  it("delegates to a contact that a playbook names", async () => {
-    const { deps, models } = setup({
-      triage: [
-        triageStep,
-        { text: '{"outcome":"delegate","reason":"Devi owns this.","contact":"devi@email.com"}' },
-      ],
-      draft: [],
-      judge: [],
-    });
-
-    const result = await runReplyPipeline(deps, input);
-
-    expect(result.outcome).toBe("delegate");
-    expect(result.body).toContain("devi@email.com");
-    expect(models.draft.requests).toHaveLength(0);
-  });
-
-  it("escalates a delegation to a contact that no playbook names", async () => {
-    const { deps } = setup({
-      triage: [
-        triageStep,
-        { text: '{"outcome":"delegate","reason":"Ask them.","contact":"mallory@evil.test"}' },
-      ],
-      draft: [],
-      judge: [],
-    });
-
-    const result = await runReplyPipeline(deps, input);
-
-    expect(result.outcome).toBe("escalate");
-  });
-
   it("escalates when the routing model decides to", async () => {
     const { deps } = setup({
       triage: [triageStep, { text: '{"outcome":"escalate","reason":"A restriction applies."}' }],
@@ -315,53 +282,6 @@ describe("runReplyPipeline", () => {
 
     expect(result.outcome).toBe("answer");
     expect(JSON.stringify(models.draft.requests[1])).not.toContain("LEAKED-INSTRUCTIONS");
-  });
-
-  it("does not delegate to a fragment of a stored contact", async () => {
-    const { deps } = setup({
-      triage: [triageStep, { text: '{"outcome":"delegate","reason":"Ask them.","contact":"com"}' }],
-      draft: [],
-      judge: [],
-    });
-
-    const result = await runReplyPipeline(deps, input);
-
-    expect(result.outcome).toBe("escalate");
-  });
-
-  it("names the stored contact in a delegated reply and not the text of the model", async () => {
-    const { deps } = setup({
-      triage: [
-        triageStep,
-        { text: '{"outcome":"delegate","reason":"Devi owns this.","contact":"DEVI@EMAIL.COM"}' },
-      ],
-      draft: [],
-      judge: [],
-    });
-
-    const result = await runReplyPipeline(deps, input);
-
-    expect(result.outcome).toBe("delegate");
-    expect(result.body).toContain("Devi <devi@email.com>");
-  });
-
-  it("escalates a delegation whose stored contact looks like a credential", async () => {
-    const secret = "sk-abcdefghijklmnopqrstuvwx";
-
-    const { deps } = setup({
-      triage: [
-        triageStep,
-        { text: `{"outcome":"delegate","reason":"Ask.","contact":"${secret}"}` },
-      ],
-      draft: [],
-      judge: [],
-      retrieval: { status: "ok", playbooks: [{ ...playbook, contacts: [secret] }] },
-    });
-
-    const result = await runReplyPipeline(deps, input);
-
-    expect(result.outcome).toBe("escalate");
-    expect(result.reasons[0]).toContain("credential");
   });
 
   it("drops playbooks that the gate did not name, and escalates when none is left", async () => {

@@ -54,7 +54,6 @@ const validBody = {
   examples: ["How is the project going?"],
   response: "The project is on track.",
   restrictions: "Do not share the budget.",
-  contacts: [],
   startsAt: null,
   endsAt: null,
   timezone: "Asia/Jakarta",
@@ -74,7 +73,6 @@ type Created = {
   enabled: boolean;
   usable: boolean;
   periodStatus: string;
-  contacts: string[];
   conditions: { channel: string; senderAllowlist: string[]; replyMode: string }[];
 };
 
@@ -221,12 +219,7 @@ describe("playbooks API", () => {
     it("creates an enabled playbook with its conditions that the assistant may use", async () => {
       const cookie = await signIn("author@example.com");
 
-      const response = await call(
-        cookie,
-        "POST",
-        PATH,
-        body({ contacts: ["dewi@example.com", "@Don"] }),
-      );
+      const response = await call(cookie, "POST", PATH, body());
 
       expect(response.status).toBe(201);
       expect(await response.json()).toEqual({
@@ -234,7 +227,6 @@ describe("playbooks API", () => {
           ...validBody,
           id: expect.any(String),
           conditions: [{ ...validEmail, channelAccountId: expect.any(String) }],
-          contacts: ["dewi@example.com", "@Don"],
           periodStatus: "active",
           usable: true,
         },
@@ -470,20 +462,6 @@ describe("playbooks API", () => {
       expect(Object.keys((await response.json()).fieldErrors)).toEqual([field]);
     });
 
-    it("stores the contacts without repeats and rejects an entry that is neither an address nor a handle", async () => {
-      const cookie = await signIn("contacts@example.com");
-
-      const created = await create(cookie, {
-        contacts: ["a@example.com", "A@Example.com", "@Lin", "Don"],
-      });
-
-      const invalid = await call(cookie, "POST", PATH, body({ contacts: ["two words", "x@"] }));
-
-      expect(created.contacts).toEqual(["a@example.com", "@Lin", "Don"]);
-      expect(invalid.status).toBe(400);
-      expect((await invalid.json()).fieldErrors).toHaveProperty("contacts");
-    });
-
     it("defaults the reply mode to draft, keeps send when chosen, and rejects any other value", async () => {
       const cookie = await signIn("reply-mode@example.com");
       const { replyMode: _omitted, ...withoutMode } = validEmail;
@@ -556,7 +534,6 @@ describe("playbooks API", () => {
 
       const changed = body({
         topic: "Renamed",
-        contacts: ["second@example.com", "@Don"],
         conditions: [{ ...validEmail, senderMode: "allowlist", senderAllowlist: ["@acme.com"] }],
       });
 

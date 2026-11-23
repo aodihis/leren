@@ -1,6 +1,6 @@
 # High-level design
 
-Leren is an AI email assistant. The user defines **playbooks** that say what the assistant may say and when it replies. While a playbook is in effect, incoming work email is classified and then answered from enabled playbooks, delegated, ignored or escalated. By default a reply is saved as a draft, and a person approves it before it is sent. A user can choose to send the replies of a playbook without approval (product decision 0001).
+Leren is an AI email assistant. The user defines **playbooks** that say what the assistant may say and when it replies. While a playbook is in effect, incoming work email is classified and then answered from enabled playbooks, ignored or escalated. By default a reply is saved as a draft, and a person approves it before it is sent. A user can choose to send the replies of a playbook without approval (product decision 0001).
 
 ## Components
 
@@ -18,7 +18,7 @@ Leren is an AI email assistant. The user defines **playbooks** that say what the
 
 A **playbook** says when the assistant replies and what it says. It has two parts that the web interface shows as the tabs **Knowledge** and **Rules**.
 
-The knowledge part has a topic, a response that the assistant may give, optional example messages that help find the playbook, restrictions on what must not be said, and optional **contacts**, the email addresses or handles of the people a reply may point to.
+The knowledge part has a topic, a response that the assistant may give, optional example messages that help find the playbook, and restrictions on what must not be said. A response that sends the sender to someone names that person, for example "For design requests, write to Maya <maya@example.com>".
 
 The rules part has an optional start, an optional end, a timezone and conditions for each channel. For email, the conditions say:
 
@@ -124,7 +124,7 @@ input guardrail ─▶ triage ─▶ retrieve ─▶ route ─▶ draft ─▶ e
 - **Guardrails** are code. They treat the email as untrusted data and block credentials, answers without citations and a repeated system prompt.
 - **Retrieve** calls the `search_playbooks` MCP tool for each question in the email. When nothing reliable is found for any of them, the pipeline escalates and does not call the drafting agent.
 - **Draft** is the Reply Agent. It cites the playbooks it used and follows the user's reply instructions, such as a persona or a tone.
-- **Evaluate** checks the draft against the retrieved playbooks, their restrictions and contacts, and the reply instructions, and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
+- **Evaluate** checks the draft against the retrieved playbooks, their restrictions, and the reply instructions, and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
 - **Persist** saves the decision and the draft and moves the message status. Nothing in the pipeline sends email.
 
 ## Message records
@@ -152,7 +152,7 @@ The **Processed emails** page of the platform shows these records: a list with a
 
 ## Dashboard and playbook report
 
-The overview of the platform shows how many emails arrived in the last 30 days, how many the assistant answered, delegated, escalated or ignored, and the latest failures, which are emails that failed or whose reply could not be delivered. Each count links to the matching Processed emails list. `GET /api/dashboard/overview` returns the counts and takes `days`, from 1 to 365.
+The overview of the platform shows how many emails arrived in the last 30 days, how many the assistant answered, escalated or ignored, and the latest failures, which are emails that failed or whose reply could not be delivered. Each count links to the matching Processed emails list. `GET /api/dashboard/overview` returns the counts and takes `days`, from 1 to 365.
 
 A playbook whose period has ended has a report: the emails it was used for during the period, grouped by outcome and by delivery state, and how many replies cite it. `GET /api/dashboard/playbooks/:id/report` answers `409` with `period_not_ended` while the period is open or has no end:
 

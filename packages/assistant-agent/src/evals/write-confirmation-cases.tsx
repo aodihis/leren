@@ -137,7 +137,7 @@ export const writeConfirmationCases = defineEvalCases([
           playbookId: "pb-refund",
           response: "Refunds are paid within 14 days after we receive the returned item.",
         },
-        omits: ["topic", "timezone", "examples", "restrictions", "contacts", "startsAt", "endsAt"],
+        omits: ["topic", "timezone", "examples", "restrictions", "startsAt", "endsAt"],
       } satisfies WriteExpectation,
     },
     metadata: { note: "The prompt says to name only the fields to change when updating." },
