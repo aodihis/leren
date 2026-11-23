@@ -1,4 +1,4 @@
-import { channelAccounts, messages, users } from "@leren/db";
+import { channelAccounts, messages, playbooks, replyDecisions, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createInMemoryEmailSender } from "@leren/email/testing";
@@ -216,6 +216,123 @@ describe("messages API", () => {
     expect(((await found.json()) as { body: string }).body).toHaveLength(1000);
     expect((await get(`/api/messages/${otherId}`, cookie)).status).toBe(404);
     expect((await get(`/api/messages/${MISSING_ID}`, cookie)).status).toBe(404);
+  });
+
+  it("returns the outcome and the delivery state in the list, and null before a decision", async () => {
+    const cookie = await signIn("decision-list@example.com");
+    const mine = await addAccount("decision-list@example.com");
+    const decided = await addMessage(mine, "decided", "2026-11-21T10:00:00Z");
+
+    await addMessage(mine, "undecided", "2026-11-20T10:00:00Z");
+    await database.db.insert(replyDecisions).values({
+      messageId: decided,
+      userId: mine.userId,
+      outcome: "answer",
+      body: "Friday.",
+      deliveryMode: "draft",
+      deliveryState: "pending",
+    });
+
+    const body = (await (await get("/api/messages", cookie)).json()) as {
+      messages: { subject: string; outcome: string | null; deliveryState: string | null }[];
+    };
+
+    expect(
+      body.messages.map(({ subject, outcome, deliveryState }) => [subject, outcome, deliveryState]),
+    ).toEqual([
+      ["decided", "answer", "pending"],
+      ["undecided", null, null],
+    ]);
+  });
+
+  it("returns the whole decision of one message with the playbooks that it cites", async () => {
+    const cookie = await signIn("decision-one@example.com");
+    const mine = await addAccount("decision-one@example.com");
+    const id = await addMessage(mine, "with a decision", "2026-11-20T10:00:00Z");
+
+    const [playbook] = await database.db
+      .insert(playbooks)
+      .values({ userId: mine.userId, topic: "Deadline", response: "Friday.", timezone: "UTC" })
+      .returning({ id: playbooks.id });
+
+    await database.db.insert(replyDecisions).values({
+      messageId: id,
+      userId: mine.userId,
+      outcome: "answer",
+      body: "The deadline is Friday.",
+      citations: [playbook?.id ?? ""],
+      reasons: [],
+      deliveryMode: "send",
+      deliveryState: "started",
+      deliveryRequest: { to: "sender@example.com" },
+      deliveryAttempts: 1,
+      deliveryStartedAt: new Date("2026-11-23T10:00:00Z"),
+    });
+
+    const detail = (await (await get(`/api/messages/${id}`, cookie)).json()) as {
+      outcome: string;
+      decision: {
+        body: string;
+        citedPlaybooks: { id: string; topic: string }[];
+        delivery: {
+          mode: string;
+          state: string;
+          request: unknown;
+          attempts: number;
+          startedAt: string;
+        };
+      };
+    };
+
+    expect(detail.outcome).toBe("answer");
+    expect(detail.decision.body).toBe("The deadline is Friday.");
+    expect(detail.decision.citedPlaybooks).toEqual([{ id: playbook?.id, topic: "Deadline" }]);
+    expect(detail.decision.delivery).toMatchObject({
+      mode: "send",
+      state: "started",
+      request: { to: "sender@example.com" },
+      attempts: 1,
+      startedAt: "2026-11-23T10:00:00.000Z",
+    });
+  });
+
+  it("returns a null decision for a message that the pipeline has not decided", async () => {
+    const cookie = await signIn("decision-none@example.com");
+    const mine = await addAccount("decision-none@example.com");
+    const id = await addMessage(mine, "pending", "2026-11-20T10:00:00Z");
+
+    expect(
+      ((await (await get(`/api/messages/${id}`, cookie)).json()) as { decision: unknown }).decision,
+    ).toBeNull();
+  });
+
+  it("does not return the cited playbook of another user", async () => {
+    const cookie = await signIn("decision-scope@example.com");
+    const mine = await addAccount("decision-scope@example.com");
+
+    await signIn("decision-scope-other@example.com");
+
+    const theirs = await addAccount("decision-scope-other@example.com");
+    const id = await addMessage(mine, "scoped", "2026-11-20T10:00:00Z");
+
+    const [foreign] = await database.db
+      .insert(playbooks)
+      .values({ userId: theirs.userId, topic: "Secret", response: "No.", timezone: "UTC" })
+      .returning({ id: playbooks.id });
+
+    await database.db.insert(replyDecisions).values({
+      messageId: id,
+      userId: mine.userId,
+      outcome: "answer",
+      body: "Reply",
+      citations: [foreign?.id ?? ""],
+    });
+
+    const detail = (await (await get(`/api/messages/${id}`, cookie)).json()) as {
+      decision: { citedPlaybooks: unknown[] };
+    };
+
+    expect(detail.decision.citedPlaybooks).toEqual([]);
   });
 
   it("records a simulated email on the user's development account and publishes it", async () => {

@@ -185,7 +185,7 @@ Status: In progress. Branch: `feat/14-approval-send`. Decisions: 0045 and 0046, 
 - [x] Choose the mode when the pipeline ends: deliver as a mailbox draft, or send at once only when every playbook that the decision used is in `send` mode (product decision 0002).
 - [x] Add `createDraft` and `sendReply` to the Gmail provider, and the `gmail.compose` scope.
 - [x] Add the `email.deliver` consumer: it writes the record before the call, never repeats a delivery that started, applies the loop and bulk-mail guards, and stores the ids and errors.
-- [ ] Return the outcome and the delivery state with `GET /api/messages`, and the whole decision with `GET /api/messages/:id`.
+- [x] Return the outcome and the delivery state with `GET /api/messages`, and the whole decision with `GET /api/messages/:id`.
 - [ ] Add the Processed emails page to the platform: the list with the status filter, and the detail with the email, the reply, the cited playbooks and the delivery record.
 - [ ] Capture the payloads in the telemetry (ADR 0047).
 - [ ] Later: email notifications for an escalation or a failed delivery, and a limit on sends for each hour.
