@@ -148,6 +148,8 @@ The result of the pipeline for each message, with its draft, is stored in `reply
 
 `GET /api/messages` lists the user's records, newest first, and takes `status`, `channel`, `channelAccountId`, `limit` and `cursor`. Each item has the `outcome` and the `deliveryState` of its decision, which are null until the pipeline has decided. `GET /api/messages/:id` returns one record with its stored body and its whole decision: the reply, the cited playbooks, the reasons, the evaluations and the delivery record (decisions 0039 and 0046).
 
+The **Processed emails** page of the platform shows these records: a list with a status filter, and for each email the reply, the playbooks it cites, why the pipeline ended as it did, and the delivery record with the stored request and the answer of the provider. The page is read only, and a draft is acted on in the mailbox (decision 0046).
+
 ## Worker roles
 
 The worker runs the roles that `WORKER_ROLES` lists, separated by commas. An empty or unset value runs every role, and an unknown name stops the process at startup (decision 0045).
