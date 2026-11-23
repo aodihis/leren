@@ -60,6 +60,28 @@ test("opens the processed emails of an outcome from the overview", async ({ page
   await capture(page, page.locator("main"), "processed-emails-outcome-filter");
 });
 
+test("opens the failures of the overview, shows the window and clears it", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Failed emails" }).click();
+
+  await expect(page.getByText(/Showing failed emails received since/)).toBeVisible();
+  await expect(page.getByRole("row", { name: /Broken attachment/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Invoice question/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Project deadline/ })).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Show all emails" }).click();
+
+  await expect(page.getByText(/Showing/)).toHaveCount(0);
+  await expect(page.getByRole("row", { name: /Project deadline/ })).toBeVisible();
+});
+
+test("ignores a malformed window in the address", async ({ page }) => {
+  await page.goto("/emails?since=yesterday");
+
+  await expect(page.getByRole("row", { name: /Project deadline/ })).toBeVisible();
+  await expect(page.getByText(/Showing/)).toHaveCount(0);
+});
+
 test("filters the processed emails by outcome", async ({ page }) => {
   await page.goto("/emails");
   await page.getByLabel("Outcome").selectOption("escalate");

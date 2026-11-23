@@ -94,7 +94,7 @@ export async function listMessages(
   userId: string,
   query: MessageListQuery,
 ): Promise<{ messages: MessageSummary[]; nextCursor: string | null }> {
-  const { status, outcome, since, channel, channelAccountId, cursor, limit } = query;
+  const { status, outcome, failed, since, channel, channelAccountId, cursor, limit } = query;
 
   const rows = await db
     .select({ message: messages, decision: replyDecisions })
@@ -105,6 +105,9 @@ export async function listMessages(
         eq(messages.userId, userId),
         status ? eq(messages.status, status) : undefined,
         outcome ? eq(replyDecisions.outcome, outcome) : undefined,
+        failed
+          ? or(eq(messages.status, "failed"), eq(replyDecisions.deliveryState, "failed"))
+          : undefined,
         since ? gte(messages.receivedAt, since) : undefined,
         channel ? eq(messages.channel, channel) : undefined,
         channelAccountId ? eq(messages.channelAccountId, channelAccountId) : undefined,

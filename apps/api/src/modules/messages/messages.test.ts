@@ -219,6 +219,36 @@ describe("messages API", () => {
     expect((await get("/api/messages?since=yesterday", cookie)).status).toBe(400);
   });
 
+  it("filters the failures: a failed message and a failed delivery", async () => {
+    const cookie = await signIn("failures@example.com");
+    const owner = await addAccount("failures@example.com");
+    const failedMessage = await addMessage(owner, "failed message", "2026-11-20T10:00:00Z");
+    const failedDelivery = await addMessage(owner, "failed delivery", "2026-11-21T10:00:00Z");
+
+    await addMessage(owner, "fine", "2026-11-22T10:00:00Z");
+
+    await database.db
+      .update(messages)
+      .set({ status: "failed" })
+      .where(eq(messages.id, failedMessage));
+
+    await database.db.insert(replyDecisions).values({
+      messageId: failedDelivery,
+      userId: owner.userId,
+      outcome: "answer",
+      deliveryMode: "draft",
+      deliveryState: "failed",
+    });
+
+    const body = (await (await get("/api/messages?failed=true", cookie)).json()) as ListResponse;
+
+    expect(body.messages.map((message) => message.subject)).toEqual([
+      "failed delivery",
+      "failed message",
+    ]);
+    expect((await get("/api/messages?failed=false", cookie)).status).toBe(400);
+  });
+
   it("rejects an invalid filter or cursor", async () => {
     const cookie = await signIn("invalid@example.com");
 

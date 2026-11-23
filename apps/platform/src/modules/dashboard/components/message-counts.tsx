@@ -47,7 +47,7 @@ export function MessageCounts({ overview }: { overview: Overview }) {
         <div className="flex items-center gap-2 border-b px-4 py-3.5">
           <h2 className="flex-1 text-title-sm font-semibold">Failures</h2>
           <Button asChild variant="ghost" size="sm">
-            <Link to="/emails" search={{ status: "failed", since: overview.since }}>
+            <Link to="/emails" search={{ failed: true, since: overview.since }}>
               Failed emails
             </Link>
           </Button>

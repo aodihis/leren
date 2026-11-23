@@ -146,7 +146,7 @@ The status is updated as the message passes through the pipeline, and it only mo
 
 The result of the pipeline for each message, with its draft, is stored in `reply_decisions` (decision 0043). When a playbook asks for a mention check and the email does not address the user, the message becomes `not_applicable` with the reason `not_addressed`.
 
-`GET /api/messages` lists the user's records, newest first, and takes `status`, `outcome`, `since`, `channel`, `channelAccountId`, `limit` and `cursor`. Each item has the `outcome` and the `deliveryState` of its decision, which are null until the pipeline has decided. `GET /api/messages/:id` returns one record with its stored body and its whole decision: the reply, the cited playbooks, the reasons, the evaluations and the delivery record (decisions 0039 and 0046).
+`GET /api/messages` lists the user's records, newest first, and takes `status`, `outcome`, `failed`, `since`, `channel`, `channelAccountId`, `limit` and `cursor`. Each item has the `outcome` and the `deliveryState` of its decision, which are null until the pipeline has decided. `GET /api/messages/:id` returns one record with its stored body and its whole decision: the reply, the cited playbooks, the reasons, the evaluations and the delivery record (decisions 0039 and 0046).
 
 The **Processed emails** page of the platform shows these records: a list with a status filter and an outcome filter, and for each email the reply, the playbooks it cites, why the pipeline ended as it did, and the delivery record with the stored request and the answer of the provider. The page is read only, and a draft is acted on in the mailbox (decision 0046).
 
@@ -154,7 +154,16 @@ The **Processed emails** page of the platform shows these records: a list with a
 
 The overview of the platform shows how many emails arrived in the last 30 days, how many the assistant answered, delegated, escalated or ignored, and the latest failures, which are emails that failed or whose reply could not be delivered. Each count links to the matching Processed emails list. `GET /api/dashboard/overview` returns the counts and takes `days`, from 1 to 365.
 
-A playbook whose period has ended has a report: the emails it was used for during the period, grouped by outcome and by delivery state, and how many replies cite it. `GET /api/dashboard/playbooks/:id/report` answers `409` with `period_not_ended` while the period is open or has no end. Both are computed from the message records when they are read and are never stored (decision 0048).
+A playbook whose period has ended has a report: the emails it was used for during the period, grouped by outcome and by delivery state, and how many replies cite it. `GET /api/dashboard/playbooks/:id/report` answers `409` with `period_not_ended` while the period is open or has no end:
+
+```http
+GET /api/dashboard/playbooks/6f1c2b7e-0d4a-4a52-9a53-1b0f4f6f2f10/report
+
+HTTP/1.1 409 Conflict
+{ "error": "period_not_ended" }
+```
+
+Both are computed from the message records when they are read and are never stored (decision 0048).
 
 ## Worker roles
 

@@ -47,6 +47,7 @@ export function decodeCursor(value: string): Cursor | null {
 export const messageListQuerySchema = z.object({
   status: z.enum(MESSAGE_STATUSES).optional(),
   outcome: z.enum(MESSAGE_OUTCOMES).optional(),
+  failed: z.literal("true").optional(),
   since: z.iso.datetime().pipe(z.coerce.date()).optional(),
   channel: z.string().min(1).max(50).optional(),
   channelAccountId: z.uuid().optional(),

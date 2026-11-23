@@ -26,20 +26,35 @@ const PAGE_SIZE = "25";
 interface EmailsSearch {
   status?: EmailSummary["status"];
   outcome?: NonNullable<EmailSummary["outcome"]>;
+  failed?: true;
   since?: string;
   cursor?: string;
+}
+
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+
+/**
+ * Returns `value` when it is an ISO instant that the API accepts and `undefined` otherwise, so a
+ * malformed address is dropped instead of making the list fail.
+ */
+function parseSince(value: unknown): string | undefined {
+  return typeof value === "string" && ISO_INSTANT.test(value) && !Number.isNaN(Date.parse(value))
+    ? value
+    : undefined;
 }
 
 export const Route = createFileRoute("/_authed/emails/")({
   validateSearch: (search: Record<string, unknown>): EmailsSearch => ({
     status: STATUS_FILTERS.find((status) => status === search.status),
     outcome: OUTCOME_FILTERS.find((outcome) => outcome === search.outcome),
-    since: typeof search.since === "string" && search.since ? search.since : undefined,
+    failed: search.failed === true || search.failed === "true" ? true : undefined,
+    since: parseSince(search.since),
     cursor: typeof search.cursor === "string" && search.cursor ? search.cursor : undefined,
   }),
   loaderDeps: ({ search }) => ({
     status: search.status,
     outcome: search.outcome,
+    failed: search.failed,
     since: search.since,
     cursor: search.cursor,
   }),
@@ -49,6 +64,7 @@ export const Route = createFileRoute("/_authed/emails/")({
         limit: PAGE_SIZE,
         status: deps.status,
         outcome: deps.outcome,
+        failed: deps.failed ? "true" : undefined,
         since: deps.since,
         cursor: deps.cursor,
       },
@@ -73,7 +89,8 @@ const TIME_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", ti
  */
 function EmailsPage() {
   const { messages, nextCursor } = Route.useLoaderData();
-  const { status, outcome, since, cursor } = Route.useSearch();
+  const { status, outcome, failed, since, cursor } = Route.useSearch();
+  const filters = { status, outcome, failed, since };
   const navigate = useNavigate({ from: Route.fullPath });
 
   return (
@@ -92,9 +109,8 @@ function EmailsPage() {
             onChange={(event) =>
               navigate({
                 search: {
+                  ...filters,
                   status: STATUS_FILTERS.find((value) => value === event.target.value),
-                  outcome,
-                  since,
                 },
               })
             }
@@ -114,9 +130,8 @@ function EmailsPage() {
             onChange={(event) =>
               navigate({
                 search: {
-                  status,
+                  ...filters,
                   outcome: OUTCOME_FILTERS.find((value) => value === event.target.value),
-                  since,
                 },
               })
             }
@@ -130,9 +145,20 @@ function EmailsPage() {
           </NativeSelect>
         </label>
       </div>
+      {failed || since ? (
+        <p className="flex flex-wrap items-center gap-3 text-body-sm text-ink-muted">
+          <span>
+            Showing {failed ? "failed emails" : "emails"}
+            {since ? ` received since ${TIME_FORMAT.format(new Date(since))}` : ""}.
+          </span>
+          <Link to="/emails" search={{ status, outcome }} className="underline">
+            Show all emails
+          </Link>
+        </p>
+      ) : null}
       {messages.length === 0 ? (
         <p className="text-muted-foreground">
-          {status || outcome
+          {status || outcome || failed || since
             ? "No email matches these filters."
             : "No email has been processed yet."}
         </p>
@@ -174,12 +200,12 @@ function EmailsPage() {
       )}
       <nav aria-label="Pages" className="flex gap-4 text-sm">
         {cursor && (
-          <Link to="/emails" search={{ status, outcome, since }}>
+          <Link to="/emails" search={{ ...filters }}>
             Newest emails
           </Link>
         )}
         {nextCursor && (
-          <Link to="/emails" search={{ status, outcome, since, cursor: nextCursor }}>
+          <Link to="/emails" search={{ ...filters, cursor: nextCursor }}>
             Older emails
           </Link>
         )}
