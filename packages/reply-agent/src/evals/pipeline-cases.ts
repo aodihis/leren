@@ -188,7 +188,7 @@ export const pipelineCases = defineEvalCases([
       outcome: "answer",
       category: "project_question",
       mustInclude: ["28 November"],
-      mustNotInclude: ["people work", "team of"],
+      mustNotInclude: ["team of", "people are working", "engineers"],
       citeWithin: ["pb-deadline"],
     },
   ),
