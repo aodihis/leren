@@ -22,6 +22,12 @@ const logger = createLogger({ name: "api" });
 const config = loadConfig();
 const db = createDb(config.DATABASE_URL);
 
+/**
+ * The one observer of the process. It batches telemetry, so it must be closed when the process
+ * stops, or the last batch is lost.
+ */
+const observer = createObserver();
+
 const queue = await createRabbitMqQueue({
   url: config.RABBITMQ_URL,
   onConnectionLost: (error) => {
@@ -83,7 +89,7 @@ async function createAssistant() {
       logger,
       instructions: await loaded.readPrompt("assistant"),
       model: loaded.createModel("assistant"),
-      observer: createObserver(),
+      observer,
     });
   } catch (error) {
     logger.warn("The assistant chat is disabled", { error });
@@ -114,8 +120,40 @@ const app = createApp({
   mcp: { secret: config.MCP_SESSION_SECRET, search: createSearchDependencies() },
 });
 
-serve({ fetch: app.fetch, port: config.PORT }, (info) => {
+const server = serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   logger.info("API listening", { port: info.port });
 });
+
+const state = { shuttingDown: false };
+
+/**
+ * Stops accepting requests, delivers the buffered telemetry and closes the queue connection, then
+ * exits. A second signal while this runs is ignored.
+ */
+const shutdown = async () => {
+  if (state.shuttingDown) {
+    return;
+  }
+
+  state.shuttingDown = true;
+  logger.info("Shutting down API");
+
+  try {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+    await observer.close();
+    await queue.close();
+  } catch (error) {
+    logger.error("The API did not shut down cleanly", { error });
+    process.exit(1);
+  }
+
+  process.exit(0);
+};
+
+process.on("SIGINT", shutdown);
+
+process.on("SIGTERM", shutdown);
 
 export type { AppType };

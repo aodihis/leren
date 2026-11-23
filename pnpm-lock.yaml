@@ -250,9 +250,18 @@ importers:
       '@leren/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@leren/mcp-server':
+        specifier: workspace:*
+        version: link:../../packages/mcp-server
+      '@leren/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@leren/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@leren/reply-agent':
+        specifier: workspace:*
+        version: link:../../packages/reply-agent
       '@leren/vector-db':
         specifier: workspace:*
         version: link:../../packages/vector-db
@@ -563,6 +572,9 @@ importers:
       '@leren/observability':
         specifier: workspace:*
         version: link:../observability
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^26.6.6

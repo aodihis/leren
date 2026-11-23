@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -198,6 +199,7 @@ export const messageStatusEnum = pgEnum("message_status", [
   "processing",
   "drafted",
   "sent",
+  "escalated",
   "failed",
 ]);
 
@@ -249,6 +251,44 @@ export const messages = pgTable(
     index("messages_user_received_idx").on(table.userId, table.receivedAt),
   ],
 );
+
+/**
+ * How the reply pipeline ended for one message (decision 0043): a reply to approve, a reply that
+ * delegates to a contact, a message that the user must handle, or a message that is not for the user.
+ */
+export const replyOutcomeEnum = pgEnum("reply_outcome", [
+  "answer",
+  "delegate",
+  "escalate",
+  "ignore",
+]);
+
+/**
+ * The result of the reply pipeline for one message, at most one row for each message (decision
+ * 0043). `body` is the draft when the outcome is `answer` or `delegate` and is null otherwise.
+ * `citations` are the ids of the playbooks that the draft cites, `playbookIds` are all the playbooks
+ * that the run used, `reasons` say why the pipeline ended as it did, and `evaluations` keeps what
+ * the evaluator found for each draft. The rows go with their message and their user.
+ */
+export const replyDecisions = pgTable("reply_decisions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  messageId: uuid("message_id")
+    .notNull()
+    .unique()
+    .references(() => messages.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  outcome: replyOutcomeEnum("outcome").notNull(),
+  body: text("body"),
+  category: text("category"),
+  citations: text("citations").array().notNull().default([]),
+  playbookIds: text("playbook_ids").array().notNull().default([]),
+  reasons: text("reasons").array().notNull().default([]),
+  revisions: integer("revisions").notNull().default(0),
+  evaluations: jsonb("evaluations").notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 export const mcpClientRoleEnum = pgEnum("mcp_client_role", ["assistant", "reply"]);
 

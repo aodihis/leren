@@ -5,6 +5,7 @@ export function createNoopObserver(): Observer {
   return {
     enabled: false,
     forAgent: () => undefined,
+    forPipeline: () => undefined,
     evalReporter: () => undefined,
     flush: async () => {},
     close: async () => {},

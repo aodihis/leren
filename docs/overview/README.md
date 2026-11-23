@@ -111,21 +111,41 @@ Email listener ─▶ message record (status: received) ─▶ [email.received]
 
 Whether an email is handled at all is decided by the gate, in code, from stored playbooks and their conditions. The Reply Agent is never asked whether to reply to a message outside an active playbook. The gate makes no model call. The optional mention check of a playbook that asks for it is made by the pipeline, and the gate passes such a playbook on with the verdict `check_mention`.
 
+## Reply pipeline
+
+The pipeline runner does not call the Reply Agent directly. It runs one message through fixed stages (decision 0042):
+
+```
+input guardrail ─▶ triage ─▶ retrieve ─▶ route ─▶ draft ─▶ evaluate ⇄ revise ─▶ output guardrail ─▶ persist
+                               │                                  │ failed twice
+                               │ no reliable result               ▼
+                               └──────────────────────────▶ escalate, with the reasons
+```
+
+- **Guardrails** are code. They treat the email as untrusted data and block credentials, answers without citations and a repeated system prompt.
+- **Retrieve** calls the `search_playbooks` MCP tool for each question in the email. When nothing reliable is found for any of them, the pipeline escalates and does not call the drafting agent.
+- **Draft** is the Reply Agent. It cites the playbooks it used and follows the user's reply instructions, such as a persona or a tone.
+- **Evaluate** checks the draft against the retrieved playbooks, their restrictions and contacts, and the reply instructions, and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
+- **Persist** saves the decision and the draft and moves the message status. Nothing in the pipeline sends email.
+
 ## Message records
 
 Every received email has one record, so the user can see in the dashboard what arrived and where it stands. A record holds the channel, the provider and the provider's message and thread ids, the sender, the recipients, the subject, a body that is cut at 20,000 characters and the time it was received. It holds no attachments, headers or credentials.
 
 The status is updated as the message passes through the pipeline, and it only moves forward.
 
-| Status           | Meaning                                               |
-| ---------------- | ----------------------------------------------------- |
-| `received`       | The email is recorded and waits for the gate.         |
-| `not_applicable` | No playbook handles it. The reason is stored with it. |
-| `queued`         | The gate passed it to the pipeline.                   |
-| `processing`     | The pipeline is working on it.                        |
-| `drafted`        | A reply was saved as a draft and waits for the user.  |
-| `sent`           | A reply was sent.                                     |
-| `failed`         | A step failed. The reason is stored with it.          |
+| Status           | Meaning                                                |
+| ---------------- | ------------------------------------------------------ |
+| `received`       | The email is recorded and waits for the gate.          |
+| `not_applicable` | No playbook handles it. The reason is stored with it.  |
+| `queued`         | The gate passed it to the pipeline.                    |
+| `processing`     | The pipeline is working on it.                         |
+| `drafted`        | A reply was saved as a draft and waits for the user.   |
+| `escalated`      | The user must handle it. The reason is stored with it. |
+| `sent`           | A reply was sent.                                      |
+| `failed`         | A step failed. The reason is stored with it.           |
+
+The result of the pipeline for each message, with its draft, is stored in `reply_decisions` (decision 0043). When a playbook asks for a mention check and the email does not address the user, the message becomes `not_applicable` with the reason `not_addressed`.
 
 `GET /api/messages` lists the user's records, newest first, and takes `status`, `channel`, `channelAccountId`, `limit` and `cursor`. `GET /api/messages/:id` returns one record with its stored body (decision 0039).
 

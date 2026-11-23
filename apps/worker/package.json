@@ -17,7 +17,10 @@
     "@leren/inbox": "workspace:*",
     "@leren/knowledge": "workspace:*",
     "@leren/logger": "workspace:*",
+    "@leren/mcp-server": "workspace:*",
+    "@leren/observability": "workspace:*",
     "@leren/queue": "workspace:*",
+    "@leren/reply-agent": "workspace:*",
     "@leren/vector-db": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "zod": "^4.6.7"

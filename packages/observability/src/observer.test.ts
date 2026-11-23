@@ -15,6 +15,7 @@ describe("createObserver", () => {
 
     expect(observer.enabled).toBe(false);
     expect(observer.forAgent()).toBeUndefined();
+    expect(observer.forPipeline()).toBeUndefined();
     expect(observer.evalReporter()).toBeUndefined();
     await expect(observer.flush()).resolves.toBeUndefined();
     await expect(observer.close()).resolves.toBeUndefined();
@@ -25,6 +26,7 @@ describe("createObserver", () => {
 
     expect(observer.enabled).toBe(true);
     expect(observer.forAgent()?.primaryTrace).toBe("lens");
+    expect(observer.forPipeline()?.primaryTrace).toBe("lens");
     expect(observer.evalReporter()).toBeDefined();
     await observer.close();
   });

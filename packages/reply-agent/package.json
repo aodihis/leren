@@ -10,13 +10,15 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "runner:run": "tsx --env-file-if-exists=../../.env src/runner.ts"
+    "runner:run": "tsx --env-file-if-exists=../../.env src/runner.ts",
+    "evals": "tsx --env-file-if-exists=../../.env src/evals/index.ts"
   },
   "dependencies": {
     "@anvia/core": "^1.21.0",
     "@anvia/mcp": "^1.2.7",
     "@leren/agents": "workspace:*",
-    "@leren/observability": "workspace:*"
+    "@leren/observability": "workspace:*",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
