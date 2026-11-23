@@ -180,7 +180,7 @@ Status: In progress. Branch: `feat/13-reply-agent`.
 
 Status: In progress. Branch: `feat/14-approval-send`. Decisions: 0045 and 0046, and product decision 0002.
 
-- [ ] Add worker roles (`WORKER_ROLES`: `listener`, `processor`, `indexer`) so that reading mail, processing and indexing can run in separate processes (ADR 0045).
+- [x] Add worker roles (`WORKER_ROLES`: `listener`, `processor`, `indexer`) so that reading mail, processing and indexing can run in separate processes (ADR 0045).
 - [ ] Add the delivery record to the decision (state, the stored request and response, attempts, times, ids and error), and let `drafted` move to `sent` and `failed` (ADR 0046).
 - [ ] Choose the mode when the pipeline ends: deliver as a mailbox draft, or send at once only when every playbook that the decision used is in `send` mode (product decision 0002).
 - [ ] Add `createDraft` and `sendReply` to the Gmail provider, and the `gmail.compose` scope.
