@@ -17,6 +17,7 @@
     "@leren/inbox": "workspace:*",
     "@leren/knowledge": "workspace:*",
     "@leren/logger": "workspace:*",
+    "@leren/mcp-server": "workspace:*",
     "@leren/queue": "workspace:*",
     "@leren/vector-db": "workspace:*",
     "drizzle-orm": "^0.45.4",

@@ -250,6 +250,9 @@ importers:
       '@leren/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@leren/mcp-server':
+        specifier: workspace:*
+        version: link:../../packages/mcp-server
       '@leren/queue':
         specifier: workspace:*
         version: link:../../packages/queue
