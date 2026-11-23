@@ -178,12 +178,15 @@ Status: In progress. Branch: `feat/13-reply-agent`.
 
 ### F14 Approval and sending
 
-Status: Todo. Branch: `feat/14-approval-send`.
+Status: In progress. Branch: `feat/14-approval-send`. Decisions: 0045 and 0046.
 
-- [ ] Add the API for pending drafts: approve, edit and approve, reject with a reason.
-- [ ] Send a reply at once when its playbook is in `send` mode, and after approval in `draft` mode (product decision 0001).
-- [ ] Add the `email.send` consumer with retry, delivery status, failure notification and idempotency.
-- [ ] Add the approval inbox UI and escalation notifications.
+- [ ] Add worker roles (`WORKER_ROLES`: `listener`, `processor`, `indexer`) so that reading mail, processing and indexing can run in separate processes (ADR 0045).
+- [ ] Add the columns of the decision and the status `rejected`, and let `drafted` move to `sent`, `rejected` and `failed` (ADR 0046).
+- [ ] Add the API for waiting drafts: list, read, approve, edit and approve, reject with a reason.
+- [ ] Choose the mode when the pipeline ends: send at once only when every playbook that the decision used is in `send` mode, and otherwise wait for approval (product decision 0001).
+- [ ] Add `sendReply` to the Gmail provider, and the `email.send` consumer with retry, the loop and bulk-mail guards, a check for an earlier send, and the final status.
+- [ ] Add the approval inbox page with the draft review.
+- [ ] Later: email notifications for an escalation or a failed send, and a limit on sends for each hour.
 
 ### F15 Dashboard and report
 
