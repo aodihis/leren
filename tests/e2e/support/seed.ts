@@ -1,9 +1,57 @@
 import { channelAccounts, createDb, messages, playbooks, replyDecisions, users } from "@leren/db";
+import type { Db } from "@leren/db";
 import { eq } from "drizzle-orm";
 
 import { getE2eDatabaseUrl } from "./database";
 
 const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Connects to the end-to-end database, runs `work` with the user whose address is `email` and closes
+ * the connection. Throws when no user has the address.
+ */
+async function withUser<T>(
+  email: string,
+  work: (db: Db, user: typeof users.$inferSelect) => Promise<T>,
+): Promise<T> {
+  const db = createDb(getE2eDatabaseUrl());
+
+  try {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+
+    if (!user) {
+      throw new Error(`No user has the address ${email}`);
+    }
+
+    return await work(db, user);
+  } finally {
+    await db.$client.end();
+  }
+}
+
+async function insertAccount(db: Db, userId: string, email: string) {
+  const [account] = await db
+    .insert(channelAccounts)
+    .values({
+      userId,
+      channel: "email",
+      provider: "mailpit",
+      providerAccountId: email,
+      label: email,
+    })
+    .returning({ id: channelAccounts.id });
+
+  return account;
+}
+
+/**
+ * Connects an email account, labelled with `email`, to the user with that address. A playbook that
+ * is enabled has to name an account (decision 0044), so a test that creates one connects an account
+ * first.
+ */
+export async function seedChannelAccount(email: string): Promise<void> {
+  await withUser(email, (db, user) => insertAccount(db, user.id, email));
+}
 
 type SeededMessage = {
   subject: string;
@@ -19,27 +67,9 @@ type SeededMessage = {
  * report of the playbook has four decisions. Returns the topic of the playbook.
  */
 export async function seedFinishedPlaybook(email: string): Promise<string> {
-  const db = createDb(getE2eDatabaseUrl());
-
-  try {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-
-    if (!user) {
-      throw new Error(`No user has the address ${email}`);
-    }
-
+  return withUser(email, async (db, user) => {
     const now = Date.now();
-
-    const [account] = await db
-      .insert(channelAccounts)
-      .values({
-        userId: user.id,
-        channel: "email",
-        provider: "mailpit",
-        providerAccountId: email,
-        label: email,
-      })
-      .returning({ id: channelAccounts.id });
+    const account = await insertAccount(db, user.id, email);
 
     const [playbook] = await db
       .insert(playbooks)
@@ -137,7 +167,5 @@ export async function seedFinishedPlaybook(email: string): Promise<string> {
     }
 
     return playbook?.topic ?? "";
-  } finally {
-    await db.$client.end();
-  }
+  });
 }
