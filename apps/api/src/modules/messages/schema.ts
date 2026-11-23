@@ -7,6 +7,7 @@ const MESSAGE_STATUSES = [
   "processing",
   "drafted",
   "sent",
+  "escalated",
   "failed",
 ] as const;
 

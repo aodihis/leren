@@ -11,10 +11,11 @@ export type MessageStatus = (typeof messages.$inferSelect)["status"];
 const TRANSITIONS: Record<MessageStatus, readonly MessageStatus[]> = {
   received: ["not_applicable", "queued", "failed"],
   queued: ["processing", "failed"],
-  processing: ["drafted", "sent", "not_applicable", "failed"],
+  processing: ["drafted", "sent", "escalated", "not_applicable", "failed"],
   not_applicable: [],
   drafted: [],
   sent: [],
+  escalated: [],
   failed: [],
 };
 
