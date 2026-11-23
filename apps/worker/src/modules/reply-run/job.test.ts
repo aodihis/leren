@@ -22,6 +22,7 @@ describe("the reply run job", () => {
       db: database.db,
       sessions: { db: database.db, secret: SECRET },
       runPipeline,
+      publishDeliver: async () => {},
       observer: { flush },
     }).handler(
       { messageId, playbooks: [{ playbookId, verdict: "handle" }] },

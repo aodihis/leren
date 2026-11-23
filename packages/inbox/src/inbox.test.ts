@@ -28,6 +28,11 @@ describe("canTransition", () => {
     ["received", "not_applicable", true],
     ["queued", "processing", true],
     ["processing", "drafted", true],
+    ["drafted", "sent", true],
+    ["drafted", "failed", true],
+    ["drafted", "processing", false],
+    ["drafted", "escalated", false],
+    ["failed", "drafted", false],
     ["queued", "received", false],
     ["processing", "queued", false],
     ["not_applicable", "queued", false],
@@ -161,6 +166,19 @@ describe("the message record", () => {
     await record({ userId: other?.id ?? "" });
 
     expect(await database.db.select().from(messages)).toHaveLength(2);
+  });
+
+  it("moves only from the statuses that the caller allows", async () => {
+    const { messageId } = await record();
+
+    await transitionMessage(database.db, messageId, "queued");
+    await transitionMessage(database.db, messageId, "processing");
+    await transitionMessage(database.db, messageId, "drafted");
+
+    expect(
+      await transitionMessage(database.db, messageId, "failed", null, ["queued", "processing"]),
+    ).toBe(false);
+    expect(await transitionMessage(database.db, messageId, "failed", null, ["drafted"])).toBe(true);
   });
 
   it("moves a status forward once, and never backwards", async () => {

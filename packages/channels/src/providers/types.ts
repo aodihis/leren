@@ -111,3 +111,78 @@ export interface EmailProvider extends ChannelProvider {
 export function isEmailProvider(provider: ChannelProvider): provider is EmailProvider {
   return "fetchNewMail" in provider && typeof provider.fetchNewMail === "function";
 }
+
+/**
+ * A reply that a provider delivers (decision 0046). `messageId` is the `Message-ID` header that the
+ * deliverer builds, `inReplyTo` and `references` come from the headers of the original, and
+ * `threadId` puts the reply into the conversation of the original. The reply has one recipient.
+ */
+export type OutboundReply = {
+  to: string;
+  subject: string;
+  body: string;
+  threadId: string | null;
+  messageId: string;
+  inReplyTo: string | null;
+  references: string | null;
+};
+
+/** The headers of an original message that a reply needs in order to join its conversation. */
+export type ReplyContext = {
+  messageId: string | null;
+  references: string | null;
+  replyTo: string | null;
+};
+
+/**
+ * What a provider answered when it created a draft or sent a mail. `id` is the id of the draft or of
+ * the sent message, and `response` is the whole answer, kept for investigation.
+ */
+export type DeliveryReceipt = { id: string; response: unknown };
+
+/**
+ * Thrown when a delivery is known not to have reached the provider, because the connection was
+ * refused, the name was not found, the provider answered that the credentials are not valid, or
+ * the provider answered that the rate limit was reached. The same reply may be delivered again.
+ */
+export class DeliveryNotSentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DeliveryNotSentError";
+  }
+}
+
+/**
+ * The reasons a provider can give for refusing a delivery that a retry cannot fix. `forbidden`
+ * means that the account lacks a permission, and `rejected` means that the provider did not accept
+ * the reply.
+ */
+export type DeliveryRejection = "forbidden" | "rejected";
+
+/** Thrown when the provider answered that it refuses the delivery. */
+export class DeliveryRejectedError extends Error {
+  constructor(
+    readonly reason: DeliveryRejection,
+    message: string,
+  ) {
+    super(message);
+    this.name = "DeliveryRejectedError";
+  }
+}
+
+/**
+ * A provider that can put a reply into a mailbox (decision 0046). `readReplyContext` reads the
+ * headers of the original, and `createDraft` and `sendReply` deliver the same reply. Delivery calls
+ * throw `DeliveryNotSentError` or `DeliveryRejectedError` when the outcome is known, and any other
+ * error when it is not.
+ */
+export interface EmailSender extends ChannelProvider {
+  readReplyContext(accessToken: string, providerMessageId: string): Promise<ReplyContext>;
+  createDraft(accessToken: string, reply: OutboundReply): Promise<DeliveryReceipt>;
+  sendReply(accessToken: string, reply: OutboundReply): Promise<DeliveryReceipt>;
+}
+
+/** Whether `provider` can deliver a reply. */
+export function isEmailSender(provider: ChannelProvider): provider is EmailSender {
+  return "sendReply" in provider && typeof provider.sendReply === "function";
+}

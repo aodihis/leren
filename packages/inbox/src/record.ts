@@ -9,6 +9,9 @@ export const EMAIL_RECEIVED_QUEUE = "email.received";
 /** The name of the queue that carries a message that passed the gate to the pipeline. */
 export const EMAIL_PROCESS_QUEUE = "email.process";
 
+/** The name of the queue that carries a reply that is ready to the deliverer (decision 0046). */
+export const EMAIL_DELIVER_QUEUE = "email.deliver";
+
 /** The most characters of a body that the record keeps. */
 export const MESSAGE_BODY_LIMIT = 20_000;
 
