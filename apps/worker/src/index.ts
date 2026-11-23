@@ -1,6 +1,7 @@
 import { loadHarness, resolveEmbeddingModel } from "@leren/agents";
 import { createChannelProviders, parseEncryptionKey } from "@leren/channels";
 import { createDb } from "@leren/db";
+import { EMAIL_DELIVER_QUEUE } from "@leren/inbox";
 import { createEmbedder } from "@leren/embedder";
 import { createObserver } from "@leren/observability";
 import { createRabbitMqQueue } from "@leren/queue";
@@ -53,6 +54,9 @@ async function createReplyRun() {
       db,
       observer,
       sessions: { db, secret: config.MCP_SESSION_SECRET },
+      publishDeliver: async (message: { messageId: string }) => {
+        await queue.publish(EMAIL_DELIVER_QUEUE, message, { idempotencyKey: message.messageId });
+      },
       runPipeline: createPipelineRunner({
         models: {
           triage: loaded.createModel("replyTriage"),

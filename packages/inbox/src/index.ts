@@ -1,4 +1,5 @@
 export {
+  EMAIL_DELIVER_QUEUE,
   EMAIL_PROCESS_QUEUE,
   EMAIL_RECEIVED_QUEUE,
   MESSAGE_BODY_LIMIT,
@@ -16,3 +17,7 @@ export type { MessageStatus } from "./status";
 export { emailProcessMessageSchema, playbookVerdictSchema } from "./process";
 
 export type { EmailProcessMessage } from "./process";
+
+export { emailDeliverMessageSchema } from "./deliver";
+
+export type { EmailDeliverMessage } from "./deliver";

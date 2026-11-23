@@ -21,6 +21,7 @@ const reply = {
   observer: { flush: async () => {} },
   sessions: {} as never,
   runPipeline: async () => ({}) as never,
+  publishDeliver: async () => {},
 };
 
 const names = (dependencies: Omit<JobDependencies, "db" | "queue">) =>
