@@ -192,6 +192,33 @@ describe("messages API", () => {
     expect(failed.messages.map((message) => message.subject)).toEqual(["one"]);
   });
 
+  it("filters by the outcome of the decision", async () => {
+    const cookie = await signIn("outcome@example.com");
+    const owner = await addAccount("outcome@example.com");
+    const escalated = await addMessage(owner, "escalated", "2026-11-20T10:00:00Z");
+
+    await addMessage(owner, "answered", "2026-11-21T10:00:00Z");
+    await addMessage(owner, "undecided", "2026-11-22T10:00:00Z");
+
+    await database.db
+      .insert(replyDecisions)
+      .values({ messageId: escalated, userId: owner.userId, outcome: "escalate" });
+
+    const body = (await (
+      await get("/api/messages?outcome=escalate", cookie)
+    ).json()) as ListResponse;
+
+    expect(body.messages.map((message) => message.subject)).toEqual(["escalated"]);
+    expect((await get("/api/messages?outcome=nonsense", cookie)).status).toBe(400);
+
+    const recent = (await (
+      await get("/api/messages?since=2026-11-21T00:00:00Z", cookie)
+    ).json()) as ListResponse;
+
+    expect(recent.messages.map((message) => message.subject)).toEqual(["undecided", "answered"]);
+    expect((await get("/api/messages?since=yesterday", cookie)).status).toBe(400);
+  });
+
   it("rejects an invalid filter or cursor", async () => {
     const cookie = await signIn("invalid@example.com");
 

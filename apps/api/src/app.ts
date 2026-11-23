@@ -17,6 +17,7 @@ import {
 } from "./modules/channel-accounts/router";
 import type { ChannelAccountsRouterDependencies } from "./modules/channel-accounts/router";
 import type { Auth } from "./modules/auth/service";
+import { createDashboardRouter } from "./modules/dashboard/router";
 import { createMcpRouter } from "./modules/mcp/router";
 import { NO_INBOX, createMessagesRouter } from "./modules/messages/router";
 import type { MessagesRouterDependencies } from "./modules/messages/router";
@@ -98,6 +99,7 @@ export function createApp({
     .route("/", createPlaybooksRouter(auth, db, requestKnowledgeIndex))
     .route("/", createChannelAccountsRouter({ auth, db, logger, dependencies: channelAccounts }))
     .route("/", createMessagesRouter({ auth, db, dependencies: inbox }))
+    .route("/", createDashboardRouter(auth, db))
     .route("/", createMcpRouter({ auth, db, sessions, endpoint }))
     .route("/", createAssistantRouter({ auth, db, logger, agent: assistant }))
     .onError((error, c) => {

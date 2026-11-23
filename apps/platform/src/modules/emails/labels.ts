@@ -30,6 +30,9 @@ export const OUTCOME_LABELS: Record<Outcome, string> = {
   ignore: "Ignore",
 };
 
+/** The outcomes that the list can be filtered by. */
+export const OUTCOME_FILTERS = Object.keys(OUTCOME_LABELS) as Outcome[];
+
 type DeliveryState = NonNullable<EmailSummary["deliveryState"]>;
 
 /** How far the delivery of a reply got. */
@@ -39,6 +42,9 @@ export const DELIVERY_LABELS: Record<DeliveryState, string> = {
   completed: "Delivered",
   failed: "Not delivered",
 };
+
+/** The delivery states, in the order of the flow. */
+export const DELIVERY_STATES = Object.keys(DELIVERY_LABELS) as DeliveryState[];
 
 /** The statuses that the list can be filtered by, in the order of the flow. */
 export const STATUS_FILTERS = Object.keys(STATUS_LABELS) as Status[];

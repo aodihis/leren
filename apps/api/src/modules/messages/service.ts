@@ -4,7 +4,7 @@ import { channelAccounts, messages, playbooks, replyDecisions } from "@leren/db"
 import type { Db } from "@leren/db";
 import { truncate } from "@leren/inbox";
 import type { InboundEmail } from "@leren/inbox";
-import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { encodeCursor } from "./schema";
@@ -94,7 +94,7 @@ export async function listMessages(
   userId: string,
   query: MessageListQuery,
 ): Promise<{ messages: MessageSummary[]; nextCursor: string | null }> {
-  const { status, channel, channelAccountId, cursor, limit } = query;
+  const { status, outcome, since, channel, channelAccountId, cursor, limit } = query;
 
   const rows = await db
     .select({ message: messages, decision: replyDecisions })
@@ -104,6 +104,8 @@ export async function listMessages(
       and(
         eq(messages.userId, userId),
         status ? eq(messages.status, status) : undefined,
+        outcome ? eq(replyDecisions.outcome, outcome) : undefined,
+        since ? gte(messages.receivedAt, since) : undefined,
         channel ? eq(messages.channel, channel) : undefined,
         channelAccountId ? eq(messages.channelAccountId, channelAccountId) : undefined,
         cursor

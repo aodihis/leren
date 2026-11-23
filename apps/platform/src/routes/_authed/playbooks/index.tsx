@@ -71,6 +71,11 @@ function describePeriod(playbook: Playbook): string {
   return `${format(playbook.startsAt)} to ${format(playbook.endsAt)} (${playbook.timezone})`;
 }
 
+/** Whether the period of a playbook has an end that has passed, which is when it has a report. */
+function hasEnded(playbook: Playbook): boolean {
+  return playbook.endsAt !== null && new Date(playbook.endsAt) <= new Date();
+}
+
 function PlaybooksPage() {
   const { playbooks, activeAccountIds } = Route.useLoaderData();
   const router = useRouter();
@@ -167,6 +172,17 @@ function PlaybooksPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{describePeriod(playbook)}</TableCell>
                 <TableCell className="space-x-2 text-right">
+                  {hasEnded(playbook) ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link
+                        to="/playbooks/$playbookId/report"
+                        params={{ playbookId: playbook.id }}
+                        aria-label={`Report for ${playbook.topic}`}
+                      >
+                        Report
+                      </Link>
+                    </Button>
+                  ) : null}
                   <Button
                     variant="outline"
                     size="sm"

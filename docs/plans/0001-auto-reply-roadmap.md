@@ -187,15 +187,15 @@ Status: In progress. Branch: `feat/14-approval-send`. Decisions: 0045 and 0046, 
 - [x] Add the `email.deliver` consumer: it writes the record before the call, never repeats a delivery that started, applies the loop and bulk-mail guards, and stores the ids and errors.
 - [x] Return the outcome and the delivery state with `GET /api/messages`, and the whole decision with `GET /api/messages/:id`.
 - [x] Add the Processed emails page to the platform: the list with the status filter, and the detail with the email, the reply, the cited playbooks and the delivery record.
-- [ ] Capture the payloads in the telemetry (ADR 0047).
+- [x] Capture the payloads in the telemetry (ADR 0047).
 - [ ] Later: email notifications for an escalation or a failed delivery, and a limit on sends for each hour.
 
 ### F15 Dashboard and report
 
-Status: Todo. Branch: `feat/15-dashboard`.
+Status: In progress. Branch: `feat/15-dashboard`. Decision: 0048.
 
-- [ ] Add the overview, counts by outcome, the communication log with filters and failures.
-- [ ] Add a summary report for a rule whose window has ended, computed when it is read.
+- [x] Add the overview, counts by outcome, the communication log with filters and failures.
+- [x] Add a summary report for a rule whose window has ended, computed when it is read.
 
 ### F16 Evaluation suite
 
@@ -242,7 +242,7 @@ F02 and F03 can swap if Anvia access is delayed.
 | F12b    | Email listener               | In progress |                                                                                              |
 | F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
 | F14     | Approval and sending         | Todo        |                                                                                              |
-| F15     | Dashboard and report         | Todo        |                                                                                              |
+| F15     | Dashboard and report         | In progress |                                                                                              |
 | F16     | Evaluation suite             | Todo        |                                                                                              |
 | F17     | Hardening and documentation  | Todo        |                                                                                              |
 
