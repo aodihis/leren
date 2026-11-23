@@ -1,6 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { fetchNewGmail, parseGmailMessage } from "./gmail";
+import {
+  buildRawReply,
+  createGmailDraft,
+  fetchNewGmail,
+  parseGmailMessage,
+  readGmailReplyContext,
+  sendGmailReply,
+} from "./gmail";
+import { DeliveryNotSentError, DeliveryRejectedError } from "./types";
+import type { OutboundReply } from "./types";
 
 function encode(text: string): string {
   return Buffer.from(text, "utf8").toString("base64url");
@@ -280,5 +289,205 @@ describe("fetchNewGmail", () => {
     expect(send).toHaveBeenCalledWith(expect.any(String), {
       headers: { authorization: "Bearer secret-token" },
     });
+  });
+});
+
+const REPLY: OutboundReply = {
+  to: "ana@example.com",
+  subject: "Re: Opening hours",
+  body: "We open at 9.\nSee you soon.",
+  threadId: "t1",
+  messageId: "<leren-1@leren.local>",
+  inReplyTo: "<original@example.com>",
+  references: "<first@example.com> <original@example.com>",
+};
+
+function decodeRaw(raw: string): { headers: Map<string, string>; body: string } {
+  const [head = "", body = ""] = Buffer.from(raw, "base64url").toString("utf8").split("\r\n\r\n");
+
+  return {
+    headers: new Map(
+      head
+        .split("\r\n")
+        .map((line) => [line.slice(0, line.indexOf(":")), line.slice(line.indexOf(":") + 2)]),
+    ),
+    body: Buffer.from(body.replaceAll("\r\n", ""), "base64").toString("utf8"),
+  };
+}
+
+type SentBody = { raw?: string; threadId?: string; message?: { raw: string; threadId?: string } };
+
+function sentBody(send: ReturnType<typeof vi.fn>): SentBody {
+  return JSON.parse(String(send.mock.calls[0]?.[1]?.body)) as SentBody;
+}
+
+describe("buildRawReply", () => {
+  it("writes the headers that thread the reply and the body as base64", () => {
+    const { headers, body } = decodeRaw(buildRawReply(REPLY));
+
+    expect(headers.get("To")).toBe("ana@example.com");
+    expect(headers.get("Subject")).toBe("Re: Opening hours");
+    expect(headers.get("Message-ID")).toBe("<leren-1@leren.local>");
+    expect(headers.get("In-Reply-To")).toBe("<original@example.com>");
+    expect(headers.get("References")).toBe("<first@example.com> <original@example.com>");
+    expect(headers.get("Content-Type")).toBe("text/plain; charset=UTF-8");
+    expect(body).toBe("We open at 9.\nSee you soon.");
+  });
+
+  it("omits the threading headers that the original did not have", () => {
+    const { headers } = decodeRaw(buildRawReply({ ...REPLY, inReplyTo: null, references: null }));
+
+    expect(headers.has("In-Reply-To")).toBe(false);
+    expect(headers.has("References")).toBe(false);
+  });
+
+  it("cannot be made to add a header through a line break in a value", () => {
+    const { headers } = decodeRaw(
+      buildRawReply({
+        ...REPLY,
+        subject: "Re: Hi\r\nBcc: attacker@evil.com",
+        to: "a@example.com\r\nBcc: x@evil.com",
+      }),
+    );
+
+    expect(headers.has("Bcc")).toBe(false);
+  });
+
+  it("encodes a subject that has characters outside ASCII", () => {
+    const { headers } = decodeRaw(buildRawReply({ ...REPLY, subject: "Re: Jadwal buka café" }));
+    const encoded = Buffer.from("Re: Jadwal buka café").toString("base64");
+
+    expect(headers.get("Subject")).toBe(`=?UTF-8?B?${encoded}?=`);
+  });
+});
+
+describe("readGmailReplyContext", () => {
+  it("reads the Message-ID, References and Reply-To of the original", async () => {
+    const send = vi.fn().mockResolvedValue(
+      reply(
+        gmailMessage({
+          headers: {
+            "Message-ID": "<original@example.com>",
+            References: "<first@example.com>",
+            "Reply-To": "Support <support@example.com>",
+          },
+        }),
+      ),
+    );
+
+    expect(await readGmailReplyContext(send, "token", "m1")).toEqual({
+      messageId: "<original@example.com>",
+      references: "<first@example.com>",
+      replyTo: "support@example.com",
+    });
+    expect(String(send.mock.calls[0]?.[0])).toContain("/messages/m1?format=metadata");
+  });
+
+  it("returns nulls when the original has none of the headers", async () => {
+    const send = vi.fn().mockResolvedValue(reply(gmailMessage()));
+
+    expect(await readGmailReplyContext(send, "token", "m1")).toEqual({
+      messageId: null,
+      references: null,
+      replyTo: null,
+    });
+  });
+});
+
+describe("createGmailDraft and sendGmailReply", () => {
+  it("creates a draft in the thread and returns its id with the whole answer", async () => {
+    const answer = { id: "d1", message: { id: "m9", threadId: "t1" } };
+    const send = vi.fn().mockResolvedValue(reply(answer));
+
+    expect(await createGmailDraft(send, "token", REPLY)).toEqual({ id: "d1", response: answer });
+    expect(send).toHaveBeenCalledWith(
+      "https://gmail.googleapis.com/gmail/v1/users/me/drafts",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(sentBody(send).message?.threadId).toBe("t1");
+    expect(decodeRaw(sentBody(send).message?.raw ?? "").headers.get("To")).toBe("ana@example.com");
+  });
+
+  it("sends the reply in the thread and returns the id of the sent message", async () => {
+    const answer = { id: "m9", threadId: "t1", labelIds: ["SENT"] };
+    const send = vi.fn().mockResolvedValue(reply(answer));
+
+    expect(await sendGmailReply(send, "token", REPLY)).toEqual({ id: "m9", response: answer });
+    expect(send).toHaveBeenCalledWith(
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(sentBody(send).threadId).toBe("t1");
+  });
+
+  it("leaves out the thread when the original has none", async () => {
+    const send = vi.fn().mockResolvedValue(reply({ id: "m9" }));
+
+    await sendGmailReply(send, "token", { ...REPLY, threadId: null });
+
+    expect(sentBody(send)).not.toHaveProperty("threadId");
+  });
+
+  it.each([
+    [403, "forbidden"],
+    [400, "rejected"],
+    [404, "rejected"],
+  ])("reports status %i as a refusal of kind %s", async (status, reason) => {
+    const send = vi.fn().mockResolvedValue(reply({ error: {} }, status));
+
+    await expect(sendGmailReply(send, "token", REPLY)).rejects.toMatchObject({
+      name: "DeliveryRejectedError",
+      reason,
+    });
+  });
+
+  it.each([
+    [429, { error: {} }],
+    [401, { error: {} }],
+    [403, { error: { errors: [{ reason: "userRateLimitExceeded" }] } }],
+    [403, { error: { status: "RESOURCE_EXHAUSTED" } }],
+  ])(
+    "reports status %i with a rate limit or invalid credentials as a delivery that did not happen",
+    async (status, body) => {
+      const send = vi.fn().mockResolvedValue(reply(body, status));
+
+      await expect(createGmailDraft(send, "token", REPLY)).rejects.toBeInstanceOf(
+        DeliveryNotSentError,
+      );
+    },
+  );
+
+  it.each(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"])(
+    "reports a %s failure as a delivery that did not happen",
+    async (code) => {
+      const cause = Object.assign(new Error(code), { code });
+      const send = vi.fn().mockRejectedValue(new TypeError("fetch failed", { cause }));
+
+      await expect(sendGmailReply(send, "token", REPLY)).rejects.toBeInstanceOf(
+        DeliveryNotSentError,
+      );
+    },
+  );
+
+  it("does not claim that a delivery did not happen when the outcome is unknown", async () => {
+    const cause = Object.assign(new Error("reset"), { code: "ECONNRESET" });
+    const reset = vi.fn().mockRejectedValue(new TypeError("fetch failed", { cause }));
+    const failure = vi.fn().mockResolvedValue(reply({ error: {} }, 503));
+
+    for (const send of [reset, failure]) {
+      const error: unknown = await sendGmailReply(send, "token", REPLY).catch(
+        (caught: unknown) => caught,
+      );
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(DeliveryNotSentError);
+      expect(error).not.toBeInstanceOf(DeliveryRejectedError);
+    }
+  });
+
+  it("fails when Gmail answers without an id", async () => {
+    const send = vi.fn().mockResolvedValue(reply({}));
+
+    await expect(sendGmailReply(send, "token", REPLY)).rejects.toThrow();
   });
 });

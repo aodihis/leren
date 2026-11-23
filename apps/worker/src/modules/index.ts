@@ -7,6 +7,8 @@ import { createEmailPollJob } from "./email-poll/job";
 import type { EmailPollJobDependencies } from "./email-poll/job";
 import { createKnowledgeDriftJob, createKnowledgeIndexJob } from "./knowledge-index/job";
 import type { KnowledgeIndexDependencies } from "./knowledge-index/service";
+import { createReplyDeliverJob } from "./reply-deliver/job";
+import type { ReplyDeliverDependencies } from "./reply-deliver/service";
 import { createReplyRunJob } from "./reply-run/job";
 import type { ReplyRunJobDependencies } from "./reply-run/job";
 import { runAgentJob } from "./run-agent/job";
@@ -21,10 +23,16 @@ export type JobDependencies = {
   /** The `listener` role: reads mailboxes. */
   listener?: Pick<EmailPollJobDependencies, "channels" | "pollIntervalMs"> | undefined;
   /**
-   * The `processor` role: runs the gate, the reply pipeline and the agent jobs. Without `reply` the
-   * reply pipeline is disabled, and the messages that the gate queued wait in the queue.
+   * The `processor` role: runs the gate, the reply pipeline, the reply deliverer and the agent
+   * jobs. Without `reply` the reply pipeline is disabled, and the messages that the gate queued
+   * wait in the queue. `deliver` holds what the deliverer needs to reach the mailboxes.
    */
-  processor?: { reply?: ReplyRunJobDependencies | undefined } | undefined;
+  processor?:
+    | {
+        reply?: ReplyRunJobDependencies | undefined;
+        deliver: Pick<ReplyDeliverDependencies, "channels">;
+      }
+    | undefined;
   /** The `indexer` role: keeps the vector index of the knowledge up to date. */
   indexer?: Pick<KnowledgeIndexDependencies, "store" | "embedder"> | undefined;
 };
@@ -48,7 +56,11 @@ export function createJobs({
   }
 
   if (processor) {
-    jobs.push(runAgentJob, createEmailGateJob({ db, queue }));
+    jobs.push(
+      runAgentJob,
+      createEmailGateJob({ db, queue }),
+      createReplyDeliverJob({ db, ...processor.deliver }),
+    );
 
     if (processor.reply) {
       jobs.push(createReplyRunJob(processor.reply));

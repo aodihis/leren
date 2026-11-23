@@ -14,6 +14,8 @@ const listener = {
   pollIntervalMs: 1,
 };
 
+const deliver = { channels: { providers: new Map(), encryptionKey: undefined } };
+
 const indexer = { store: {} as never, embedder: {} as never };
 
 const reply = {
@@ -36,11 +38,16 @@ describe("createJobs", () => {
     expect(names({ listener })).toEqual(["email.poll"]);
   });
 
-  it("builds the gate and the agent job for the processor role, and the reply run with its dependencies", () => {
-    expect(names({ processor: {} })).toEqual(["run-agent", "email.received"]);
-    expect(names({ processor: { reply } })).toEqual([
+  it("builds the gate, the deliverer and the agent job for the processor role, and the reply run with its dependencies", () => {
+    expect(names({ processor: { deliver } })).toEqual([
       "run-agent",
       "email.received",
+      "email.deliver",
+    ]);
+    expect(names({ processor: { reply, deliver } })).toEqual([
+      "run-agent",
+      "email.received",
+      "email.deliver",
       "email.process",
     ]);
   });

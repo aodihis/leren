@@ -101,22 +101,27 @@ function createIndexer() {
   };
 }
 
-const channels = roles.has("listener")
-  ? {
-      providers: createChannelProviders(config),
-      encryptionKey: config.CHANNEL_TOKEN_ENCRYPTION_KEY
-        ? parseEncryptionKey(config.CHANNEL_TOKEN_ENCRYPTION_KEY)
-        : undefined,
-    }
-  : undefined;
+const channels =
+  roles.has("listener") || roles.has("processor")
+    ? {
+        providers: createChannelProviders(config),
+        encryptionKey: config.CHANNEL_TOKEN_ENCRYPTION_KEY
+          ? parseEncryptionKey(config.CHANNEL_TOKEN_ENCRYPTION_KEY)
+          : undefined,
+      }
+    : undefined;
 
 const jobs = createJobs({
   queue,
   db,
-  listener: channels
-    ? { channels, pollIntervalMs: config.EMAIL_POLL_INTERVAL_SECONDS * 1000 }
-    : undefined,
-  processor: roles.has("processor") ? { reply: await createReplyRun() } : undefined,
+  listener:
+    channels && roles.has("listener")
+      ? { channels, pollIntervalMs: config.EMAIL_POLL_INTERVAL_SECONDS * 1000 }
+      : undefined,
+  processor:
+    channels && roles.has("processor")
+      ? { reply: await createReplyRun(), deliver: { channels } }
+      : undefined,
   indexer: roles.has("indexer") ? createIndexer() : undefined,
 });
 
@@ -143,7 +148,7 @@ if (roles.has("indexer")) {
   timers.push(setInterval(requestDriftCheck, config.KNOWLEDGE_DRIFT_INTERVAL_MINUTES * 60_000));
 }
 
-if (channels) {
+if (channels && roles.has("listener")) {
   const requestMailboxPolls = () => {
     requestEmailPolls({ db, channels, queue }).catch((error) => {
       logger.error("Could not request the email polls", { error });

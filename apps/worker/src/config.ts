@@ -48,7 +48,7 @@ function createConfigSchema(roles: ReadonlySet<WorkerRole>) {
       ...channelProviderEnvShape,
     })
     .superRefine((config, context) => {
-      if (roles.has("listener")) {
+      if (roles.has("listener") || roles.has("processor")) {
         checkChannelProviderEnv(config, (variable, message) =>
           context.addIssue({ code: "custom", path: [variable], message }),
         );

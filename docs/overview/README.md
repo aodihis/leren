@@ -152,13 +152,13 @@ The result of the pipeline for each message, with its draft, is stored in `reply
 
 The worker runs the roles that `WORKER_ROLES` lists, separated by commas. An empty or unset value runs every role, and an unknown name stops the process at startup (decision 0045).
 
-| Role        | Starts                                                                              |
-| ----------- | ----------------------------------------------------------------------------------- |
-| `listener`  | The timer that requests mailbox polls, and the `email.poll` job.                    |
-| `processor` | The `email.received` gate, the `email.process` reply run and the `run-agent` job.   |
-| `indexer`   | The `knowledge.index` and `knowledge.drift` jobs, and the timer of the drift check. |
+| Role        | Starts                                                                                                           |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `listener`  | The timer that requests mailbox polls, and the `email.poll` job.                                                 |
+| `processor` | The `email.received` gate, the `email.process` reply run, the `email.deliver` deliverer and the `run-agent` job. |
+| `indexer`   | The `knowledge.index` and `knowledge.drift` jobs, and the timer of the drift check.                              |
 
-A variable that only one role uses is required only when that role starts. The `indexer` role needs `VECTOR_STORE_URL` and an embedding model, and the `listener` role needs the settings of the enabled channel providers. The `processor` role will need them when the `email.deliver` job joins it. A process whose only role is `processor` stops at startup when the reply pipeline cannot be built, and a process with other roles logs a warning and goes on without it. Two processes of one role each run the timers of that role, which is safe, because a poll and a drift check can be repeated.
+A variable that only one role uses is required only when that role starts. The `indexer` role needs `VECTOR_STORE_URL` and an embedding model, and the `listener` and `processor` roles need the settings of the enabled channel providers, the first to read mailboxes and the second to write replies to them. A process whose only role is `processor` stops at startup when the reply pipeline cannot be built, and a process with other roles logs a warning and goes on without it. Two processes of one role each run the timers of that role, which is safe, because a poll and a drift check can be repeated.
 
 ## Queues
 

@@ -82,13 +82,13 @@ describe("loadConfig", () => {
       ).toBeUndefined();
     });
 
-    it("needs the settings of the enabled providers only for the role that reads a mailbox", () => {
+    it("needs the settings of the enabled providers only for the roles that use a mailbox", () => {
       const google = { ...validEnv, CHANNEL_PROVIDERS: "google" };
 
       expect(() => loadConfig({ ...google, WORKER_ROLES: "listener" })).toThrow(/GOOGLE_CLIENT_ID/);
-      expect(loadConfig({ ...google, WORKER_ROLES: "processor" }).WORKER_ROLES).toEqual([
-        "processor",
-      ]);
+      expect(() => loadConfig({ ...google, WORKER_ROLES: "processor" })).toThrow(
+        /GOOGLE_CLIENT_ID/,
+      );
       expect(loadConfig({ ...google, WORKER_ROLES: "indexer" }).WORKER_ROLES).toEqual(["indexer"]);
     });
 

@@ -1,8 +1,14 @@
 import { z } from "zod";
 
-import { fetchNewGmail, readGmailPosition } from "./gmail";
+import {
+  createGmailDraft,
+  fetchNewGmail,
+  readGmailPosition,
+  readGmailReplyContext,
+  sendGmailReply,
+} from "./gmail";
 import { InvalidGrantError } from "./types";
-import type { EmailProvider, ProviderTokens } from "./types";
+import type { EmailProvider, EmailSender, ProviderTokens } from "./types";
 
 const AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -10,13 +16,14 @@ const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 
 /**
  * The scopes of the Google provider. The first two identify the account. The Gmail scopes let the
- * product read mail and send approved replies (decision 0038).
+ * product read mail, send replies and create drafts (decisions 0038 and 0046).
  */
 export const GOOGLE_SCOPES = [
   "openid",
   "email",
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/gmail.compose",
 ] as const;
 
 const tokenResponseSchema = z.object({
@@ -59,7 +66,7 @@ function readIdToken(idToken: string | undefined) {
  * the authorization code flow, PKCE and offline access. The account is identified by the `sub`
  * claim and labelled with the address. It reads new mail with the Gmail history API.
  */
-export function createGoogleProvider(options: GoogleProviderOptions): EmailProvider {
+export function createGoogleProvider(options: GoogleProviderOptions): EmailProvider & EmailSender {
   const send = options.fetch ?? fetch;
 
   const requestTokens = async (parameters: Record<string, string>) => {
@@ -155,6 +162,15 @@ export function createGoogleProvider(options: GoogleProviderOptions): EmailProvi
     },
     fetchNewMail(accessToken, cursor) {
       return fetchNewGmail(send, accessToken, cursor);
+    },
+    readReplyContext(accessToken, providerMessageId) {
+      return readGmailReplyContext(send, accessToken, providerMessageId);
+    },
+    createDraft(accessToken, reply) {
+      return createGmailDraft(send, accessToken, reply);
+    },
+    sendReply(accessToken, reply) {
+      return sendGmailReply(send, accessToken, reply);
     },
     async revoke(tokens) {
       const response = await send(REVOKE_URL, {
