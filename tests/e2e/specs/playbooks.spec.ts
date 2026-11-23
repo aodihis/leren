@@ -2,11 +2,25 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
 import { signInAsNewUser } from "../support/auth";
+import { seedChannelAccount } from "../support/seed";
+
+/**
+ * Registers a new user who has an email account connected, because a playbook that is enabled has to
+ * name one (decision 0044). Returns the label of the account, which is the address of the user.
+ */
+async function signInWithAccount(page: Page): Promise<string> {
+  const email = await signInAsNewUser(page);
+
+  await seedChannelAccount(email);
+
+  return email;
+}
 
 type PlaybookOptions = { startsAt?: string; endsAt?: string };
 
 async function createPlaybook(
   page: Page,
+  account: string,
   topic: string,
   options: PlaybookOptions = {},
 ): Promise<void> {
@@ -14,9 +28,8 @@ async function createPlaybook(
   await page.getByLabel("Topic", { exact: true }).fill(topic);
   await page.getByLabel("Response", { exact: true }).fill("We are open from 9 to 5.");
 
-  if (options.startsAt || options.endsAt) {
-    await page.getByRole("tab", { name: "Rules" }).click();
-  }
+  await page.getByRole("tab", { name: "Rules" }).click();
+  await page.getByLabel("Email account").selectOption({ label: account });
 
   if (options.startsAt) {
     await page.getByLabel("Starts").fill(options.startsAt);
@@ -30,12 +43,10 @@ async function createPlaybook(
   await expect(page).toHaveURL(/\/playbooks$/);
 }
 
-test.beforeEach(async ({ page }) => {
-  await signInAsNewUser(page);
-});
-
 test("creates an enabled playbook and shows it in the list", async ({ page }) => {
-  await createPlaybook(page, "Opening hours");
+  const account = await signInWithAccount(page);
+
+  await createPlaybook(page, account, "Opening hours");
 
   const row = page.getByRole("row", { name: /Opening hours/ });
 
@@ -44,7 +55,9 @@ test("creates an enabled playbook and shows it in the list", async ({ page }) =>
 });
 
 test("turns a playbook off and on again", async ({ page }) => {
-  await createPlaybook(page, "Opening hours");
+  const account = await signInWithAccount(page);
+
+  await createPlaybook(page, account, "Opening hours");
 
   const row = page.getByRole("row", { name: /Opening hours/ });
 
@@ -56,8 +69,10 @@ test("turns a playbook off and on again", async ({ page }) => {
 });
 
 test("derives the status of an enabled playbook from its period", async ({ page }) => {
-  await createPlaybook(page, "Future playbook", { startsAt: "2099-01-01T09:00" });
-  await createPlaybook(page, "Past playbook", { endsAt: "2000-01-01T09:00" });
+  const account = await signInWithAccount(page);
+
+  await createPlaybook(page, account, "Future playbook", { startsAt: "2099-01-01T09:00" });
+  await createPlaybook(page, account, "Past playbook", { endsAt: "2000-01-01T09:00" });
 
   await expect(
     page.getByRole("row", { name: /Future playbook/ }).getByText("Scheduled", { exact: true }),
@@ -68,10 +83,12 @@ test("derives the status of an enabled playbook from its period", async ({ page 
 });
 
 test("saves an edited playbook and keeps it enabled", async ({ page }) => {
-  await createPlaybook(page, "Opening hours");
+  const account = await signInWithAccount(page);
+
+  await createPlaybook(page, account, "Opening hours");
   await page
     .getByRole("row", { name: /Opening hours/ })
-    .getByRole("link", { name: "Edit" })
+    .getByRole("link", { name: "Opening hours" })
     .click();
 
   await page.getByLabel("Response", { exact: true }).fill("We are open from 10 to 6.");
@@ -84,7 +101,9 @@ test("saves an edited playbook and keeps it enabled", async ({ page }) => {
 });
 
 test("deletes a playbook", async ({ page }) => {
-  await createPlaybook(page, "Opening hours");
+  const account = await signInWithAccount(page);
+
+  await createPlaybook(page, account, "Opening hours");
   await page.getByRole("button", { name: "Delete Opening hours" }).click();
 
   await expect(page.getByText(/You have no playbooks yet/)).toBeVisible();

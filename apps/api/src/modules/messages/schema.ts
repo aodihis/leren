@@ -11,6 +11,8 @@ const MESSAGE_STATUSES = [
   "failed",
 ] as const;
 
+const MESSAGE_OUTCOMES = ["answer", "delegate", "escalate", "ignore"] as const;
+
 const MAX_PAGE_SIZE = 100;
 const MAX_RECIPIENTS = 50;
 const ADDRESS = z.string().trim().toLowerCase().min(3).max(320);
@@ -44,6 +46,9 @@ export function decodeCursor(value: string): Cursor | null {
  */
 export const messageListQuerySchema = z.object({
   status: z.enum(MESSAGE_STATUSES).optional(),
+  outcome: z.enum(MESSAGE_OUTCOMES).optional(),
+  failed: z.literal("true").optional(),
+  since: z.iso.datetime().pipe(z.coerce.date()).optional(),
   channel: z.string().min(1).max(50).optional(),
   channelAccountId: z.uuid().optional(),
   limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),

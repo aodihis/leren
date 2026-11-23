@@ -2,6 +2,8 @@ import { Button, Card, CardContent } from "@leren/ui";
 import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { api } from "../../modules/api/api-client";
+import { MessageCounts } from "../../modules/dashboard/components/message-counts";
+import { loadOverview } from "../../modules/dashboard/load-overview";
 import { PlaybookStatusBadge } from "../../modules/playbooks/components/playbook-status-badge";
 import { getPlaybookStatus } from "../../modules/playbooks/status";
 import type { PlaybookStatus } from "../../modules/playbooks/status";
@@ -17,7 +19,10 @@ const SHOWN_PLAYBOOKS = 5;
 
 export const Route = createFileRoute("/_authed/")({
   loader: async () => {
-    const response = await api.api.playbooks.$get({ query: {} });
+    const [response, overview] = await Promise.all([
+      api.api.playbooks.$get({ query: {} }),
+      loadOverview(),
+    ]);
 
     if (!response.ok) {
       throw new Error("Could not load your playbooks.");
@@ -25,13 +30,13 @@ export const Route = createFileRoute("/_authed/")({
 
     const { playbooks } = await response.json();
 
-    return playbooks;
+    return { playbooks, overview };
   },
   component: OverviewPage,
 });
 
 function OverviewPage() {
-  const playbooks = Route.useLoaderData();
+  const { playbooks, overview } = Route.useLoaderData();
 
   const shown = [
     ...playbooks.filter((playbook) => getPlaybookStatus(playbook) === "active"),
@@ -55,6 +60,7 @@ function OverviewPage() {
           </Card>
         ))}
       </section>
+      {overview ? <MessageCounts overview={overview} /> : null}
       <Card className="gap-0 py-0">
         <div className="flex items-center gap-2 border-b px-4 py-3.5">
           <h2 className="flex-1 text-title-sm font-semibold">Your playbooks</h2>
