@@ -1,4 +1,4 @@
-import type { AgentPrompt, MemoryScope } from "@anvia/core";
+import type { AgentPrompt, MemoryScope, Message } from "@anvia/core";
 import { createAgent } from "@leren/agents";
 import type { CreateAgentOptions, McpOptions } from "@leren/agents";
 import { tools } from "./tools";
@@ -19,14 +19,22 @@ export interface RunAgentOptions extends Pick<
   readonly abortSignal?: AbortSignal | undefined;
 }
 
+/** What one Reply Agent run produced: its text answer and the messages of the run. */
+export interface ReplyRun {
+  readonly output: string;
+  /** The messages of the run, including the results of the tools that the agent called. */
+  readonly messages: readonly Message[];
+}
+
 /**
- * Runs the Reply Agent once and returns its text answer.
+ * Runs the Reply Agent once and returns its text answer together with the messages of the run.
  *
- * The agent runs as one step of the email pipeline, so the caller needs only the final answer and
- * not the events. When `mcp` is given, the MCP connection is opened for this run only and is always closed. The agent
- * is limited to 5 turns, as decided in ADR 0006.
+ * The agent runs as one step of the email pipeline, so the caller needs the final answer, and the
+ * tool results that the pipeline checks the answer against, and not the events. When `mcp` is
+ * given, the MCP connection is opened for this run only and is always closed. The agent is limited
+ * to 5 turns, as decided in ADR 0006.
  */
-export async function runAgent(options: RunAgentOptions): Promise<string> {
+export async function generateReply(options: RunAgentOptions): Promise<ReplyRun> {
   const connection = options.mcp
     ? await connectReplyMcp(options.mcp, options.abortSignal)
     : undefined;
@@ -53,8 +61,13 @@ export async function runAgent(options: RunAgentOptions): Promise<string> {
       throw new Error(`The Reply Agent stopped without an answer: ${response.type}.`);
     }
 
-    return response.output;
+    return { output: response.output, messages: response.messages };
   } finally {
     await connection?.close();
   }
+}
+
+/** Runs the Reply Agent once and returns its text answer. See `generateReply`. */
+export async function runAgent(options: RunAgentOptions): Promise<string> {
+  return (await generateReply(options)).output;
 }
