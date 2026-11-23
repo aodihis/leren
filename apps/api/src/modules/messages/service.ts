@@ -148,7 +148,9 @@ export async function getMessage(
 
   const { message, decision } = row;
 
-  const citedIds = (decision?.citations ?? []).filter((id) => z.uuid().safeParse(id).success);
+  const citedIds = [...new Set(decision?.citations ?? [])].filter(
+    (id) => z.uuid().safeParse(id).success,
+  );
 
   const found =
     citedIds.length > 0

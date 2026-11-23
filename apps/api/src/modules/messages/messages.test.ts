@@ -306,6 +306,31 @@ describe("messages API", () => {
     ).toBeNull();
   });
 
+  it("lists a playbook once when the decision cites it twice, and skips a citation that is not an id", async () => {
+    const cookie = await signIn("decision-dup@example.com");
+    const mine = await addAccount("decision-dup@example.com");
+    const id = await addMessage(mine, "duplicate citations", "2026-11-20T10:00:00Z");
+
+    const [playbook] = await database.db
+      .insert(playbooks)
+      .values({ userId: mine.userId, topic: "Deadline", response: "Friday.", timezone: "UTC" })
+      .returning({ id: playbooks.id });
+
+    await database.db.insert(replyDecisions).values({
+      messageId: id,
+      userId: mine.userId,
+      outcome: "answer",
+      body: "Reply",
+      citations: [playbook?.id ?? "", "not-an-id", playbook?.id ?? ""],
+    });
+
+    const detail = (await (await get(`/api/messages/${id}`, cookie)).json()) as {
+      decision: { citedPlaybooks: unknown[] };
+    };
+
+    expect(detail.decision.citedPlaybooks).toEqual([{ id: playbook?.id, topic: "Deadline" }]);
+  });
+
   it("does not return the cited playbook of another user", async () => {
     const cookie = await signIn("decision-scope@example.com");
     const mine = await addAccount("decision-scope@example.com");
