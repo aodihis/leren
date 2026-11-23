@@ -335,6 +335,30 @@ describe("runReplyPipeline", () => {
     expect(result.reasons[0]).toContain("credential");
   });
 
+  it("drops playbooks that the gate did not name, and escalates when none is left", async () => {
+    const { deps, models } = setup({
+      draft: [],
+      judge: [],
+      triage: [triageStep],
+    });
+
+    const result = await runReplyPipeline(
+      { ...deps, allowedPlaybookIds: new Set(["another-playbook"]) },
+      input,
+    );
+
+    expect(result.outcome).toBe("escalate");
+    expect(models.draft.requests).toHaveLength(0);
+  });
+
+  it("keeps the playbooks that the gate named", async () => {
+    const { deps } = setup({});
+
+    const result = await runReplyPipeline({ ...deps, allowedPlaybookIds: new Set(["p1"]) }, input);
+
+    expect(result.outcome).toBe("answer");
+  });
+
   it("searches once with the subject and body when triage finds no question", async () => {
     const { deps, retrieve } = setup({
       triage: [

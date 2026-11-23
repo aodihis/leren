@@ -3,7 +3,7 @@ import { checkOutput, prepareEmail, wrapUntrusted } from "./guardrails";
 import type { PreparedEmail } from "./guardrails";
 import { draftAndEvaluate, findContact, route, triage } from "./stages";
 import type { ReplyPipelineDeps } from "./stages";
-import { mergePlaybooks } from "./retrieve";
+import { keepAllowed, mergePlaybooks } from "./retrieve";
 import { MAX_QUESTIONS, pipelineInputSchema } from "./types";
 import type {
   Draft,
@@ -136,16 +136,12 @@ export function createReplyPipeline(deps: ReplyPipelineDeps) {
           questions.map((question) => deps.retrieve(question, deps.abortSignal)),
         );
 
-        const unmatched = questions.filter((_question, index) => {
-          const result = results[index];
-
-          return !result || result.status !== "ok" || result.playbooks.length === 0;
-        });
-
-        const playbooks = results.reduce<readonly Playbook[]>(
-          (all, result) => (result.status === "ok" ? mergePlaybooks(all, result.playbooks) : all),
-          [],
+        const found = results.map((result) =>
+          result.status === "ok" ? keepAllowed(result.playbooks, deps.allowedPlaybookIds) : [],
         );
+
+        const unmatched = questions.filter((_question, index) => found[index]?.length === 0);
+        const playbooks = found.reduce<readonly Playbook[]>(mergePlaybooks, []);
 
         if (playbooks.length === 0) {
           return finish(state, "escalate", {

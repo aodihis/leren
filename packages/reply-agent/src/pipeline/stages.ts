@@ -13,7 +13,7 @@ import {
   buildJudgePrompt,
   buildRoutePrompt,
 } from "./prompts";
-import { collectPlaybooks, mergePlaybooks } from "./retrieve";
+import { collectPlaybooks, keepAllowed, mergePlaybooks } from "./retrieve";
 import {
   CRITERIA,
   MAX_REVISIONS,
@@ -45,6 +45,11 @@ export interface ReplyPipelineDeps {
   /** Searches the knowledge of the user for an email, through the MCP server. */
   readonly retrieve: (query: string, abortSignal?: AbortSignal) => Promise<Retrieval>;
   readonly observer: Observer;
+  /**
+   * The ids of the only playbooks that may be used. Playbooks that retrieval or the drafting agent
+   * return outside this set are dropped. Without it, every playbook that is found may be used.
+   */
+  readonly allowedPlaybookIds?: ReadonlySet<string> | undefined;
   /** The MCP connection that the drafting agent may use for read-only lookups. */
   readonly mcp?: McpOptions | undefined;
   readonly abortSignal?: AbortSignal | undefined;
@@ -226,7 +231,10 @@ export async function draftAndEvaluate(
       abortSignal: deps.abortSignal,
     });
 
-    known = mergePlaybooks(known, collectPlaybooks(run.messages));
+    known = mergePlaybooks(
+      known,
+      keepAllowed(collectPlaybooks(run.messages), deps.allowedPlaybookIds),
+    );
 
     const text = run.output;
     const parsed = parseJsonOutput(text, draftSchema);

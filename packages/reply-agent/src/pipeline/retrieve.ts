@@ -61,6 +61,18 @@ export function readPlaybooks(value: unknown): Playbook[] {
   return mergePlaybooks([], found);
 }
 
+/**
+ * Keeps the playbooks whose id is in `allowed`, or all of them when there is no allowed set. The
+ * gate decides which playbooks may reply to a message, and a playbook that retrieval finds outside
+ * that set must not be used.
+ */
+export function keepAllowed(
+  playbooks: readonly Playbook[],
+  allowed: ReadonlySet<string> | undefined,
+): Playbook[] {
+  return allowed ? playbooks.filter((playbook) => allowed.has(playbook.id)) : [...playbooks];
+}
+
 /** Joins two lists of playbooks and keeps the first one of each id. */
 export function mergePlaybooks(
   first: readonly Playbook[],

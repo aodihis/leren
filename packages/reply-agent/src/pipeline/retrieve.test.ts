@@ -16,6 +16,19 @@ describe("readPlaybooks", () => {
     expect(readPlaybooks(output).map((entry) => entry.id)).toEqual(["p1"]);
   });
 
+  it("reads the shape that the MCP server returns for a search", () => {
+    const output = {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({ status: "ok", matches: [{ score: 0.8, playbook }] }),
+        },
+      ],
+    };
+
+    expect(readPlaybooks(output).map((entry) => entry.id)).toEqual(["p1"]);
+  });
+
   it("skips a playbook that is not usable and repeats of the same id", () => {
     const output = [playbook, playbook, { ...playbook, id: "p2", usable: false }];
 
