@@ -58,15 +58,28 @@ export interface HarnessConfig {
 }
 
 /** The tasks whose model is chosen by an environment variable. */
-export type ModelTask = "assistant" | "reply";
+export type ModelTask = "assistant" | "reply" | "replyTriage" | "replyJudge";
 
 /**
  * The environment variable that holds the harness model key for each task. An unset or empty
- * variable selects `defaultModel`.
+ * variable selects the model of the task's fallback task, if it has one, and otherwise
+ * `defaultModel`.
  */
 export const MODEL_TASK_ENV: Readonly<Record<ModelTask, string>> = {
   assistant: "ASSISTANT_MODEL",
   reply: "REPLY_MODEL",
+  replyTriage: "REPLY_TRIAGE_MODEL",
+  replyJudge: "REPLY_JUDGE_MODEL",
+};
+
+/**
+ * The task whose variable is read when a task's own variable is unset or empty. The triage and
+ * judge steps of the reply pipeline follow the Reply Agent until they are given a model of their
+ * own.
+ */
+const FALLBACK_TASK: Readonly<Partial<Record<ModelTask, ModelTask>>> = {
+  replyTriage: "reply",
+  replyJudge: "reply",
 };
 
 /** A model chosen for a task, with the key it has in the config. */
@@ -89,13 +102,19 @@ export function resolveTaskModel(
   env: NodeJS.ProcessEnv = process.env,
 ): ResolvedModel {
   const variable = MODEL_TASK_ENV[task];
-  const key = env[variable] || config.defaultModel;
+  const fallback = FALLBACK_TASK[task];
+  const fallbackVariable = fallback && MODEL_TASK_ENV[fallback];
+
+  const source =
+    !env[variable] && fallbackVariable && env[fallbackVariable] ? fallbackVariable : variable;
+
+  const key = env[source] || config.defaultModel;
   const definition = config.models[key];
 
   if (!definition) {
     const available = Object.keys(config.models).join(", ");
 
-    throw new Error(`${variable}="${key}" is not a model in the harness. Available: ${available}`);
+    throw new Error(`${source}="${key}" is not a model in the harness. Available: ${available}`);
   }
 
   const apiKey = env[definition.apiKeyEnv];

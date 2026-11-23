@@ -26,10 +26,12 @@ export function createLensObserver(env: Environment): Observer {
   }
 
   const tracing = client.observer({ captureMode: "safe" });
+  const pipelineTracing = client.pipelineObserver({ captureMode: "safe" });
 
   return {
     enabled: true,
     forAgent: () => ({ observers: { lens: tracing }, primaryTrace: "lens" }),
+    forPipeline: () => ({ observers: { lens: pipelineTracing }, primaryTrace: "lens" }),
     evalReporter: () => client.evalReporter({ includePayloads: true }),
     flush: () => client.flush(),
     close: () => client.close(),

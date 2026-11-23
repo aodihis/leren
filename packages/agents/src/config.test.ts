@@ -50,6 +50,21 @@ describe("resolveTaskModel", () => {
     expect(resolved.key).toBe("fast");
   });
 
+  it("lets the judge follow REPLY_MODEL until REPLY_JUDGE_MODEL is set", () => {
+    const env = { REPLY_MODEL: "smart", SMART_KEY: "s", FAST_KEY: "f" };
+
+    expect(resolveTaskModel(config, "replyJudge", env).key).toBe("smart");
+    expect(resolveTaskModel(config, "replyJudge", { ...env, REPLY_JUDGE_MODEL: "fast" }).key).toBe(
+      "fast",
+    );
+  });
+
+  it("names REPLY_MODEL when the judge follows it and the key is unknown", () => {
+    expect(() => resolveTaskModel(config, "replyJudge", { REPLY_MODEL: "typo" })).toThrow(
+      /REPLY_MODEL="typo"/,
+    );
+  });
+
   it("lists the available keys when the key is unknown", () => {
     expect(() => resolveTaskModel(config, "reply", { REPLY_MODEL: "nope" })).toThrow(
       /REPLY_MODEL="nope".*fast, smart/,

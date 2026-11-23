@@ -1,5 +1,6 @@
 import type { EvalReporter } from "@anvia/core/evals";
 import type { AgentObservabilityOptions } from "@anvia/core/observability";
+import type { PipelineObservabilityOptions } from "@anvia/core/pipeline";
 
 /**
  * The vendor-neutral surface that applications and packages use for tracing.
@@ -15,6 +16,12 @@ export interface Observer {
    * when tracing is disabled.
    */
   forAgent(): AgentObservabilityOptions | undefined;
+
+  /**
+   * Returns the options to pass as `observability` when constructing a pipeline, or `undefined`
+   * when tracing is disabled. Each run of the pipeline is one trace, and each stage is a span in it.
+   */
+  forPipeline(): PipelineObservabilityOptions | undefined;
 
   /**
    * Returns a reporter that records eval results next to the traces of the agent runs they grade,
