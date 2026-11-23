@@ -14,6 +14,23 @@ describe("loadConfig", () => {
     expect(loadConfig({ ...validEnv, REPLY_MODEL: "fast" }).REPLY_MODEL).toBe("fast");
   });
 
+  it("reads the MCP settings of the reply pipeline and requires a long secret", () => {
+    const config = loadConfig(validEnv);
+
+    expect(config.MCP_SESSION_SECRET).toBeUndefined();
+    expect(config.MCP_URL).toBe("http://localhost:3000/mcp");
+    expect(() => loadConfig({ ...validEnv, MCP_SESSION_SECRET: "short" })).toThrow(
+      /MCP_SESSION_SECRET/,
+    );
+  });
+
+  it("reads empty MCP variables as not set", () => {
+    const config = loadConfig({ ...validEnv, MCP_SESSION_SECRET: "", MCP_URL: "" });
+
+    expect(config.MCP_SESSION_SECRET).toBeUndefined();
+    expect(config.MCP_URL).toBe("http://localhost:3000/mcp");
+  });
+
   it("reads the poll interval in seconds and defaults it to one minute", () => {
     expect(loadConfig(validEnv).EMAIL_POLL_INTERVAL_SECONDS).toBe(60);
     expect(

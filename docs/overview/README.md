@@ -134,15 +134,18 @@ Every received email has one record, so the user can see in the dashboard what a
 
 The status is updated as the message passes through the pipeline, and it only moves forward.
 
-| Status           | Meaning                                               |
-| ---------------- | ----------------------------------------------------- |
-| `received`       | The email is recorded and waits for the gate.         |
-| `not_applicable` | No playbook handles it. The reason is stored with it. |
-| `queued`         | The gate passed it to the pipeline.                   |
-| `processing`     | The pipeline is working on it.                        |
-| `drafted`        | A reply was saved as a draft and waits for the user.  |
-| `sent`           | A reply was sent.                                     |
-| `failed`         | A step failed. The reason is stored with it.          |
+| Status           | Meaning                                                |
+| ---------------- | ------------------------------------------------------ |
+| `received`       | The email is recorded and waits for the gate.          |
+| `not_applicable` | No playbook handles it. The reason is stored with it.  |
+| `queued`         | The gate passed it to the pipeline.                    |
+| `processing`     | The pipeline is working on it.                         |
+| `drafted`        | A reply was saved as a draft and waits for the user.   |
+| `escalated`      | The user must handle it. The reason is stored with it. |
+| `sent`           | A reply was sent.                                      |
+| `failed`         | A step failed. The reason is stored with it.           |
+
+The result of the pipeline for each message, with its draft, is stored in `reply_decisions` (decision 0043). When a playbook asks for a mention check and the email does not address the user, the message becomes `not_applicable` with the reason `not_addressed`.
 
 `GET /api/messages` lists the user's records, newest first, and takes `status`, `channel`, `channelAccountId`, `limit` and `cursor`. `GET /api/messages/:id` returns one record with its stored body (decision 0039).
 

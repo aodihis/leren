@@ -157,7 +157,7 @@ Status: In progress. Branch: `feat/12b-email-listener`.
 
 ### F13 Reply Agent and pipeline
 
-Status: Todo. Branch: `feat/13-reply-agent`.
+Status: In progress. Branch: `feat/13-reply-agent`.
 
 - [x] Decide the pipeline: fixed stages with an evaluator-optimizer loop and guardrails (ADR 0042).
 - [x] Build the pipeline with `@anvia/core/pipeline` in `packages/reply-agent`: input guardrail, triage, retrieve through an injected `retrieve` function, route, draft, evaluate and revise, output guardrail. The caller persists the result.
@@ -165,14 +165,14 @@ Status: Todo. Branch: `feat/13-reply-agent`.
 - [x] Abstain, without calling the agent, when retrieval finds nothing reliable.
 - [x] Add the evaluator: deterministic checks and a judge model that compares the draft with the retrieved playbooks and the reply instructions. Allow 2 revisions, then escalate.
 - [x] Add `REPLY_JUDGE_MODEL` and `REPLY_TRIAGE_MODEL` to the harness config and `.env.example`.
-- [ ] Save the decision and the draft, and set `processing`, `drafted` and `failed` through `transitionMessage` as the pipeline passes each stage (ADR 0039). F14 sets the statuses of approval and sending.
-- [ ] Add the pipeline runner consumer on `email.process`.
+- [x] Save the decision and the draft in `reply_decisions`, add the status `escalated`, and set `processing`, `drafted`, `escalated`, `not_applicable` and `failed` through `transitionMessage` as the pipeline passes each stage (ADR 0043). F14 sets the statuses of approval and sending.
+- [x] Add the `email.process` consumer: it uses only the playbooks of the gate, makes the mention check when every playbook asks for it, is safe to deliver again, and marks the message failed when its last attempt fails.
 - [x] Test with a scripted fake LLM: step limit, abstention, prompt injection, the revision limit and failing closed.
 - [x] Add the first evals of the pipeline: outcome (routing and abstention), content, citations and judge calibration, in `packages/reply-agent/src/evals`. They need live models, so they are not run in CI. Triage accuracy and Recall@5 are left for F16, and Recall@5 needs the real index.
 - [x] Add the MCP-backed `retrieve` function (`createMcpRetriever`), search once for each question of the email, merge the playbooks and judge coverage of every question.
 - [x] Open the MCP session of a run in the worker (`openReplySession`): short-lived, bound to the owner of the message and to the message id, read-only, and revoked when the run ends.
-- [ ] Add `MCP_SESSION_SECRET` and `MCP_URL` to the worker config, and the `email.process` consumer that opens the session, runs the pipeline and saves the result.
-- [ ] Create one observer in the worker, pass it to the pipeline, call `observer.flush()` after each message and `observer.close()` in the worker's `shutdown`, so that the last batch of telemetry is delivered.
+- [x] Add `MCP_SESSION_SECRET` and `MCP_URL` to the worker config. The worker does not consume `email.process` when the secret, the models or the prompt are not available.
+- [x] Create one observer in the worker, pass it to the pipeline, flush it after each message and close it in the worker's `shutdown`, so that the last batch of telemetry is delivered.
 - [ ] Later: reply instructions written by the user (needs a product decision) and reply templates.
 
 ### F14 Approval and sending

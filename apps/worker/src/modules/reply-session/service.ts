@@ -3,6 +3,7 @@ import type { Db } from "@leren/db";
 import type { EmailProcessMessage } from "@leren/inbox";
 import { mintSession, revokeSession } from "@leren/mcp-server";
 import type { MintedSession } from "@leren/mcp-server";
+import { NonRetryableError } from "@leren/queue";
 import { and, eq, inArray } from "drizzle-orm";
 
 /**
@@ -25,8 +26,7 @@ export type ReplySessionDependencies = {
  * message id and to the read-only scopes of the reply role.
  *
  * Throws when the record does not exist, or when a playbook of the job is not the owner's, because
- * such a job was not produced by the gate and must not run. The queue then retries it, and it ends
- * in the dead-letter queue.
+ * such a job was not produced by the gate and must not run. The error is not retried.
  */
 export async function openReplySession(
   { db, secret, now }: ReplySessionDependencies,
@@ -38,7 +38,7 @@ export async function openReplySession(
     .where(eq(messages.id, message.messageId));
 
   if (!record) {
-    throw new Error(`The message ${message.messageId} does not exist.`);
+    throw new NonRetryableError(`The message ${message.messageId} does not exist.`);
   }
 
   const ids = [...new Set(message.playbooks.map((entry) => entry.playbookId))];
@@ -49,7 +49,9 @@ export async function openReplySession(
     .where(and(inArray(playbooks.id, ids), eq(playbooks.userId, record.userId)));
 
   if (owned.length !== ids.length) {
-    throw new Error(`A playbook of the message ${message.messageId} is not the owner's.`);
+    throw new NonRetryableError(
+      `A playbook of the message ${message.messageId} is not the owner's.`,
+    );
   }
 
   return mintSession(
