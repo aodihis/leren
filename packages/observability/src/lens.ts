@@ -7,8 +7,9 @@ import { createNoopObserver } from "./noop";
  *
  * Returns a no-op observer when none of the connection variables are set. A partial
  * configuration throws, so a misconfigured deployment fails at startup instead of silently
- * dropping traces. Payload capture stays in the safe mode, which does not export prompt and
- * response bodies.
+ * dropping traces. Payload capture is `full` (decision 0047): a trace holds the prompts, the replies
+ * and the input and output of each pipeline stage, so the email, the playbooks and the reply can be
+ * read in Lens. The default redaction patterns of the library still apply.
  */
 export function createLensObserver(env: Environment): Observer {
   const client = new LensClient({
@@ -17,7 +18,7 @@ export function createLensObserver(env: Environment): Observer {
     secretKey: env.ANVIA_LENS_SECRET_KEY,
     serviceName: env.ANVIA_LENS_SERVICE_NAME,
     environment: env.ANVIA_LENS_ENVIRONMENT,
-    captureMode: "safe",
+    captureMode: "full",
     optional: true,
   });
 
@@ -25,8 +26,8 @@ export function createLensObserver(env: Environment): Observer {
     return createNoopObserver();
   }
 
-  const tracing = client.observer({ captureMode: "safe" });
-  const pipelineTracing = client.pipelineObserver({ captureMode: "safe" });
+  const tracing = client.observer({ captureMode: "full" });
+  const pipelineTracing = client.pipelineObserver({ captureMode: "full" });
 
   return {
     enabled: true,
