@@ -135,7 +135,7 @@ export function createPlaybooksRouter(
         );
 
         if (!toggled.ok) {
-          return c.json({ error: toggled.message }, 400);
+          return c.json(accountFieldErrors(toggled.message), 400);
         }
 
         if (toggled.value.status !== "saved") {

@@ -358,7 +358,7 @@ describe("playbooks API", () => {
         const refused = await setEnabled(cookie, own.id, true);
 
         expect(refused.status).toBe(400);
-        expect(await refused.json()).toEqual({ error: REQUIRED });
+        expect(await refused.json()).toEqual({ fieldErrors: { channelAccountId: [REQUIRED] } });
         expect(requestKnowledgeIndex.mock.calls).toHaveLength(indexRequests);
 
         const named = await call(cookie, "PUT", `${PATH}/${own.id}`, body({ enabled: false }));

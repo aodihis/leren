@@ -87,10 +87,10 @@ function PlaybooksPage() {
     const failed = `Could not ${enabled ? "enable" : "disable"} the playbook`;
 
     if (response.status === 400) {
-      const body: unknown = await response.json().catch(() => null);
-      const reason = (body as { error?: unknown } | null)?.error;
+      const body = await response.json().catch(() => null);
+      const reason = body?.fieldErrors?.channelAccountId?.[0];
 
-      setFailure(typeof reason === "string" ? reason : failed);
+      setFailure(reason ?? failed);
 
       return;
     }

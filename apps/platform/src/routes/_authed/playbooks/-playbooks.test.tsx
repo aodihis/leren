@@ -244,7 +244,13 @@ describe("playbooks routes", () => {
       );
       playbooksApi[":id"].$patch.mockImplementation(() =>
         jsonResponse(
-          { error: "Choose the account that this playbook answers on, or turn the playbook off" },
+          {
+            fieldErrors: {
+              channelAccountId: [
+                "Choose the account that this playbook answers on, or turn the playbook off",
+              ],
+            },
+          },
           400,
         ),
       );
