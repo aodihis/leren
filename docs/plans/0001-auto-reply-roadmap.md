@@ -202,8 +202,8 @@ Status: In progress. Branch: `feat/15-dashboard`. Decision: 0048.
 Status: In progress. Branch: `feat/16-evals`.
 
 - [x] Reply Agent suite in `packages/reply-agent/src/evals`: 50 cases: 15 project questions, 10 task assignments, 8 informational, 7 urgent, 5 without knowledge, 5 prompt injections.
-- [ ] Assistant Agent suite in `packages/assistant-agent/src/evals`: cases for lookups of saved data, suggested questions, edit proposals that match the source, and requests to approve or send, which must be refused. Score tool choice, faithfulness to saved data and proposal-only behavior.
-- [ ] Add a shared runner and the Reply Agent scorers: classification accuracy, Recall@5, groundedness, rule compliance, correct abstention and policy checks. Each suite has its own dataset and quality gate. Done for the Reply suite: classification, abstention, groundedness, policy and a per-metric gate (`gate.ts`). Recall@5 is done too (`pnpm evals:reply recall`, 21 cases against the real index). Left: a shared runner for the Assistant suite, and a dedicated rule-compliance scorer.
+- [x] Assistant Agent suite in `packages/assistant-agent/src/evals`: cases for lookups of saved data, suggested questions, edit proposals that match the source, and requests to approve or send, which must be refused. Score tool choice, faithfulness to saved data and proposal-only behavior. The suite has 8 metrics and 46 cases, and each metric must pass all of its cases (`pnpm run evals`).
+- [ ] Add a shared runner and the Reply Agent scorers: classification accuracy, Recall@5, groundedness, rule compliance, correct abstention and policy checks. Each suite has its own dataset and quality gate. Done for the Reply suite: classification, abstention, groundedness, policy and a per-metric gate (`gate.ts`). Recall@5 is done too (`pnpm evals:reply recall`, 21 cases against the real index). Left: a shared runner for both suites, and a dedicated rule-compliance scorer.
 - [ ] Link results to Lens traces.
 - [ ] Add a script that turns failures and rejected drafts into new cases.
 
