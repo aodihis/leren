@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="29 22 198 179" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    path { stroke: #6f4e37; }
+    @media (prefers-color-scheme: dark) { path { stroke: #d2ae8a; } }
+  </style>
+  <path stroke-width="11" d="M122 65 106 37C101 28 91 28 86 37L46 112C35 133 48 158 72 162 92 165 107 151 116 131L124 114C134 92 156 80 180 84 206 88 224 111 221 137 219 151 211 163 200 171L208 187C210 191 206 195 202 194L182 186C175 188 168 189 161 189L114 189" />
+  <path stroke-width="9.5" d="M142 128C146 116 156 108 168 106" />
+  <path stroke-width="9.5" d="M184 109C193 114 199 123 200 133" />
+</svg>

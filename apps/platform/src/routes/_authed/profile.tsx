@@ -2,11 +2,6 @@ import {
   Alert,
   AlertDescription,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Form,
   FormControl,
   FormField,
@@ -20,6 +15,7 @@ import type { InferRequestType } from "hono/client";
 import { useForm } from "react-hook-form";
 
 import { api } from "../../modules/api/api-client";
+import { StickyPageHeader } from "../../modules/layout/components/sticky-page-header";
 
 type ProfileValues = InferRequestType<typeof api.api.me.$patch>["json"];
 
@@ -57,51 +53,55 @@ function ProfilePage() {
   }
 
   return (
-    <Card className="mx-auto max-w-md">
-      <CardHeader>
-        <CardTitle>Your profile</CardTitle>
-        <CardDescription>{user.email}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {form.formState.errors.root && (
-              <Alert variant="destructive">
-                <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
-              </Alert>
-            )}
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>First name</FormLabel>
-                  <FormControl>
-                    <Input autoComplete="given-name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last name</FormLabel>
-                  <FormControl>
-                    <Input autoComplete="family-name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <StickyPageHeader className="py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="truncate text-title-lg font-semibold">
+                {user.name || "Your profile"}
+              </h1>
+              <p className="truncate text-body-sm text-ink-muted">{user.email}</p>
+            </div>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
               Save
             </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+          </div>
+        </StickyPageHeader>
+        {form.formState.errors.root && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
+          </Alert>
+        )}
+        <div className="max-w-xl space-y-5 pb-12 pt-6">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First name</FormLabel>
+                <FormControl>
+                  <Input autoComplete="given-name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last name</FormLabel>
+                <FormControl>
+                  <Input autoComplete="family-name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </form>
+    </Form>
   );
 }

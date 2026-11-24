@@ -129,7 +129,10 @@ function ChannelsPage() {
               {accounts.map((account) => (
                 <TableRow key={account.id}>
                   <TableCell className="font-medium">{account.label}</TableCell>
-                  <TableCell className="text-muted-foreground">{account.provider}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {providers.find((provider) => provider.name === account.provider)
+                      ?.displayName ?? account.provider}
+                  </TableCell>
                   <TableCell>
                     <AccountStatusBadge account={account} />
                   </TableCell>

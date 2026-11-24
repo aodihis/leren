@@ -95,13 +95,13 @@ function EmailsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Processed emails</h1>
-          <p className="text-body-sm text-ink-muted">
-            What the assistant did with each email it received.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold">Processed emails</h1>
+        <p className="text-body-sm text-ink-muted">
+          What the assistant did with each email it received.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm">
           Status
           <NativeSelect
