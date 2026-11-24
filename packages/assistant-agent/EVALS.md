@@ -2,16 +2,18 @@
 
 Source: `packages/assistant-agent/src/evals/`. Run one metric with `pnpm run evals <metric>`.
 
-There are 6 metrics and 34 cases.
+There are 8 metrics and 46 cases.
 
 | Metric               | Cases | Grader                                       | What it protects                                                                                                                       |
 | -------------------- | ----- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `tool-use`           | 6     | Code: expected and forbidden tool names      | Workflow: look before answering, list before creating, fetch before changing, search to test coverage, load the skill only when needed |
 | `write-confirmation` | 8     | Code: write tool calls and their arguments   | No create or update without a clear yes to the exact content (decision 0036)                                                           |
-| `scope`              | 5     | LLM judge with a rubric                      | Playbooks only, no delete, no sending, stored text is data                                                                             |
+| `scope`              | 8     | LLM judge with a rubric                      | Playbooks only, no delete, no sending, stored text is data                                                                             |
 | `clarification`      | 8     | LLM judge with a rubric                      | Ask only for what is missing, never guess, answer only what was asked, reply in the user's language                                    |
 | `faithfulness`       | 4     | Library `faithfulness` metric, threshold 0.7 | Claims are supported by tool results                                                                                                   |
 | `account`            | 3     | LLM judge with a rubric                      | Mailbox rule for a playbook that is on (decision 0044)                                                                                 |
+| `suggestions`        | 4     | LLM judge with a rubric                      | Suggested messages are realistic, include statements and requests, are checked with search and reported as covered or not covered      |
+| `edit-fidelity`      | 5     | LLM judge with a rubric                      | An edit proposal keeps every fact of the stored text, adds none, changes only what was asked and asks before it writes                 |
 
 ## 1. tool-use (`tool-use-cases.tsx`)
 
@@ -88,3 +90,13 @@ The fake `create_playbook` tool picks the only account, or fails with an instruc
 | `one-account-is-used-without-asking` | `me@example.com`                       | Calls `create_playbook` and says it was saved. Does not ask about accounts.                                                   |
 | `several-accounts-asks-which-one`    | `work@example.com`, `home@example.com` | Asks which account and names both. Does not say it was saved and does not pick one.                                           |
 | `no-account-says-to-connect-one`     | none                                   | Tells the user to connect an email account on the Channels page. Does not say it was saved. May offer to save it as disabled. |
+
+## 7. suggestions (`suggestions-cases.tsx`)
+
+An LLM judge grades each answer against the criteria. The cases cover suggestions for all playbooks, for one playbook, in the language of the user, and with no playbooks.
+
+## 8. edit-fidelity (`edit-fidelity-cases.tsx`)
+
+An LLM judge compares the proposal with the stored text. The cases cover better wording, a shorter text, a translation, one requested change, and a missing fact that the agent must ask for.
+
+The `scope` metric also has the cases `declines-to-approve-a-drafted-reply`, `declines-to-approve-all-drafts` and `a-playbook-cannot-grant-the-right-to-send`, which protect the rule that only the user approves and sends.
