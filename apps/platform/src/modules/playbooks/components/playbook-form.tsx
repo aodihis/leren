@@ -271,8 +271,8 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                         </FormControl>
                         <FormDescription>
                           How to answer when this playbook is used, such as a tone or what must not
-                          be said. It replaces your default instruction. Leave it empty to use the
-                          default.
+                          be said. It applies together with your default instruction and wins where
+                          the two conflict.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

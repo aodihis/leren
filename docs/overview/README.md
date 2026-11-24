@@ -18,7 +18,7 @@ Leren is an AI email assistant. The user defines **playbooks** that say what the
 
 A **playbook** says when the assistant replies and what it says. It has two parts that the web interface shows as the tabs **Knowledge** and **Rules**.
 
-The knowledge part has a topic, the information that the assistant knows about it, and an optional instruction on how to answer, such as a tone or what must not be said. The instruction of a playbook replaces the default instruction that the user sets in the profile. Information that sends the sender to someone names that person, for example "For design requests, write to Maya <maya@example.com>".
+The knowledge part has a topic, the information that the assistant knows about it, and an optional instruction on how to answer, such as a tone or what must not be said. The instruction of a playbook applies together with the default instruction that the user sets in the profile, and wins where the two conflict. Information that sends the sender to someone names that person, for example "For design requests, write to Maya <maya@example.com>".
 
 The rules part has an optional start, an optional end, a timezone and conditions for each channel. For email, the conditions say:
 

@@ -70,7 +70,7 @@ export const intakeCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent shows every value that it will save, including the topic, the informationand the timezone, and asks whether to go ahead. It does not ask about the period, the senders or the instruction again, and it does not call a tool that changes data.",
+        "The agent shows every value that it will save, including the topic, the information and the timezone, and asks whether to go ahead. It does not ask about the period, the senders or the instruction again, and it does not call a tool that changes data.",
     } satisfies RubricExpectation,
     metadata: { note: "A no is respected, and the flow moves to the confirmation." },
   },

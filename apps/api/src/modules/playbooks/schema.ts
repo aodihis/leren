@@ -65,7 +65,7 @@ export type ReplyConditionsInput = z.infer<typeof replyConditionsSchema>;
  * The body of a request that creates or replaces a playbook. The bounds are ISO 8601 instants with
  * an offset, and a null bound is open. A playbook that ends before it starts is rejected.
  * `conditions` holds one entry for each channel that the playbook listens on. A disabled playbook
- * is never used. An empty `instruction` means that the default instruction of the user applies
+ * is never used. An empty `instruction` means that only the default instruction of the user applies
  * (decision 0051).
  */
 export const playbookSchema = z

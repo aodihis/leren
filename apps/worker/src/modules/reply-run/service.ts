@@ -148,7 +148,7 @@ async function publishPendingDelivery(
  * decides whether it is delivered as a draft or sent, and `email.deliver` is published.
  *
  * The default reply instruction of the owner is part of the input, and an instruction of a playbook
- * replaces it for the part of the reply that uses that playbook (decision 0051). The MCP session of
+ * applies together with it and wins where the two conflict (decision 0051). The MCP session of
  * the run is bound to the owner of the record and is revoked when the run ends, whether it
  * succeeded or failed. The mention check is made only when every playbook of the job asks for it.
  */

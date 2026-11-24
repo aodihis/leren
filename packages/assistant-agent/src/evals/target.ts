@@ -171,7 +171,9 @@ function createFakePlaybookTools(
     instruction: z
       .string()
       .optional()
-      .describe("How to answer when this playbook is used. It replaces the default instruction."),
+      .describe(
+        "How to answer when this playbook is used. It applies together with the default instruction.",
+      ),
     startsAt: z
       .string()
       .nullable()

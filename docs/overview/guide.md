@@ -6,7 +6,7 @@ Leren answers the work email you choose to hand over, and tells you about the re
 
 1. Sign in with your email address. Leren sends a six-digit code.
 2. Connect a mailbox on the Profile page. Leren reads only mail that arrives after you connect it.
-3. Write a playbook for each topic you want answered. Give it a topic, the information the assistant knows about it, and optionally an instruction on how to answer, such as a tone or what must never be said. You can set a default instruction in your profile, and a playbook instruction replaces it.
+3. Write a playbook for each topic you want answered. Give it a topic, the information the assistant knows about it, and optionally an instruction on how to answer, such as a tone or what must never be said. You can set a default instruction in your profile, and a playbook instruction applies together with it and wins where the two conflict.
 4. On the Rules tab, choose the period, which senders and recipient roles are answered, and the reply mode.
 5. Turn the playbook on. It must name the mailbox it answers on.
 

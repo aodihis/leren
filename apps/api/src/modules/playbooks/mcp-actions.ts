@@ -52,7 +52,7 @@ const playbookFields = z.object({
     .string()
     .optional()
     .describe(
-      "How to answer when this playbook is used, up to 2000 characters, such as a tone or what must not be said. It replaces the default instruction of the user. Leave it out or empty to use the default.",
+      "How to answer when this playbook is used, up to 2000 characters, such as a tone or what must not be said. It applies together with the default instruction of the user and wins where the two conflict. Leave it out or empty to use only the default.",
     ),
   startsAt: instant.nullable().optional().describe("When the playbook starts, or null for none."),
   endsAt: instant.nullable().optional().describe("When the playbook ends, or null for none."),

@@ -24,7 +24,7 @@ export async function instructionBreaches(
   const verdict = await generateJson({
     model: judgeModel,
     instructions: INSTRUCTIONS,
-    prompt: `Restrictions:\n${instructions.join("\n")}\n\nEmail received:\n${emailBody}\n\nReply:\n${body}`,
+    prompt: `Instructions:\n${instructions.join("\n")}\n\nEmail received:\n${emailBody}\n\nReply:\n${body}`,
     schema: verdictSchema,
   });
 

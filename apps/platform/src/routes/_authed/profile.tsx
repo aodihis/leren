@@ -122,7 +122,7 @@ function ProfilePage() {
                 </FormControl>
                 <FormDescription>
                   How replies are written, such as the tone and what must not be said. A playbook
-                  can replace it with its own instruction.
+                  can add its own instruction, which wins where the two conflict.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
