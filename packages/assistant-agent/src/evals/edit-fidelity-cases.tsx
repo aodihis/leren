@@ -103,7 +103,7 @@ export const editFidelityCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent notices that the amount of the shipping fee is missing and asks for it. It does not invent an amount, and it calls no tool that changes data.",
+        "The agent notices that the user did not say what the shipping fee is or how the playbook should state it, and asks for that information. It does not invent an amount or a rule, and it calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: { note: "Workflow step 3: if a fact is missing, ask for it." },
   },
