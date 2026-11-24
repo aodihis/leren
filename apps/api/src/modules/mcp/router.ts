@@ -7,7 +7,8 @@ import { validate } from "../../validation";
 import { requireUser } from "../auth/middleware";
 import type { AuthVariables } from "../auth/middleware";
 import type { Auth } from "../auth/service";
-import { mcpSessionParamsSchema } from "./schema";
+import { createAccessTokenSchema, mcpSessionParamsSchema } from "./schema";
+import { createAccessToken, listAccessTokens } from "./service";
 
 export type McpRouterDependencies = {
   auth: Auth;
@@ -21,7 +22,9 @@ export type McpRouterDependencies = {
  * Mounts the MCP endpoint at `/mcp` and the routes that manage the signed-in user's MCP sessions.
  * `POST /api/mcp/sessions` mints an assistant session for the signed-in user, and the user can
  * never choose another user, role or scope. `DELETE /api/mcp/sessions/:id` revokes one of the
- * user's own sessions. `/mcp` does not use the browser session: it accepts only a bearer token.
+ * user's own sessions. `GET` and `POST /api/mcp/tokens` list and create the access tokens that a user
+ * gives to their own agent: named, long-lived sessions of the `assistant` role that the user can
+ * revoke with the session route. `/mcp` does not use the browser session: it accepts only a bearer token.
  */
 export function createMcpRouter({ auth, db, sessions, endpoint }: McpRouterDependencies) {
   return new Hono<{ Variables: AuthVariables }>()
@@ -38,6 +41,18 @@ export function createMcpRouter({ auth, db, sessions, endpoint }: McpRouterDepen
         },
         201,
       );
+    })
+    .get("/api/mcp/tokens", async (c) =>
+      c.json({ tokens: await listAccessTokens(db, c.get("userId"), sessions.now?.()) }),
+    )
+    .post("/api/mcp/tokens", validate("json", createAccessTokenSchema), async (c) => {
+      const created = await createAccessToken(sessions, c.get("userId"), c.req.valid("json"));
+
+      if (created.status === "limit") {
+        return c.json({ error: "limit" as const }, 409);
+      }
+
+      return c.json({ token: created.token, accessToken: created.view }, 201);
     })
     .delete("/api/mcp/sessions/:id", validate("param", mcpSessionParamsSchema), async (c) => {
       const revoked = await revokeSession(

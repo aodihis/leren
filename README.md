@@ -20,12 +20,12 @@ The dashboard shows what was answered, escalated or ignored, and how each playbo
 
 ## Built with
 
-| Part       | Role                                                       |
-| ---------- | ---------------------------------------------------------- |
-| `platform` | React web app: playbooks, message log, dashboard, chat     |
-| `api`      | Hono API with OpenAPI docs and an MCP server for the agent |
-| `worker`   | Queue consumers: email listener, pipeline, reply delivery  |
-| Infra      | PostgreSQL, Qdrant, RabbitMQ, Anvia agents and Lens traces |
+| Part       | Role                                                              |
+| ---------- | ----------------------------------------------------------------- |
+| `platform` | React web app: playbooks, message log, dashboard, chat            |
+| `api`      | Hono API with OpenAPI docs and an MCP server for the agent        |
+| `worker`   | Queue consumers: email listener, pipeline, reply delivery         |
+| Infra      | PostgreSQL, Qdrant, RabbitMQ, Redis, Anvia agents and Lens traces |
 
 Read the [user guide](docs/overview/guide.md), the [high-level design](docs/overview/README.md) and the [decisions](docs/README.md) for details.
 
@@ -36,7 +36,7 @@ You need Node.js 20+, pnpm 11 and Podman with a Compose provider.
 ```sh
 cp .env.example .env   # set BETTER_AUTH_SECRET, RABBITMQ_URL, EMBEDDING_API_KEY
 pnpm install
-pnpm services:up       # PostgreSQL, Qdrant, RabbitMQ, Mailpit
+pnpm services:up       # PostgreSQL, Qdrant, RabbitMQ, Redis, Mailpit
 pnpm --filter @leren/db db:migrate
 pnpm --filter @leren/api dev
 pnpm --filter @leren/platform dev

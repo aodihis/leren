@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
 import type { Db } from "@leren/db";
 import type { Logger } from "@leren/logger";
+import type { RateLimiter } from "@leren/rate-limit";
 import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
 import { createMcpEndpoint } from "@leren/mcp-server";
@@ -18,6 +19,7 @@ import {
 import type { ChannelAccountsRouterDependencies } from "./modules/channel-accounts/router";
 import type { Auth } from "./modules/auth/service";
 import { createDashboardRouter } from "./modules/dashboard/router";
+import { createMcpRateLimit } from "./modules/mcp/rate-limit";
 import { createMcpRouter } from "./modules/mcp/router";
 import { NO_INBOX, createMessagesRouter } from "./modules/messages/router";
 import type { MessagesRouterDependencies } from "./modules/messages/router";
@@ -87,6 +89,8 @@ export type AppDependencies = {
     secret: string;
     /** The retrieval collaborators of the `search_playbooks` tool. */
     search?: McpToolDependencies["search"];
+    /** Limits the access tokens of users per user. Without it, no call is limited. */
+    rateLimiter?: RateLimiter;
   };
 };
 
@@ -109,6 +113,7 @@ export function createApp({
   const endpoint = createMcpEndpoint({
     ...sessions,
     search: mcp.search,
+    rateLimit: mcp.rateLimiter && createMcpRateLimit(mcp.rateLimiter, logger),
     actions: {
       ...createPlaybookMcpActions(db, requestKnowledgeIndex),
     },

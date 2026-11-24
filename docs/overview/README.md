@@ -194,7 +194,7 @@ When the API creates, edits, enables, disables or deletes a playbook, it publish
 
 ## MCP server
 
-The MCP server lives in `api` and exposes tools, resources and prompts. It is the integration surface of the system. It is not private to the two built-in agents, so a user could later connect their own agent instead of using the assistant.
+The MCP server lives in `api` and exposes tools, resources and prompts. It is the integration surface of the system. It is not private to the two built-in agents, so a user can connect their own agent instead of using the assistant. The Agent access page of the dashboard creates, lists and revokes the access tokens for that, each with a name, a read-only or read-and-write level and an expiry of 30 days, 90 days or one year. A token is shown once, when it is created.
 
 - **Scopes.** Tools are grouped into scopes such as `playbooks:read`, `playbooks:write` and `reply:draft`. A session receives only the scopes granted to its client. The Assistant Agent and the Reply Agent are built-in clients with fixed scopes.
 - **Neutral tools.** Tool names and schemas do not depend on our prompts or agent framework.

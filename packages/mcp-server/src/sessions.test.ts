@@ -49,7 +49,14 @@ describe("MCP sessions", () => {
       role: "assistant",
       scopes: ["playbooks:read", "playbooks:write"],
       messageId: null,
+      name: null,
     });
+  });
+
+  it("returns the name of an access token", async () => {
+    const minted = await mintSession(deps, { userId, role: "assistant", name: "Cursor" });
+
+    expect((await verifySession(deps, minted.token))?.name).toBe("Cursor");
   });
 
   it("grants only the requested scopes", async () => {

@@ -8,6 +8,7 @@ import { recordInboundEmail } from "@leren/inbox";
 import { createLogger } from "@leren/logger";
 import { createObserver } from "@leren/observability";
 import { createRabbitMqQueue } from "@leren/queue";
+import { createRedisRateLimiter } from "@leren/rate-limit";
 import { createVectorStore } from "@leren/vector-db";
 
 import harness from "../../../harness.config";
@@ -35,6 +36,8 @@ const queue = await createRabbitMqQueue({
     process.exit(1);
   },
 });
+
+const rateLimiter = createRedisRateLimiter({ url: config.REDIS_URL });
 
 const emailSender = createSmtpEmailSender({ url: config.SMTP_URL, from: config.EMAIL_FROM });
 
@@ -117,7 +120,7 @@ const app = createApp({
     recordEmail: (email) => recordInboundEmail({ db, queue }, email),
     simulate: config.CHANNEL_PROVIDERS.includes("mailpit"),
   },
-  mcp: { secret: config.MCP_SESSION_SECRET, search: createSearchDependencies() },
+  mcp: { secret: config.MCP_SESSION_SECRET, search: createSearchDependencies(), rateLimiter },
 });
 
 const server = serve({ fetch: app.fetch, port: config.PORT }, (info) => {
@@ -127,7 +130,7 @@ const server = serve({ fetch: app.fetch, port: config.PORT }, (info) => {
 const state = { shuttingDown: false };
 
 /**
- * Stops accepting requests, delivers the buffered telemetry and closes the queue connection, then
+ * Stops accepting requests, delivers the buffered telemetry and closes the queue and Redis connections, then
  * exits. A second signal while this runs is ignored.
  */
 const shutdown = async () => {
@@ -144,6 +147,7 @@ const shutdown = async () => {
     });
     await observer.close();
     await queue.close();
+    await rateLimiter.close();
   } catch (error) {
     logger.error("The API did not shut down cleanly", { error });
     process.exit(1);

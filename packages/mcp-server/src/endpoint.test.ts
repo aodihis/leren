@@ -8,6 +8,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { z } from "zod";
 
 import { createMcpEndpoint } from "./handler";
+import type { McpRateLimit } from "./handler";
 import { mintSession, revokeSession } from "./sessions";
 import type { MintSessionInput } from "./sessions";
 import type { McpWriteAction, McpWriteActions, McpWriteOutcome } from "./tools";
@@ -221,6 +222,97 @@ describe("MCP endpoint", () => {
         expect.arrayContaining(["list_playbooks", "get_playbook", "search_playbooks"]),
       );
       expect(toolNames(restricted)).not.toContain("create_playbook");
+    });
+
+    it("answers 429 with Retry-After, before any tool runs, when the rate limit refuses", async () => {
+      const limited = createMcpEndpoint({
+        db: database.db,
+        secret: SECRET,
+        now: () => clock,
+        actions,
+        rateLimit: async () => ({ allowed: false, retryAfterSeconds: 7 }),
+      });
+
+      const response = await limited.fetch(
+        new Request("http://localhost/mcp", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            authorization: `Bearer ${await tokenFor()}`,
+          },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: "create_playbook", arguments: { topic: "T", information: "I" } },
+          }),
+        }),
+      );
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get("retry-after")).toBe("7");
+      expect(createPlaybook.run).not.toHaveBeenCalled();
+      await limited.close();
+    });
+
+    it("checks the rate limit for each message of a batch", async () => {
+      const rateLimit = vi.fn<McpRateLimit>(async () => ({ allowed: true }));
+
+      const limited = createMcpEndpoint({
+        db: database.db,
+        secret: SECRET,
+        now: () => clock,
+        rateLimit,
+      });
+
+      await limited.fetch(
+        new Request("http://localhost/mcp", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            authorization: `Bearer ${await tokenFor()}`,
+          },
+          body: JSON.stringify([
+            { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_playbooks" } },
+            { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_playbooks" } },
+            { jsonrpc: "2.0", id: 3, method: "tools/list", params: {} },
+          ]),
+        }),
+      );
+
+      expect(rateLimit.mock.calls.map(([attempt]) => attempt.tool)).toEqual([
+        "list_playbooks",
+        "list_playbooks",
+        null,
+      ]);
+      await limited.close();
+    });
+
+    it("answers 503 when the rate limit cannot be checked", async () => {
+      const limited = createMcpEndpoint({
+        db: database.db,
+        secret: SECRET,
+        now: () => clock,
+        rateLimit: async () => ({ allowed: false, retryAfterSeconds: 5, unavailable: true }),
+      });
+
+      const response = await limited.fetch(
+        new Request("http://localhost/mcp", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            authorization: `Bearer ${await tokenFor()}`,
+          },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+        }),
+      );
+
+      expect(response.status).toBe(503);
+      expect(response.headers.get("retry-after")).toBe("5");
+      await limited.close();
     });
 
     it("rejects a call to a tool outside the granted scopes", async () => {

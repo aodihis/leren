@@ -32,6 +32,7 @@
     "@leren/mcp-server": "workspace:*",
     "@leren/observability": "workspace:*",
     "@leren/queue": "workspace:*",
+    "@leren/rate-limit": "workspace:*",
     "@leren/vector-db": "workspace:*",
     "@scalar/hono-api-reference": "^0.12.24",
     "better-auth": "^1.7.26",
