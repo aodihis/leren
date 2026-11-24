@@ -27,7 +27,7 @@ The dashboard shows what was answered, escalated or ignored, and how each playbo
 | `worker`   | Queue consumers: email listener, pipeline, reply delivery  |
 | Infra      | PostgreSQL, Qdrant, RabbitMQ, Anvia agents and Lens traces |
 
-Read the [high-level design](docs/overview/README.md) and the [decisions](docs/README.md) for details.
+Read the [user guide](docs/overview/guide.md), the [high-level design](docs/overview/README.md) and the [decisions](docs/README.md) for details.
 
 ## Run it
 
@@ -45,5 +45,6 @@ pnpm --filter @leren/worker dev
 
 - Sign-in codes arrive in Mailpit at http://localhost:58025.
 - API reference (Scalar): http://localhost:3000/scalar. The raw OpenAPI document is at `/openapi.json`.
+- Walkthrough of the success criteria with simulated emails: `pnpm demo`.
 - Checks: `pnpm lint`, `pnpm format:check`, `pnpm test`, `pnpm test:e2e`.
 - To keep `.env` encrypted, run `pnpm env:encrypt` and use the `*:secure` scripts.

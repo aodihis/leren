@@ -211,11 +211,11 @@ Status: Done. Branches: `feat/16-evals`, `feat/16-shared-eval-runner`, `feat/16-
 
 ### F17 Hardening and documentation
 
-Status: Todo. Branch: `feat/17-hardening-docs`.
+Status: Done. Branch: `feat/17-hardening-docs`.
 
 - [x] Add one test per row of the PRD risk table. [`docs/overview/risks.md`](../overview/risks.md) maps each row to its test.
-- [ ] Write the user-facing docs in `docs/overview/` and the product decisions in `docs/product/`.
-- [ ] Add a demo script for the success criteria.
+- [x] Write the user-facing docs in `docs/overview/` and the product decisions in `docs/product/`. The user guide is `docs/overview/guide.md`.
+- [x] Add a demo script for the success criteria (`pnpm demo`).
 
 ## Order
 
@@ -246,7 +246,7 @@ F02 and F03 can swap if Anvia access is delayed.
 | F14     | Approval and sending         | Todo        |                                                                                                                                                   |
 | F15     | Dashboard and report         | In progress |                                                                                                                                                   |
 | F16     | Evaluation suite             | Done        | [#39](https://github.com/aodihis/leren/pull/39), [#41](https://github.com/aodihis/leren/pull/41), [#42](https://github.com/aodihis/leren/pull/42) |
-| F17     | Hardening and documentation  | Todo        |                                                                                                                                                   |
+| F17     | Hardening and documentation  | Done        |                                                                                                                                                   |
 
 ## Changes from the PRD
 
