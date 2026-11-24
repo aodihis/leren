@@ -68,16 +68,15 @@ describe("playbook MCP actions", () => {
   async function newPlaybook() {
     return (await run(actions.createPlaybook, userId, {
       topic: "Parking",
-      response: "Free parking",
+      information: "Free parking",
       timezone: "UTC",
-      examples: ["Where can I park?"],
     })) as Saved;
   }
 
   const create = (extra: Record<string, unknown> = {}) =>
     run(actions.createPlaybook, userId, {
       topic: "Parking",
-      response: "Free parking",
+      information: "Free parking",
       timezone: "UTC",
       ...extra,
     });
@@ -88,7 +87,7 @@ describe("playbook MCP actions", () => {
     it("saves an enabled playbook with the email defaults and asks for it to be indexed", async () => {
       const created = (await run(actions.createPlaybook, userId, {
         topic: "Parking",
-        response: "Free parking",
+        information: "Free parking",
         timezone: "Asia/Jakarta",
       })) as Saved;
 
@@ -96,7 +95,6 @@ describe("playbook MCP actions", () => {
         topic: "Parking",
         enabled: true,
         usable: true,
-        examples: [],
         startsAt: null,
         endsAt: null,
         conditions: [
@@ -173,7 +171,7 @@ describe("playbook MCP actions", () => {
     it("applies the conditions that the caller names on top of the defaults", async () => {
       const created = (await run(actions.createPlaybook, userId, {
         topic: "Parking",
-        response: "Free parking",
+        information: "Free parking",
         timezone: "UTC",
         conditions: [{ channel: "email", senderMode: "allowlist", senderAllowlist: ["@acme.com"] }],
       })) as Saved;
@@ -186,7 +184,7 @@ describe("playbook MCP actions", () => {
     it("refuses an unknown timezone without writing", async () => {
       const timezone = await run(actions.createPlaybook, userId, {
         topic: "T",
-        response: "R",
+        information: "R",
         timezone: "Mars/Olympus",
       });
 
@@ -201,14 +199,13 @@ describe("playbook MCP actions", () => {
 
       const updated = (await run(actions.updatePlaybook, userId, {
         playbookId: created.id,
-        response: "Free parking after 5 pm",
+        information: "Free parking after 5 pm",
         endsAt: "2999-01-01T00:00:00.000Z",
       })) as Saved;
 
       expect(updated.data).toMatchObject({
         topic: "Parking",
-        response: "Free parking after 5 pm",
-        examples: ["Where can I park?"],
+        information: "Free parking after 5 pm",
         endsAt: "2999-01-01T00:00:00.000Z",
         conditions: [{ channel: "email" }],
       });
@@ -243,7 +240,7 @@ describe("playbook MCP actions", () => {
 
       const unchanged = (await run(actions.updatePlaybook, userId, {
         playbookId: created.id,
-        restrictions: "None",
+        instruction: "None",
       })) as Saved;
 
       expect(result).toMatchObject({ status: "invalid" });
@@ -260,7 +257,7 @@ describe("playbook MCP actions", () => {
 
       const updated = (await run(actions.updatePlaybook, userId, {
         playbookId: created.id,
-        response: "Free parking after 5 pm",
+        information: "Free parking after 5 pm",
       })) as Saved;
 
       expect(updated.data).toMatchObject({ conditions: [{ channelAccountId: accountId }] });
@@ -276,11 +273,11 @@ describe("playbook MCP actions", () => {
 
       const updated = (await run(actions.updatePlaybook, userId, {
         playbookId: created.id,
-        response: "Free parking after 5 pm",
+        information: "Free parking after 5 pm",
       })) as Saved;
 
       expect(updated.data).toMatchObject({
-        response: "Free parking after 5 pm",
+        information: "Free parking after 5 pm",
         conditions: [{ channelAccountId: accountId }],
       });
     });
@@ -302,7 +299,7 @@ describe("playbook MCP actions", () => {
     it("needs an active account when a playbook is turned on", async () => {
       const created = (await run(actions.createPlaybook, userId, {
         topic: "Parking",
-        response: "Free parking",
+        information: "Free parking",
         timezone: "UTC",
         enabled: false,
       })) as Saved;
@@ -328,7 +325,7 @@ describe("playbook MCP actions", () => {
     it("asks which account to use when a playbook with none is turned on and there are several", async () => {
       const created = (await run(actions.createPlaybook, userId, {
         topic: "Parking",
-        response: "Free parking",
+        information: "Free parking",
         timezone: "UTC",
         enabled: false,
       })) as Saved;

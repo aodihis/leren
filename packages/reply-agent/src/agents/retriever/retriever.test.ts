@@ -14,7 +14,7 @@ vi.mock("@leren/agents", async () => ({
 const { connectMcp } = await import("@leren/agents");
 const { createMcpRetriever } = await import("./retriever");
 
-const playbook = { id: "p1", topic: "Deadline", response: "Friday.", usable: true };
+const playbook = { id: "p1", topic: "Deadline", information: "Friday.", usable: true };
 const mcp = { url: "http://api.test/mcp", token: "token" };
 
 const found = {

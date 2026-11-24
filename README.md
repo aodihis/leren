@@ -5,7 +5,7 @@ Leren is an AI email assistant for people whose inbox fills up while they are aw
 ## How it works
 
 1. **Connect a mailbox.** Sign in with an email code and connect your Gmail account.
-2. **Write playbooks.** A playbook has a topic, the response the assistant may give, optional example messages and restrictions on what must not be said. Rules choose the period it is active, which senders it answers and whether it answers new threads, replies or both.
+2. **Write playbooks.** A playbook has a topic, the information the assistant knows about it and an optional instruction on how to answer, such as a tone or what must not be said. You can also set a default instruction in your profile. Rules choose the period it is active, which senders it answers and whether it answers new threads, replies or both.
 3. **Leren handles the mail.** Each new email is checked against your rules, classified, and matched to the playbooks that cover it. The reply is written only from your playbooks, so it does not invent facts.
 4. **You stay in control.** By default the reply is saved as a draft in your own mailbox, in the right thread, and you edit and send it. A playbook can instead send replies on its own. An email that no playbook covers is escalated to you with the reason.
 

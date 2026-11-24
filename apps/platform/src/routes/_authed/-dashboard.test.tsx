@@ -60,9 +60,8 @@ const overview = {
 const ended = {
   id: PLAYBOOK_ID,
   topic: "Vacation",
-  examples: [],
-  response: "I am away.",
-  restrictions: "",
+  information: "I am away.",
+  instruction: "",
   startsAt: "2026-11-01T00:00:00.000Z",
   endsAt: "2026-11-10T00:00:00.000Z",
   timezone: "UTC",

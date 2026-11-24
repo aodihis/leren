@@ -79,8 +79,7 @@ async function indexCorpus(): Promise<string> {
         userId: user.id,
         timezone: "UTC",
         topic: entry.topic,
-        examples: entry.examples,
-        response: entry.response,
+        information: entry.information,
       })
       .returning();
 

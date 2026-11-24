@@ -127,6 +127,20 @@
       "when": 1795470950483,
       "tag": "0017_remove_playbook_contacts_and_delegate",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795516688588,
+      "tag": "0018_playbook_information_and_instruction",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795516699687,
+      "tag": "0019_drop_playbook_examples_response_restrictions",
+      "breakpoints": true
     }
   ]
 }

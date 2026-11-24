@@ -119,7 +119,7 @@ describe("dashboard API", () => {
       .values({
         userId: owner.userId,
         topic: "Vacation",
-        response: "I am away.",
+        information: "I am away.",
         timezone: "UTC",
         ...period,
       })

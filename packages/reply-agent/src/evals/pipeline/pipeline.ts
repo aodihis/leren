@@ -2,7 +2,7 @@ import { EvalOutcome, createEvalTypes, runEvalCli } from "@anvia/core/evals";
 import { NOT_APPLICABLE, applyGate, saveProposals } from "@leren/evals";
 import type { Thresholds } from "@leren/evals";
 import { pipelineCases } from "./pipeline-cases";
-import { restrictionBreaches } from "./restrictions";
+import { instructionBreaches } from "./instructions";
 import { policyViolations, ruleViolations, unsupportedDetails } from "./scorers";
 import { reporters } from "../observer";
 import { target } from "./target";
@@ -162,15 +162,17 @@ const ruleCompliance = defineMetric({
       playbooks.map((entry) => entry.id),
     );
 
-    const restricted = playbooks.filter(
+    const withInstruction = playbooks.filter(
       (entry) =>
         output.citations.includes(entry.id) &&
-        typeof entry.restrictions === "string" &&
-        entry.restrictions.trim() !== "",
+        typeof entry.instruction === "string" &&
+        entry.instruction.trim() !== "",
     );
 
     const breached =
-      restricted.length === 0 ? [] : await restrictionBreaches(output.body, restricted, email.body);
+      withInstruction.length === 0
+        ? []
+        : await instructionBreaches(output.body, withInstruction, email.body);
 
     const problems = [...structural, ...breached];
 

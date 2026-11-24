@@ -67,9 +67,8 @@ const email = {
 const playbook = {
   id: "22222222-2222-4222-8222-222222222222",
   topic: "Budget",
-  examples: [],
-  response: "On track.",
-  restrictions: "",
+  information: "On track.",
+  instruction: "",
   startsAt: null,
   endsAt: null,
   timezone: "Asia/Jakarta",

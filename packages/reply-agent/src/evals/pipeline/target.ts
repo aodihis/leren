@@ -61,9 +61,9 @@ export type ReplyExpectation = {
 
 /** Builds a playbook fixture. Anything that is not given is empty. */
 export function playbook(
-  fields: Pick<Playbook, "id" | "topic" | "response"> & Partial<Playbook>,
+  fields: Pick<Playbook, "id" | "topic" | "information"> & Partial<Playbook>,
 ): Playbook {
-  return { restrictions: "", examples: [], ...fields };
+  return { instruction: "", ...fields };
 }
 
 /**

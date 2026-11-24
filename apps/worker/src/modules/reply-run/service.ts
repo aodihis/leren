@@ -1,4 +1,4 @@
-import { messages, replyDecisions } from "@leren/db";
+import { messages, replyDecisions, users } from "@leren/db";
 import type { Db } from "@leren/db";
 import { transitionMessage } from "@leren/inbox";
 import type { EmailDeliverMessage, EmailProcessMessage, MessageStatus } from "@leren/inbox";
@@ -147,9 +147,10 @@ async function publishPendingDelivery(
  * for delivery is published again. When the pipeline ends in a reply, the mode of its playbooks
  * decides whether it is delivered as a draft or sent, and `email.deliver` is published.
  *
- * The MCP session of the run is bound to the owner of the record and is revoked when the run ends,
- * whether it succeeded or failed. The mention check is made only when every playbook of the job asks
- * for it.
+ * The default reply instruction of the owner is part of the input, and an instruction of a playbook
+ * applies together with it and wins where the two conflict (decision 0051). The MCP session of
+ * the run is bound to the owner of the record and is revoked when the run ends, whether it
+ * succeeded or failed. The mention check is made only when every playbook of the job asks for it.
  */
 export async function processMessage(
   dependencies: ReplyRunDependencies,
@@ -184,11 +185,17 @@ export async function processMessage(
   const session = await openReplySession(sessions, payload);
 
   try {
+    const [owner] = await db
+      .select({ replyInstruction: users.replyInstruction })
+      .from(users)
+      .where(eq(users.id, record.userId));
+
     const result = await runPipeline({
       input: {
         messageId: record.id,
         email: { from: record.fromAddress, subject: record.subject, body: record.body },
         checkMention: payload.playbooks.every((entry) => entry.verdict === "check_mention"),
+        replyInstructions: owner?.replyInstruction,
       },
       allowedPlaybookIds: new Set(payload.playbooks.map((entry) => entry.playbookId)),
       token: session.token,

@@ -28,9 +28,8 @@ function toView(playbook: PlaybookRow, conditions: ConditionsRow[], now: Date) {
   return {
     id: playbook.id,
     topic: playbook.topic,
-    examples: playbook.examples,
-    response: playbook.response,
-    restrictions: playbook.restrictions,
+    information: playbook.information,
+    instruction: playbook.instruction,
     startsAt: playbook.startsAt?.toISOString() ?? null,
     endsAt: playbook.endsAt?.toISOString() ?? null,
     timezone: playbook.timezone,
@@ -59,9 +58,8 @@ function toRows(input: PlaybookInput) {
     playbook: {
       enabled: input.enabled,
       topic: input.topic,
-      examples: input.examples,
-      response: input.response,
-      restrictions: input.restrictions,
+      information: input.information,
+      instruction: input.instruction,
       startsAt: input.startsAt ? new Date(input.startsAt) : null,
       endsAt: input.endsAt ? new Date(input.endsAt) : null,
       timezone: input.timezone,

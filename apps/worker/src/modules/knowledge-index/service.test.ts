@@ -48,7 +48,7 @@ describe("knowledge indexing", () => {
         userId,
         timezone: "UTC",
         topic: "Opening hours",
-        response: "We are open from 9 to 5.",
+        information: "We are open from 9 to 5.",
         ...values,
       })
       .returning();
@@ -99,7 +99,7 @@ describe("knowledge indexing", () => {
 
       const [edited] = await database.db
         .update(playbooks)
-        .set({ response: "We are closed on Fridays.", updatedAt: new Date(NOW) })
+        .set({ information: "We are closed on Fridays.", updatedAt: new Date(NOW) })
         .where(eq(playbooks.id, playbook.id))
         .returning();
 

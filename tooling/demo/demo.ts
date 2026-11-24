@@ -14,9 +14,8 @@ const IN_PROGRESS = new Set(["received", "queued", "processing"]);
 const PLAYBOOK = {
   enabled: true,
   topic: "Atlas project status",
-  examples: ["How is the Atlas project going?", "When is the Atlas release?"],
-  response: "The Atlas project is on track. The release is planned for Friday 12 December.",
-  restrictions: "Never share the budget or the names of customers.",
+  information: "The Atlas project is on track. The release is planned for Friday 12 December.",
+  instruction: "Never share the budget or the names of customers.",
   startsAt: null,
   endsAt: null,
   timezone: "UTC",

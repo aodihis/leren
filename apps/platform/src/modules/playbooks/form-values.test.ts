@@ -6,9 +6,8 @@ import type { Playbook } from "./types";
 const playbook: Playbook = {
   id: "11111111-1111-4111-8111-111111111111",
   topic: "Holiday hours",
-  examples: ["When are you back?", "Are you open?"],
-  response: "We are closed until 2 January.",
-  restrictions: "Do not promise a delivery date.",
+  information: "We are closed until 2 January.",
+  instruction: "Do not promise a delivery date.",
   startsAt: "2026-12-01T02:00:00.000Z",
   endsAt: null,
   timezone: "Asia/Jakarta",
@@ -55,12 +54,6 @@ describe("toRequestBody", () => {
 
     expect(body.conditions[0]?.senderAllowlist).toEqual(["a@x.com", "@y.org"]);
     expect(body.conditions[0]?.mentionAliases).toEqual(["Bal", "Iqbal", "Ik"]);
-  });
-
-  it("drops blank examples", () => {
-    const values = { ...getNewPlaybookValues("UTC"), examples: "One\n\n  \nTwo" };
-
-    expect(toRequestBody(values).examples).toEqual(["One", "Two"]);
   });
 
   it("reads the dates in the chosen timezone and leaves empty ones open", () => {

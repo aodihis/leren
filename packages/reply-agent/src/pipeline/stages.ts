@@ -72,6 +72,7 @@ export function route(
     readonly email: string;
     readonly triage: Triage;
     readonly playbooks: readonly Playbook[];
+    readonly replyInstructions?: string | undefined;
   },
 ): Promise<Route> {
   return ask(

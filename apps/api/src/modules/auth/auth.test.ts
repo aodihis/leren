@@ -184,6 +184,29 @@ describe("email code authentication", () => {
     expect(row?.name).toBe("Grace Hopper");
   });
 
+  it("saves the default instruction and keeps it when a later update omits it", async () => {
+    const { cookie } = await signIn("instruction@example.com");
+
+    const patch = (body: object) =>
+      app.request("/api/me", {
+        method: "PATCH",
+        headers: { "content-type": "application/json", cookie },
+        body: JSON.stringify(body),
+      });
+
+    await patch({ firstName: "Ada", lastName: "Lovelace", replyInstruction: "Sign as Erin." });
+    const second = await patch({ firstName: "Grace", lastName: "Hopper" });
+
+    const [row] = await database.db
+      .select()
+      .from(users)
+      .where(eq(users.email, "instruction@example.com"));
+
+    expect(second.status).toBe(200);
+    expect(row?.replyInstruction).toBe("Sign as Erin.");
+    expect(row?.name).toBe("Grace Hopper");
+  });
+
   it("rejects an invalid profile with field errors", async () => {
     const { cookie } = await signIn("invalid@example.com");
 

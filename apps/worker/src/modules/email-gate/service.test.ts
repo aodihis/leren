@@ -60,7 +60,7 @@ describe("the email gate", () => {
   ) => {
     const [row] = await database.db
       .insert(playbooks)
-      .values({ userId, topic: "Topic", response: "Reply", timezone: "UTC", ...playbook })
+      .values({ userId, topic: "Topic", information: "Reply", timezone: "UTC", ...playbook })
       .returning({ id: playbooks.id });
 
     await database.db.insert(replyConditions).values({
@@ -172,7 +172,7 @@ describe("the email gate", () => {
 
     const [foreign] = await database.db
       .insert(playbooks)
-      .values({ userId: other?.id ?? "", topic: "T", response: "R", timezone: "UTC" })
+      .values({ userId: other?.id ?? "", topic: "T", information: "R", timezone: "UTC" })
       .returning({ id: playbooks.id });
 
     await database.db.insert(replyConditions).values({

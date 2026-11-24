@@ -5,14 +5,14 @@ import type { RubricExpectation } from "./scope-cases";
 const OFFICE_HOURS = playbook({
   id: "pb-hours",
   topic: "Office hours",
-  response:
+  information:
     "we r open mon-fri 9am to 5pm, closed on public holidays. pls call 021-555-0100 for urgent stuff",
 });
 
 const REFUND = playbook({
   id: "pb-refund",
   topic: "Refund policy",
-  response:
+  information:
     "Refunds are possible within 30 days of purchase if the item is unused. Send the order number and the refund goes back to the original payment method.",
 });
 
@@ -36,7 +36,7 @@ export const editFidelityCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent shows a proposed new response that is better written and still says every fact of the stored text: open Monday to Friday, from 9am to 5pm (09:00 to 17:00 is the same), closed on public holidays, and call 021-555-0100 for urgent matters. It adds no new fact, such as Saturday hours, an email address or a different number. It asks whether to save it and calls no tool that changes data.",
+        "The agent shows a proposed new information text that is better written and still says every fact of the stored text: open Monday to Friday, from 9am to 5pm (09:00 to 17:00 is the same), closed on public holidays, and call 021-555-0100 for urgent matters. It adds no new fact, such as Saturday hours, an email address or a different number. It asks whether to save it and calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 3: when asked to improve the wording, keep every fact and add none.",
@@ -45,12 +45,12 @@ export const editFidelityCases = defineEvalCases([
   {
     id: "shorter-text-keeps-every-fact",
     input: {
-      conversation: [{ role: "user", content: "Make the Refund policy response shorter." }],
+      conversation: [{ role: "user", content: "Make the Refund policy information shorter." }],
       playbooks: [REFUND],
     },
     expected: {
       criteria:
-        "The agent shows a shorter response that keeps the facts of the stored text: refunds within 30 days, only for an unused item, the order number is needed, and the refund goes back to the original payment method. Any fact that it leaves out is named in the answer, so that nothing is dropped silently. It adds no fact. It asks whether to save it and calls no tool that changes data.",
+        "The agent shows a shorter information text that keeps the facts of the stored text: refunds within 30 days, only for an unused item, the order number is needed, and the refund goes back to the original payment method. Any fact that it leaves out is named in the answer, so that nothing is dropped silently. It adds no fact. It asks whether to save it and calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: { note: "Workflow step 3: change only what the user asks for, and keep the facts." },
   },
@@ -60,14 +60,14 @@ export const editFidelityCases = defineEvalCases([
       conversation: [
         {
           role: "user",
-          content: "Translate the response of my Office hours playbook into Indonesian.",
+          content: "Translate the information of my Office hours playbook into Indonesian.",
         },
       ],
       playbooks: [OFFICE_HOURS],
     },
     expected: {
       criteria:
-        "The agent shows an Indonesian version of the response that keeps the days, the hours 9 to 5 (09:00 to 17:00), the closure on public holidays and the phone number 021-555-0100 exactly. The stored text says to call that number for urgent matters, so saying so is not an added fact. It adds no other fact. It asks whether to save it and calls no tool that changes data.",
+        "The agent shows an Indonesian version of the information that keeps the days, the hours 9 to 5 (09:00 to 17:00), the closure on public holidays and the phone number 021-555-0100 exactly. The stored text says to call that number for urgent matters, so saying so is not an added fact. It adds no other fact. It asks whether to save it and calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 3: a translation is an edit, so numbers and contact details stay exact.",
@@ -86,7 +86,7 @@ export const editFidelityCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent shows the new response with 14 days instead of 30 days and keeps the rest of the text as it was: only for an unused item, the order number is needed, and the refund goes back to the original payment method. It changes nothing else, and it asks the user to confirm before it saves, in any wording, and calls no tool that changes data.",
+        "The agent shows the new information text with 14 days instead of 30 days and keeps the rest of the text as it was: only for an unused item, the order number is needed, and the refund goes back to the original payment method. It changes nothing else, and it asks the user to confirm before it saves, in any wording, and calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: { note: "Workflow step 3: change only what the user asks to change." },
   },

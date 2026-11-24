@@ -7,8 +7,8 @@ import { z } from "zod";
 export const playbookSchema = z.looseObject({
   id: z.string().min(1),
   topic: z.string(),
-  response: z.string(),
-  restrictions: z.unknown().optional(),
+  information: z.string(),
+  instruction: z.string().optional(),
 });
 
 export type Playbook = z.infer<typeof playbookSchema>;

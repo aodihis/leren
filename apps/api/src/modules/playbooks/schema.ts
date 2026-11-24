@@ -3,7 +3,6 @@ import { z } from "zod";
 import type { PlaybookView } from "./service";
 
 const MAX_LIST_ITEMS = 100;
-const MAX_EXAMPLES = 50;
 const SENDER_ENTRY_PATTERN = /^(@[^@\s]+\.[^@\s]+|[^@\s]+@[^@\s]+\.[^@\s]+)$/;
 
 /**
@@ -66,15 +65,15 @@ export type ReplyConditionsInput = z.infer<typeof replyConditionsSchema>;
  * The body of a request that creates or replaces a playbook. The bounds are ISO 8601 instants with
  * an offset, and a null bound is open. A playbook that ends before it starts is rejected.
  * `conditions` holds one entry for each channel that the playbook listens on. A disabled playbook
- * is never used.
+ * is never used. An empty `instruction` means that only the default instruction of the user applies
+ * (decision 0051).
  */
 export const playbookSchema = z
   .object({
     enabled: z.boolean(),
     topic: z.string().trim().min(1, "Enter a topic").max(200),
-    examples: z.array(z.string().trim().min(1).max(500)).max(MAX_EXAMPLES),
-    response: z.string().trim().min(1, "Enter a response").max(5000),
-    restrictions: z.string().trim().max(2000),
+    information: z.string().trim().min(1, "Enter the information").max(5000),
+    instruction: z.string().trim().max(2000),
     startsAt: z.iso.datetime({ offset: true }).nullable(),
     endsAt: z.iso.datetime({ offset: true }).nullable(),
     timezone: z.string().refine(isTimezone, "Choose a valid timezone"),

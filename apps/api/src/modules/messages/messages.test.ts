@@ -309,7 +309,7 @@ describe("messages API", () => {
 
     const [playbook] = await database.db
       .insert(playbooks)
-      .values({ userId: mine.userId, topic: "Deadline", response: "Friday.", timezone: "UTC" })
+      .values({ userId: mine.userId, topic: "Deadline", information: "Friday.", timezone: "UTC" })
       .returning({ id: playbooks.id });
 
     await database.db.insert(replyDecisions).values({
@@ -370,7 +370,7 @@ describe("messages API", () => {
 
     const [playbook] = await database.db
       .insert(playbooks)
-      .values({ userId: mine.userId, topic: "Deadline", response: "Friday.", timezone: "UTC" })
+      .values({ userId: mine.userId, topic: "Deadline", information: "Friday.", timezone: "UTC" })
       .returning({ id: playbooks.id });
 
     await database.db.insert(replyDecisions).values({
@@ -399,7 +399,7 @@ describe("messages API", () => {
 
     const [foreign] = await database.db
       .insert(playbooks)
-      .values({ userId: theirs.userId, topic: "Secret", response: "No.", timezone: "UTC" })
+      .values({ userId: theirs.userId, topic: "Secret", information: "No.", timezone: "UTC" })
       .returning({ id: playbooks.id });
 
     await database.db.insert(replyDecisions).values({

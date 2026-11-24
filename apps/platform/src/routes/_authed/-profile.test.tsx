@@ -61,7 +61,7 @@ describe("profile route", () => {
 
     expect(await screen.findByRole("heading", { name: "Overview" })).toBeTruthy();
     expect(patchProfile).toHaveBeenCalledExactlyOnceWith({
-      json: { firstName: "Ada", lastName: "Lovelace" },
+      json: { firstName: "Ada", lastName: "Lovelace", replyInstruction: "" },
     });
     expect(router.state.location.pathname).toBe("/");
   });

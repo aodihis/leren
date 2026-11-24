@@ -22,15 +22,14 @@ export type EmailConditions = Extract<Playbook["conditions"][number], { channel:
 
 /**
  * The values of the playbook form. The bounds are `datetime-local` strings in the playbook's
- * timezone, the examples are text with one example on each line, and the sender
- * allowlist and the aliases are text that the user separates with new lines or commas.
+ * timezone, and the sender allowlist and the aliases are text that the user separates with new
+ * lines or commas.
  */
 export interface PlaybookFormValues {
   enabled: boolean;
   topic: string;
-  examples: string;
-  response: string;
-  restrictions: string;
+  information: string;
+  instruction: string;
   timezone: string;
   startsAt: string;
   endsAt: string;

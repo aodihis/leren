@@ -155,6 +155,7 @@ export function createReplyPipeline(deps: ReplyPipelineDeps) {
           email: state.emailText,
           triage: state.triage,
           playbooks: state.playbooks,
+          replyInstructions: state.input.replyInstructions,
         });
 
         if (decision.outcome === "escalate") {

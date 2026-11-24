@@ -17,6 +17,8 @@ import {
  * Application users. The shape follows Better Auth's `user` model, with `firstName` and
  * `lastName` as additional fields. Users sign in with an emailed code and have no password.
  * `name` is the display name Better Auth requires and stays empty until a profile is saved.
+ * `replyInstruction` is the default instruction for how replies are written. It is empty when the
+ * user has not set one (decision 0051).
  */
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -26,6 +28,7 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   image: text("image"),
+  replyInstruction: text("reply_instruction").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -96,10 +99,11 @@ export const verifications = pgTable(
 
 /**
  * Playbooks. A playbook says when the assistant replies and what it says, one topic for each row.
- * `response` is what the assistant may say about the topic and `restrictions` is what it must not
- * say. `examples` are optional sample messages that help retrieval find the playbook. Whom a
- * sender may contact is written in `response`. `startsAt` and `endsAt` are instants and a null
- * bound is open. `timezone` is the IANA zone the user enters and reads the bounds in. A playbook
+ * `information` is what the assistant knows about the topic, and retrieval finds the playbook by
+ * its topic and its information. `instruction` says how to answer when the playbook is used and
+ * applies together with the default instruction of the user. It is empty when the playbook has none (decision
+ * 0051). Whom a sender may contact is written in `information`. `startsAt` and `endsAt` are
+ * instants and a null bound is open. `timezone` is the IANA zone the user enters and reads the bounds in. A playbook
  * is usable only when it is `enabled` and the current time is inside its period, and the period
  * status is derived and never stored (decision 0036). The channel conditions of a playbook are
  * rows of `reply_conditions`.
@@ -112,9 +116,8 @@ export const playbooks = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     topic: text("topic").notNull(),
-    examples: text("examples").array().notNull().default([]),
-    response: text("response").notNull(),
-    restrictions: text("restrictions").notNull().default(""),
+    information: text("information").notNull(),
+    instruction: text("instruction").notNull().default(""),
     startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     timezone: text("timezone").notNull(),

@@ -113,7 +113,7 @@ describe("knowledge indexing pipeline", () => {
         userId,
         timezone: "UTC",
         topic: "Opening hours",
-        response: "We are open from 9 to 5.",
+        information: "We are open from 9 to 5.",
         ...values,
       })
       .returning();

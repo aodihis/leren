@@ -62,9 +62,8 @@ interface SwitchFieldProps {
  */
 const ERROR_FIELDS = {
   topic: { field: "topic", tab: "knowledge" },
-  examples: { field: "examples", tab: "knowledge" },
-  response: { field: "response", tab: "knowledge" },
-  restrictions: { field: "restrictions", tab: "knowledge" },
+  information: { field: "information", tab: "knowledge" },
+  instruction: { field: "instruction", tab: "knowledge" },
   timezone: { field: "timezone", tab: null },
   startsAt: { field: "startsAt", tab: null },
   endsAt: { field: "endsAt", tab: null },
@@ -246,35 +245,15 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                   />
                   <FormField
                     control={form.control}
-                    name="examples"
+                    name="information"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Examples</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder={"How is the project going?\nWhen is the launch?"}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          How people might write about this topic: questions, requests or
-                          statements. One example per line.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="response"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Response</FormLabel>
+                        <FormLabel>Information</FormLabel>
                         <FormControl>
                           <Textarea className="min-h-32" {...field} />
                         </FormControl>
                         <FormDescription>
-                          What the assistant may say about this topic. Include whom a sender can
+                          What the assistant knows about this topic. Include whom a sender can
                           contact, if anyone.
                         </FormDescription>
                         <FormMessage />
@@ -283,15 +262,17 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                   />
                   <FormField
                     control={form.control}
-                    name="restrictions"
+                    name="instruction"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Restrictions</FormLabel>
+                        <FormLabel>Instruction</FormLabel>
                         <FormControl>
                           <Textarea {...field} />
                         </FormControl>
                         <FormDescription>
-                          What the assistant must not say about this topic.
+                          How to answer when this playbook is used, such as a tone or what must not
+                          be said. It applies together with your default instruction and wins where
+                          the two conflict.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
