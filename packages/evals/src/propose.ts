@@ -6,8 +6,6 @@ export interface ProposalInput<Output = unknown> {
   readonly name: string;
   readonly results: readonly {
     readonly case: { readonly id: string; readonly input: unknown; readonly expected?: unknown };
-    readonly targetStatus: string;
-    readonly targetError?: unknown;
     readonly output?: Output | undefined;
     readonly metrics: readonly {
       readonly metricName: string;
@@ -51,32 +49,22 @@ export interface ProposeOptions<Output = unknown> {
 
 /**
  * Builds a draft for each case that failed, was invalid, errored, or had a draft that the
- * evaluator rejected. A case that passed cleanly yields nothing.
+ * evaluator rejected. A case that passed cleanly yields nothing. An errored case is found through
+ * its metrics, because the eval runner records every metric of a failed target as `invalid` with
+ * the target error as the comment.
  */
 export function proposeCases<Output>(
   result: ProposalInput<Output>,
   options: ProposeOptions<Output> = {},
 ): CaseProposal<Output>[] {
   return result.results.flatMap((entry) => {
-    const failedMetrics: FailedMetric[] = [
-      ...entry.metrics
-        .filter((metric) => metric.outcome.outcome !== "pass")
-        .map((metric) => ({
-          metric: metric.metricName,
-          outcome: metric.outcome.outcome,
-          comment: metric.outcome.comment,
-        })),
-      ...(entry.targetStatus !== "succeeded"
-        ? [
-            {
-              metric: "target",
-              outcome: "invalid",
-              comment:
-                entry.targetError === undefined ? entry.targetStatus : String(entry.targetError),
-            },
-          ]
-        : []),
-    ];
+    const failedMetrics: FailedMetric[] = entry.metrics
+      .filter((metric) => metric.outcome.outcome !== "pass")
+      .map((metric) => ({
+        metric: metric.metricName,
+        outcome: metric.outcome.outcome,
+        comment: metric.outcome.comment,
+      }));
 
     const rejectedDrafts =
       entry.output === undefined ? [] : (options.rejectedDrafts?.(entry.output) ?? []);

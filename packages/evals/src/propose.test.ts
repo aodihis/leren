@@ -11,7 +11,6 @@ const entry = (
   extra: Partial<ProposalInput["results"][number]> = {},
 ): ProposalInput["results"][number] => ({
   case: { id, input: { email: id }, expected: { outcome: "answer" } },
-  targetStatus: "succeeded",
   output: { rejected: [] },
   metrics: [{ metricName: "outcome", outcome: { outcome, comment: `${id} ${outcome}` } }],
   ...extra,
@@ -53,18 +52,23 @@ describe("proposeCases", () => {
     const result = {
       name: "pipeline",
       results: [
-        entry("broken", "pass", {
-          targetStatus: "failed",
-          targetError: new Error("boom"),
+        entry("broken", "invalid", {
           output: undefined,
+          metrics: [
+            {
+              metricName: "outcome",
+              outcome: { outcome: "invalid", comment: "Target failed: boom" },
+            },
+          ],
         }),
       ],
     };
 
     const [proposal] = proposeCases(result, { rejectedDrafts: rejected });
 
+    expect(proposal?.id).toBe("broken-regression");
     expect(proposal?.failedMetrics).toEqual([
-      { metric: "target", outcome: "invalid", comment: "Error: boom" },
+      { metric: "outcome", outcome: "invalid", comment: "Target failed: boom" },
     ]);
   });
 });
