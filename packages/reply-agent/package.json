@@ -10,7 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "runner:run": "tsx --env-file-if-exists=../../.env src/runner.ts",
+    "runner:run": "tsx --env-file-if-exists=../../.env src/agents/drafter/runner.ts",
     "evals": "tsx --env-file-if-exists=../../.env src/evals/index.ts"
   },
   "dependencies": {

@@ -1,5 +1,5 @@
-import { PROMPT_CANARY } from "../pipeline/guardrails";
-import { MAX_BODY_LENGTH } from "../pipeline/types";
+import { PROMPT_CANARY } from "../../pipeline/guardrails";
+import { MAX_BODY_LENGTH } from "../../pipeline/types";
 
 const EMAIL_PATTERN = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
 const URL_PATTERN = /https?:\/\/[^\s)>"']+/gi;

@@ -1,10 +1,11 @@
 import { EvalOutcome, createEvalTypes, runEvalCli } from "@anvia/core/evals";
-import { NOT_APPLICABLE, applyGate } from "@leren/evals";
+import { NOT_APPLICABLE, applyGate, saveProposals } from "@leren/evals";
 import type { Thresholds } from "@leren/evals";
 import { pipelineCases } from "./pipeline-cases";
 import { restrictionBreaches } from "./restrictions";
 import { policyViolations, ruleViolations, unsupportedDetails } from "./scorers";
-import { reporters, target } from "./target";
+import { reporters } from "../observer";
+import { target } from "./target";
 import type { ReplyEvalInput, ReplyEvalOutput, ReplyExpectation } from "./target";
 
 const { defineMetric } = createEvalTypes<ReplyEvalInput, ReplyEvalOutput, ReplyExpectation>();
@@ -213,3 +214,7 @@ const result = await runEvalCli({
 });
 
 applyGate(result, thresholds);
+
+await saveProposals(result, {
+  rejectedDrafts: (output) => output.rejectedDrafts,
+});

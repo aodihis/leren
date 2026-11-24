@@ -204,8 +204,8 @@ Status: In progress. Branch: `feat/16-evals`.
 - [x] Reply Agent suite in `packages/reply-agent/src/evals`: 50 cases: 15 project questions, 10 task assignments, 8 informational, 7 urgent, 5 without knowledge, 5 prompt injections.
 - [x] Assistant Agent suite in `packages/assistant-agent/src/evals`: cases for lookups of saved data, suggested questions, edit proposals that match the source, and requests to approve or send, which must be refused. Score tool choice, faithfulness to saved data and proposal-only behavior. The suite has 8 metrics and 46 cases, and each metric must pass all of its cases (`pnpm run evals`).
 - [x] Add a shared runner and the Reply Agent scorers: classification accuracy, Recall@5, groundedness, rule compliance, correct abstention and policy checks. Each suite has its own dataset and quality gate. `@leren/evals` holds the runner (`runSuites`) and the gate, and both agents use it. The `rule-compliance` metric checks the structural rules and, with a judge model, the restrictions of the cited playbooks.
-- [ ] Link results to Lens traces.
-- [ ] Add a script that turns failures and rejected drafts into new cases.
+- [x] Link results to Lens traces. The reply suite returns the trace of each pipeline run in its output, as the assistant suite does, so the reporter attaches each result to its trace.
+- [x] Add a script that turns failures and rejected drafts into new cases. With `EVAL_PROPOSALS_DIR` set, a reply eval run writes `<dir>/pipeline.json` with a draft case for each failed case and each case whose draft the evaluator rejected. A person reviews `expected` before a draft becomes a case.
 
 - [x] Remove the playbook `contacts` field and the `delegate` outcome (ADR 0049). The router answers when a playbook covers at least one question, and a person to contact is written in the response.
 

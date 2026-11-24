@@ -1,7 +1,7 @@
 import { getJudgeModel } from "@leren/evals";
 import { z } from "zod";
-import { generateJson } from "../pipeline/llm";
-import type { Playbook } from "../pipeline";
+import { generateJson } from "../../pipeline/llm";
+import type { Playbook } from "../../agents/retriever";
 
 const verdictSchema = z.object({
   breaches: z.array(z.string()).describe("Each restriction that the reply breaks, quoted."),

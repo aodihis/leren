@@ -12,7 +12,7 @@ import {
   TASKS,
   VACATION,
 } from "./fixtures";
-import type { Playbook } from "../pipeline";
+import type { Playbook } from "../../agents/retriever";
 import type { ReplyEvalInput, ReplyExpectation } from "./target";
 
 const email = (subject: string, body: string) => ({ from: "sam@example.com", subject, body });

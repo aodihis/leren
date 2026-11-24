@@ -4,7 +4,7 @@ import { createNoopObserver } from "@leren/observability";
 import { describe, expect, it, vi } from "vitest";
 import { runReplyPipeline } from "./pipeline";
 import type { ReplyPipelineDeps } from "./stages";
-import type { Playbook, Retrieval } from "./types";
+import type { Playbook, Retrieval } from "../agents/retriever/types";
 
 const playbook: Playbook = {
   id: "p1",

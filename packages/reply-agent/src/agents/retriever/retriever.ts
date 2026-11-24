@@ -1,7 +1,7 @@
 import { connectMcp } from "@leren/agents";
 import type { McpConnection, McpOptions } from "@leren/agents";
-import { parseSearchResult } from "./pipeline";
-import type { Retrieval } from "./pipeline";
+import { parseSearchResult } from "./search-result";
+import type { Retrieval } from "./types";
 
 const SEARCH_TOOL = "search_playbooks";
 

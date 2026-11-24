@@ -1,11 +1,12 @@
 import type { EvalTarget } from "@anvia/core/evals";
+import type { PipelineTraceInfo } from "@anvia/core/pipeline";
 import { loadHarness } from "@leren/agents";
-import { createObserver } from "@leren/observability";
-import { runReplyPipeline } from "../pipeline";
-import type { Category, Outcome, Playbook, ReplyPipelineDeps, Retrieval } from "../pipeline";
+import { observer } from "../observer";
+import type { Playbook, Retrieval } from "../../agents/retriever";
+import { runReplyPipelineTraced } from "../../pipeline";
+import type { Category, Outcome, ReplyPipelineDeps } from "../../pipeline";
 
 const harness = await loadHarness();
-const observer = createObserver();
 
 /** The models, prompt and observer that every eval case shares. */
 export const sharedDeps = {
@@ -38,6 +39,10 @@ export type ReplyEvalOutput = {
   citations: readonly string[];
   reasons: readonly string[];
   revisions: number;
+  /** What the evaluator found wrong in each draft that it rejected. */
+  rejectedDrafts: readonly string[];
+  /** The pipeline run's trace, which lets the reporter link a result to the run that produced it. */
+  trace?: PipelineTraceInfo | undefined;
 };
 
 /** What a case expects. Only the fields that are set are checked. */
@@ -61,12 +66,9 @@ export function playbook(
   return { restrictions: "", examples: [], ...fields };
 }
 
-export const reporters = [observer.evalReporter()].filter((reporter) => reporter !== undefined);
-
 /**
  * Runs the real reply pipeline, with the production prompt and models, against fixed playbooks
- * instead of the MCP server, so that a case controls exactly what retrieval returns. Call
- * `closeTarget` when all evals have finished so that traces are flushed.
+ * instead of the MCP server, so that a case controls exactly what retrieval returns.
  */
 export const target: EvalTarget<ReplyEvalInput, ReplyEvalOutput> = async (
   input,
@@ -84,7 +86,7 @@ export const target: EvalTarget<ReplyEvalInput, ReplyEvalOutput> = async (
     abortSignal: context?.signal,
   };
 
-  const result = await runReplyPipeline(deps, {
+  const { result, trace } = await runReplyPipelineTraced(deps, {
     messageId: "eval",
     email: input.email,
     checkMention: input.checkMention ?? false,
@@ -99,10 +101,7 @@ export const target: EvalTarget<ReplyEvalInput, ReplyEvalOutput> = async (
     citations: result.citations,
     reasons: result.reasons,
     revisions: result.revisions,
+    rejectedDrafts: result.evaluations.flatMap((entry) => (entry.pass ? [] : entry.issues)),
+    trace,
   };
 };
-
-/** Flushes the traces that the target's observer collected. */
-export async function closeTarget(): Promise<void> {
-  await observer.close();
-}
