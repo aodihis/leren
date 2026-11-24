@@ -1,13 +1,13 @@
-import { zValidator } from "@hono/zod-validator";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { Scalar } from "@scalar/hono-api-reference";
 import type { Db } from "@leren/db";
 import type { Logger } from "@leren/logger";
-import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
 import { createMcpEndpoint } from "@leren/mcp-server";
 import type { McpToolDependencies } from "@leren/mcp-server";
-import { z } from "zod";
 
+import { fieldErrorsSchema, validationHook } from "./validation";
 import { createAssistantRouter } from "./modules/assistant/router";
 import type { Agent } from "./modules/assistant/agent";
 import { createAuthRouter } from "./modules/auth/router";
@@ -25,6 +25,50 @@ import { createPlaybookMcpActions } from "./modules/playbooks/mcp-actions";
 import { createPlaybooksRouter } from "./modules/playbooks/router";
 
 const echoSchema = z.object({ message: z.string().min(1) });
+
+const rootRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["System"],
+  summary: "Name of the service",
+  responses: {
+    200: {
+      description: "The service name.",
+      content: { "application/json": { schema: z.object({ name: z.string() }) } },
+    },
+  },
+});
+
+const healthRoute = createRoute({
+  method: "get",
+  path: "/health",
+  tags: ["System"],
+  summary: "Health check",
+  responses: {
+    200: {
+      description: "The API is running.",
+      content: { "application/json": { schema: z.object({ status: z.literal("ok") }) } },
+    },
+  },
+});
+
+const echoRoute = createRoute({
+  method: "post",
+  path: "/echo",
+  tags: ["System"],
+  summary: "Echo a message",
+  request: { body: { required: true, content: { "application/json": { schema: echoSchema } } } },
+  responses: {
+    200: {
+      description: "The message that was sent.",
+      content: { "application/json": { schema: echoSchema } },
+    },
+    400: {
+      description: "The message is empty.",
+      content: { "application/json": { schema: fieldErrorsSchema } },
+    },
+  },
+});
 
 export type AppDependencies = {
   auth: Auth;
@@ -70,31 +114,49 @@ export function createApp({
     },
   });
 
-  return new Hono()
-    .use(requestId())
-    .use(async (c, next) => {
-      const requestLogger = logger.child({ requestId: c.get("requestId") });
+  const app = new OpenAPIHono({ defaultHook: validationHook });
 
-      await next();
+  app.openAPIRegistry.registerComponent("securitySchemes", "cookieAuth", {
+    type: "apiKey",
+    in: "cookie",
+    name: "better-auth.session_token",
+    description:
+      "The session cookie. Deployments that use secure cookies prefix its name with `__Secure-`.",
+  });
 
-      const status = c.res.status;
-      const metadata = { method: c.req.method, path: c.req.path, status };
+  app.use(requestId());
 
-      if (status >= 500) {
-        requestLogger.error("Request failed", metadata);
-      } else if (status >= 400) {
-        requestLogger.warn("Request rejected", metadata);
-      } else {
-        requestLogger.info("Request completed", metadata);
-      }
+  app.use(async (c, next) => {
+    const requestLogger = logger.child({ requestId: c.get("requestId") });
+
+    await next();
+
+    const status = c.res.status;
+    const metadata = { method: c.req.method, path: c.req.path, status };
+
+    if (status >= 500) {
+      requestLogger.error("Request failed", metadata);
+    } else if (status >= 400) {
+      requestLogger.warn("Request rejected", metadata);
+    } else {
+      requestLogger.info("Request completed", metadata);
+    }
+  });
+
+  return app
+    .openapi(rootRoute, (c) => c.json({ name: "leren-api" }, 200))
+    .openapi(healthRoute, (c) => c.json({ status: "ok" as const }, 200))
+    .openapi(echoRoute, (c) => c.json({ message: c.req.valid("json").message }, 200))
+    .doc("/openapi.json", {
+      openapi: "3.1.0",
+      info: {
+        title: "Leren API",
+        version: "0.0.0",
+        description:
+          "The Leren API. Routes under `/api` need a session cookie from the sign-in flow.",
+      },
     })
-    .get("/", (c) => c.json({ name: "leren-api" }))
-    .get("/health", (c) => c.json({ status: "ok" }))
-    .post("/echo", zValidator("json", echoSchema), (c) => {
-      const { message } = c.req.valid("json");
-
-      return c.json({ message });
-    })
+    .get("/scalar", Scalar({ url: "/openapi.json", pageTitle: "Leren API" }))
     .route("/", createAuthRouter(auth, db))
     .route("/", createPlaybooksRouter(auth, db, requestKnowledgeIndex))
     .route("/", createChannelAccountsRouter({ auth, db, logger, dependencies: channelAccounts }))

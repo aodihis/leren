@@ -213,7 +213,7 @@ Status: Done. Branches: `feat/16-evals`, `feat/16-shared-eval-runner`, `feat/16-
 
 Status: Todo. Branch: `feat/17-hardening-docs`.
 
-- [ ] Add one test per row of the PRD risk table.
+- [x] Add one test per row of the PRD risk table. [`docs/overview/risks.md`](../overview/risks.md) maps each row to its test.
 - [ ] Write the user-facing docs in `docs/overview/` and the product decisions in `docs/product/`.
 - [ ] Add a demo script for the success criteria.
 

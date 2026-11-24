@@ -19,7 +19,7 @@ const input = {
 };
 
 const triageStep: FakeStep = {
-  text: '{"category":"project_question","questions":["When is the deadline?"],"injectionSuspected":false,"addressesUser":true}',
+  text: '{"category":"project_question","questions":["When is the deadline?"],"injectionSuspected":false,"addressesUser":true,"confidence":0.9}',
 };
 
 const answerRoute: FakeStep = { text: '{"outcome":"answer","reason":"Covered by a playbook."}' };
@@ -92,6 +92,26 @@ describe("runReplyPipeline", () => {
     expect(judgeRequest).toContain("The deadline is Friday.");
     expect(judgeRequest).toContain("You are Erin. Be formal.");
     expect(draftRequest).toContain("You are Erin. Be formal.");
+  });
+
+  it.each([
+    ["below the threshold", 0.4, "escalate"],
+    ["at the threshold", 0.6, "answer"],
+  ])("handles a classification with a confidence %s", async (_name, confidence, outcome) => {
+    const unsure: FakeStep = {
+      text: JSON.stringify({ ...JSON.parse(triageStep.text ?? "{}"), confidence }),
+    };
+
+    const { deps, models, retrieve } = setup({ triage: [unsure, answerRoute] });
+
+    const result = await runReplyPipeline(deps, input);
+
+    expect(result.outcome).toBe(outcome);
+
+    if (outcome === "escalate") {
+      expect(retrieve).not.toHaveBeenCalled();
+      expect(models.draft.requests).toHaveLength(0);
+    }
   });
 
   it("abstains without calling the drafting or judge model when nothing reliable is found", async () => {
@@ -225,7 +245,7 @@ describe("runReplyPipeline", () => {
     const { deps, retrieve } = setup({
       triage: [
         {
-          text: '{"category":"other","questions":["Is the office closed?"],"injectionSuspected":false,"addressesUser":false}',
+          text: '{"category":"other","questions":["Is the office closed?"],"injectionSuspected":false,"addressesUser":false,"confidence":0.9}',
         },
       ],
       draft: [],
@@ -312,7 +332,7 @@ describe("runReplyPipeline", () => {
     const { deps, retrieve } = setup({
       triage: [
         {
-          text: '{"category":"informational","questions":[],"injectionSuspected":false,"addressesUser":true}',
+          text: '{"category":"informational","questions":[],"injectionSuspected":false,"addressesUser":true,"confidence":0.9}',
         },
         answerRoute,
       ],
@@ -338,6 +358,7 @@ describe("runReplyPipeline", () => {
         questions: ["When is the deadline?", "Can I get a refund?"],
         injectionSuspected: false,
         addressesUser: true,
+        confidence: 0.9,
       }),
     };
 

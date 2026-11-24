@@ -6,7 +6,7 @@ import { draftAndEvaluate, route, triage } from "./stages";
 import type { ReplyPipelineDeps } from "./stages";
 import { keepAllowed, mergePlaybooks } from "../agents/retriever/search-result";
 import type { Playbook } from "../agents/retriever/types";
-import { MAX_QUESTIONS, pipelineInputSchema } from "./types";
+import { MAX_QUESTIONS, MIN_TRIAGE_CONFIDENCE, pipelineInputSchema } from "./types";
 import type { Draft, Evaluation, Outcome, PipelineInput, ReplyResult, Triage } from "./types";
 
 const QUERY_LIMIT = 2000;
@@ -103,6 +103,12 @@ export function createReplyPipeline(deps: ReplyPipelineDeps) {
 
         if (state.input.checkMention && !result.addressesUser) {
           return finish(next, "ignore", { reasons: ["The email does not address the user."] });
+        }
+
+        if (result.confidence < MIN_TRIAGE_CONFIDENCE) {
+          return finish(next, "escalate", {
+            reasons: ["The classification of the email is not reliable enough to answer it."],
+          });
         }
 
         return next;

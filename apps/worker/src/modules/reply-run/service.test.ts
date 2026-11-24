@@ -29,6 +29,7 @@ const answer: ReplyResult = {
     questions: ["When?"],
     injectionSuspected: false,
     addressesUser: true,
+    confidence: 0.9,
   },
   playbooks: [{ id: "p1", topic: "Deadline", response: "Friday." }],
   evaluations: [{ pass: true, issues: [] }],
