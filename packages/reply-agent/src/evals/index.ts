@@ -4,6 +4,7 @@ import { closeTarget } from "./target";
 const evals: Record<string, () => Promise<unknown>> = {
   pipeline: () => import("./pipeline"),
   judge: () => import("./judge"),
+  recall: () => import("./recall"),
 };
 
 /**
