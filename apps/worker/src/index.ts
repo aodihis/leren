@@ -29,19 +29,10 @@ const queue = await createRabbitMqQueue({
 
 const db = createDb(config.DATABASE_URL);
 
-/**
- * The one observer of the process. It batches telemetry, so it is flushed after each reply run and
- * closed when the process stops, or the last batch is lost.
- */
+/** The one observer of the process. */
 const observer = createObserver();
 
-/**
- * Builds what the reply pipeline needs. In a process that runs other roles too, the reply pipeline
- * is optional: when its models, prompt or MCP session secret are not configured, the process still
- * runs every other job, and the messages that the gate queued wait in the queue. A process whose
- * only role is `processor` exists to run the pipeline, so there the failure stops the process at
- * startup and is not left as a warning that nobody reads.
- */
+/** Builds what the reply pipeline needs. */
 async function createReplyRun() {
   try {
     if (!config.MCP_SESSION_SECRET) {
@@ -79,10 +70,7 @@ async function createReplyRun() {
   }
 }
 
-/**
- * Builds the vector store and the embedder of the `indexer` role. They are required only when the
- * role starts, so a process without it needs no embedding model and no vector store (decision 0045).
- */
+/** Builds the vector store and the embedder. */
 function createIndexer() {
   if (!config.VECTOR_STORE_URL) {
     throw new Error("The indexer role needs VECTOR_STORE_URL");
@@ -134,7 +122,7 @@ logger.info("Worker started", {
   jobs: jobs.map((job) => job.name),
 });
 
-/** The timers of the started roles. Each belongs to one role, so a process runs only its own. */
+/** The timers of the started roles. */
 const timers: NodeJS.Timeout[] = [];
 
 if (roles.has("indexer")) {

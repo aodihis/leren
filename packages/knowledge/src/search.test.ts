@@ -47,10 +47,7 @@ describe("knowledge retrieval", () => {
     ({ userId } = await createUser());
   });
 
-  /**
-   * Inserts a row and indexes it the way the worker does, so a test can then change the row or
-   * the vector independently.
-   */
+  /** Inserts and indexes a row like the worker does. */
   async function createIndexedPlaybook(
     values: Partial<typeof playbooks.$inferInsert> = {},
     owner: { userId: string } = { userId },

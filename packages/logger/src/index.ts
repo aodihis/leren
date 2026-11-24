@@ -1,17 +1,9 @@
 import pino from "pino";
 
-/**
- * Structured key-value data attached to a log entry. An `Error` stored under the `error` key is
- * serialized with its message and stack trace.
- */
+/** Structured key-value data attached to a log entry. */
 export type LogMetadata = Record<string, unknown>;
 
-/**
- * A logger that does not depend on any logging library.
- *
- * Every method takes a message and optional metadata. Metadata from `child` is included in every
- * entry written by the returned logger, such as a request ID or a job ID.
- */
+/** A logger that does not depend on a library. */
 export interface Logger {
   debug(message: string, metadata?: LogMetadata): void;
   info(message: string, metadata?: LogMetadata): void;
@@ -26,10 +18,7 @@ export type CreateLoggerOptions = {
   level?: string;
 };
 
-/**
- * Wraps a Pino instance in the library-agnostic `Logger` interface. This file is the only place
- * that knows about Pino.
- */
+/** Wraps Pino in the Logger interface. */
 function wrap(instance: pino.Logger): Logger {
   const write =
     (level: "debug" | "info" | "warn" | "error" | "fatal") =>
@@ -47,10 +36,7 @@ function wrap(instance: pino.Logger): Logger {
   };
 }
 
-/**
- * Creates a logger that writes JSON lines in production and human-readable output otherwise.
- * The level defaults to `LOG_LEVEL`, then to `info`.
- */
+/** Creates a logger for the current environment. */
 export function createLogger(options: CreateLoggerOptions): Logger {
   const isProduction = process.env.NODE_ENV === "production";
 

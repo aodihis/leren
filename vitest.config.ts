@@ -1,14 +1,6 @@
 import { defineConfig } from "vitest/config";
 
-/**
- * Runs the unit tests of every app and package from the repository root.
- *
- * `apps/platform` is its own project because its component tests need a DOM, while every other test
- * runs in the `node` environment. Coverage thresholds apply to the combined source of all projects.
- * `packages/agents`, `packages/assistant-agent` and `packages/reply-agent` are excluded because
- * agents are evaluated with evals, and generated or vendored files are excluded because they are
- * not written by hand.
- */
+/** The unit test configuration of the repository. */
 export default defineConfig({
   test: {
     passWithNoTests: true,

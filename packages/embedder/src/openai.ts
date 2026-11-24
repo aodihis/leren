@@ -1,7 +1,7 @@
 import type { Embedder } from "./types";
 
 export type OpenAiEmbedderOptions = {
-  /** The endpoint root, such as `https://openrouter.ai/api/v1`. `/embeddings` is appended to it. */
+  /** The endpoint root of the embeddings API. */
   baseUrl: string;
   apiKey: string;
   model: string;
@@ -13,12 +13,7 @@ type EmbeddingsResponse = {
   data?: Array<{ index: number; embedding: number[] }>;
 };
 
-/**
- * Creates an `Embedder` for any endpoint that implements the OpenAI embeddings API. The endpoint
- * decides which service answers, so a compatible gateway needs no new implementation. A response
- * whose vectors do not match the requested count or `dimensions` is rejected, because a vector of
- * the wrong size cannot be stored in the collection.
- */
+/** Creates an Embedder for an OpenAI-style endpoint. */
 export function createOpenAiEmbedder(options: OpenAiEmbedderOptions): Embedder {
   const { baseUrl, apiKey, model, dimensions } = options;
   const request = options.fetch ?? fetch;

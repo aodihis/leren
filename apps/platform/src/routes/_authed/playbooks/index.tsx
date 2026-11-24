@@ -37,10 +37,7 @@ export const Route = createFileRoute("/_authed/playbooks/")({
   component: PlaybooksPage,
 });
 
-/**
- * Loads the ids of the user's active accounts, or `null` when they cannot be loaded, so that the
- * list still opens and then flags only a playbook that names no account.
- */
+/** Loads the ids of the user's active accounts. */
 async function loadActiveAccountIds(): Promise<ReadonlySet<string> | null> {
   try {
     const { accounts } = await loadChannelAccounts();
@@ -51,9 +48,7 @@ async function loadActiveAccountIds(): Promise<ReadonlySet<string> | null> {
   }
 }
 
-/**
- * Describes the period of a playbook in its own timezone, or says that it has no bounds.
- */
+/** Describes the period of a playbook. */
 function describePeriod(playbook: Playbook): string {
   if (!playbook.startsAt && !playbook.endsAt) {
     return "Always";
@@ -71,7 +66,7 @@ function describePeriod(playbook: Playbook): string {
   return `${format(playbook.startsAt)} to ${format(playbook.endsAt)} (${playbook.timezone})`;
 }
 
-/** Whether the period of a playbook has an end that has passed, which is when it has a report. */
+/** Whether the period of a playbook has ended. */
 function hasEnded(playbook: Playbook): boolean {
   return playbook.endsAt !== null && new Date(playbook.endsAt) <= new Date();
 }

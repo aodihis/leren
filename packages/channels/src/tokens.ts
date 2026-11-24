@@ -7,13 +7,10 @@ import { decryptCredentials, encryptCredentials } from "./crypto";
 import { InvalidGrantError } from "./providers/types";
 import type { ChannelProvider, ProviderTokens } from "./providers/types";
 
-/** An access token that expires within this many milliseconds is refreshed before it is used. */
+/** The window before expiry for a token refresh. */
 const REFRESH_MARGIN_MS = 60_000;
 
-/**
- * What the account functions need from the process: the enabled providers, and the key that
- * encrypts credentials. The key is undefined when no enabled provider stores tokens.
- */
+/** What the account functions need from the process. */
 export type ChannelAccountsDependencies = {
   providers: ReadonlyMap<string, ChannelProvider>;
   encryptionKey: Buffer | undefined;
@@ -27,7 +24,7 @@ const storedTokensSchema = z.object({
   expiresAt: z.string().nullable(),
 });
 
-/** Returns the key, or throws when no enabled provider was configured with one. */
+/** Returns the encryption key or throws. */
 export function requireKey(key: Buffer | undefined): Buffer {
   if (!key) {
     throw new Error("CHANNEL_TOKEN_ENCRYPTION_KEY is not configured");
@@ -36,7 +33,7 @@ export function requireKey(key: Buffer | undefined): Buffer {
   return key;
 }
 
-/** Decrypts the credentials of an account row, or returns `null` when the account has none. */
+/** Decrypts the credentials of an account row. */
 export function readTokens(
   dependencies: ChannelAccountsDependencies,
   row: Pick<AccountRow, "id" | "credentials">,
@@ -54,13 +51,7 @@ export function readTokens(
   return storedTokensSchema.parse(JSON.parse(plaintext));
 }
 
-/**
- * Returns a valid access token for one of the user's accounts, or `null` when the account does not
- * exist, belongs to another user, is not usable or has no credentials. A token that has expired, or
- * expires within a minute, is refreshed and the new credentials are stored. When the provider
- * rejects the refresh token, the account becomes `revoked` and the result is `null`. Other
- * failures are thrown, because they may succeed on a retry.
- */
+/** Returns a valid access token for an account. */
 export async function getAccessToken(
   db: Db,
   dependencies: ChannelAccountsDependencies,

@@ -15,29 +15,22 @@ import type { McpSession } from "./sessions";
 
 export type McpToolDependencies = {
   db: Db;
-  /** The retrieval collaborators. Without them `search_playbooks` reports that it is unavailable. */
+  /** The retrieval collaborators of the search tool. */
   search?: Pick<KnowledgeSearchDependencies, "store" | "embedder">;
   now?: () => Date;
-  /**
-   * The tools that create and change playbooks. The API supplies them, because the
-   * business rules for saving live there and a package cannot import an app. Without them the
-   * write tools are not registered, whatever scopes the session holds.
-   */
+  /** The tools that create and change playbooks. */
   actions?: McpWriteActions;
   /** Called after a tool body has run and been audited. */
   onToolAudited?: () => void;
 };
 
-/** The outcome of a write action. `saved` carries the id of the playbook that was written. */
+/** The outcome of a write action. */
 export type McpWriteOutcome =
   | { status: "saved"; id: string; data: unknown }
   | { status: "invalid"; message: string }
   | { status: "not_found" };
 
-/**
- * One tool that changes data. `run` receives the session's user id and the validated arguments, so
- * the user is never an argument, and it must scope every query by that user.
- */
+/** One tool that changes data. */
 export type McpWriteAction = {
   description: string;
   inputSchema: z.ZodObject;
@@ -62,12 +55,7 @@ function notFound(summary: Record<string, unknown>): ToolOutcome {
   return { outcome: "not_found", message: "Not found", summary };
 }
 
-/**
- * A playbook with its reply conditions, one entry for each channel. Each entry has the channel and
- * the settings of that channel at the same level, the shape that the playbook tools accept.
- * `periodStatus` is derived from the period and `usable` says whether the assistant may use the
- * playbook now.
- */
+/** A playbook with its reply conditions. */
 function toPlaybookView(
   playbook: PlaybookRow,
   conditions: (typeof replyConditions.$inferSelect)[],
@@ -115,20 +103,14 @@ const searchPlaybooksArgs = z.object({ query: z.string().min(1).max(2000) });
 
 type RunTool = (tool: string, body: () => Promise<ToolOutcome>) => Promise<CallToolResult>;
 
-/**
- * The ids in the arguments of a write call. They are the only part of the arguments that is
- * audited, so the text of a playbook never reaches the log.
- */
+/** The ids in the arguments of a write call. */
 function pickIds(args: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
     ["playbookId"].flatMap((key) => (args[key] === undefined ? [] : [[key, args[key]]])),
   );
 }
 
-/**
- * Registers a tool that changes data. The call is audited with the ids it names and the id it
- * saved, and an unknown id and an invalid change are reported without internals.
- */
+/** Registers a tool that changes data. */
 function registerWriteTool(
   server: McpServer,
   name: string,
@@ -155,14 +137,7 @@ function registerWriteTool(
   );
 }
 
-/**
- * Builds the MCP server of one request for one verified session. A tool, resource or prompt is
- * registered only when the session holds its scope, so a call outside the granted scopes is
- * rejected as an unknown name. The user is the session's user, and no tool takes a user id.
- * Every call that reaches a tool body writes an audit row, and the endpoint audits the calls that
- * the SDK rejects first. The tools that change data are the actions that the caller supplies, and
- * each is registered only for a session that holds its write scope.
- */
+/** Builds the MCP server of one request. */
 export function createMcpServer(session: McpSession, deps: McpToolDependencies): McpServer {
   const { db } = deps;
   const clock = deps.now ?? (() => new Date());
@@ -170,10 +145,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
 
   const holds = (scope: Scope) => session.scopes.includes(scope);
 
-  /**
-   * Runs a tool body, audits it and shapes the result. A body that throws is audited as
-   * `unavailable` and reports a generic error, so internals are not exposed to the model.
-   */
+  /** Runs a tool body, audits it and shapes the result. */
   const run = async (tool: string, body: () => Promise<ToolOutcome>): Promise<CallToolResult> => {
     const result = await body().catch((): ToolOutcome => ({
       outcome: "unavailable",

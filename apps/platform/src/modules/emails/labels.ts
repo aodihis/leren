@@ -4,11 +4,7 @@ type Status = EmailSummary["status"];
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
-/**
- * How each status of an email is shown. Colours only carry status (the design system): success is
- * sent, warning is a reply that waits for the user, danger is an escalation or a failure, and info
- * is work in progress.
- */
+/** How each email status is shown. */
 export const STATUS_LABELS: Record<Status, { label: string; tone: Tone }> = {
   received: { label: "Received", tone: "neutral" },
   not_applicable: { label: "Ignored", tone: "neutral" },
@@ -45,7 +41,7 @@ export const DELIVERY_LABELS: Record<DeliveryState, string> = {
 /** The delivery states, in the order of the flow. */
 export const DELIVERY_STATES = Object.keys(DELIVERY_LABELS) as DeliveryState[];
 
-/** The statuses that the list can be filtered by, in the order of the flow. */
+/** The statuses the email list can filter by. */
 export const STATUS_FILTERS = Object.keys(STATUS_LABELS) as Status[];
 
 /** The classes of the badge of each tone. */

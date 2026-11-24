@@ -1,4 +1,4 @@
-/** The part of an eval suite result that the gate reads. */
+/** The part of a suite result that the gate reads. */
 export interface GateInput {
   readonly name: string;
   readonly results: readonly {
@@ -10,13 +10,13 @@ export interface GateInput {
   }[];
 }
 
-/** The comment of a passing result for a case that a metric does not apply to. */
+/** The comment of a not applicable passing result. */
 export const NOT_APPLICABLE = "not applicable";
 
-/** The lowest pass rate, from 0 to 1, that each named metric must reach. */
+/** The lowest pass rate of each named metric. */
 export type Thresholds = Readonly<Record<string, number>>;
 
-/** The pass rate of one metric over the cases that it applies to. */
+/** The pass rate of one metric. */
 export interface MetricRate {
   readonly metric: string;
   readonly applicable: number;
@@ -25,11 +25,7 @@ export interface MetricRate {
   readonly threshold: number;
 }
 
-/**
- * Computes the pass rate of each metric in `thresholds` over the cases that the metric applies to.
- * A metric with no applicable case has a rate of 1. A result that is invalid or whose target
- * failed counts as a failure, so that an error cannot raise a rate.
- */
+/** Computes the pass rate of each metric. */
 export function metricRates(result: GateInput, thresholds: Thresholds): MetricRate[] {
   return Object.entries(thresholds).map(([metric, threshold]) => {
     const outcomes = result.results.flatMap((caseResult) => {
@@ -49,10 +45,7 @@ export function metricRates(result: GateInput, thresholds: Thresholds): MetricRa
   });
 }
 
-/**
- * Prints the quality gate of one suite and sets a failing exit code when a metric is below its
- * threshold. It returns whether the gate passed.
- */
+/** Prints the quality gate and sets the exit code. */
 export function applyGate(result: GateInput, thresholds: Thresholds): boolean {
   const rates = metricRates(result, thresholds);
 

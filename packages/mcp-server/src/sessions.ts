@@ -6,7 +6,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { CLIENT_ROLES, ROLE_SCOPES, isScope } from "./scopes";
 import type { ClientRole, Scope } from "./scopes";
 
-/** How long a session lasts when the caller does not choose, in seconds. */
+/** The default session lifetime, in seconds. */
 export const DEFAULT_SESSION_TTL_SECONDS = 15 * 60;
 
 const MIN_SECRET_LENGTH = 32;
@@ -18,10 +18,7 @@ export type SessionDependencies = {
   now?: () => Date;
 };
 
-/**
- * A verified MCP session. Every value comes from the stored session row and not from the token, so
- * revoking or changing the row takes effect on the next call.
- */
+/** A verified MCP session. */
 export type McpSession = {
   id: string;
   userId: string;
@@ -33,9 +30,9 @@ export type McpSession = {
 export type MintSessionInput = {
   userId: string;
   role: ClientRole;
-  /** The scopes to grant. Defaults to every scope of the role and may not exceed it. */
+  /** The scopes to grant. */
   scopes?: readonly Scope[];
-  /** The message a reply session is for. Required for the reply role and rejected for others. */
+  /** The message a reply session is for. */
   messageId?: string;
   ttlSeconds?: number;
 };
@@ -54,10 +51,7 @@ function signingKey(secret: string): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-/**
- * Creates a session row and returns a signed token for it. Throws when the request asks for a
- * scope outside the role, or when the message id does not fit the role.
- */
+/** Creates a session row and returns a signed token. */
 export async function mintSession(
   { db, secret, now = () => new Date() }: SessionDependencies,
   input: MintSessionInput,
@@ -102,11 +96,7 @@ export async function mintSession(
   return { token, sessionId: row.id, expiresAt };
 }
 
-/**
- * Returns the session a token stands for, or `null` for any reason it cannot be used: a bad
- * signature, an expired token, an unknown session, a session of another user, a revoked or expired
- * row, or a token that claims scopes the row does not grant. The caller cannot tell which.
- */
+/** Returns the session a token stands for, or null. */
 export async function verifySession(
   { db, secret, now = () => new Date() }: SessionDependencies,
   token: string,
@@ -153,10 +143,7 @@ export async function verifySession(
   };
 }
 
-/**
- * Revokes one session of `userId`. Returns `false` when the session does not exist, belongs to
- * another user or is already revoked, and the cases are indistinguishable.
- */
+/** Revokes one session of a user. */
 export async function revokeSession(
   { db, now = () => new Date() }: Pick<SessionDependencies, "db" | "now">,
   userId: string,

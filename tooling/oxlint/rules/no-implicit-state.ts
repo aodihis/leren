@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 
-/** Reject module-level mutable bindings, which act as hidden shared state. */
+/** Bans module-level mutable bindings. */
 export const noImplicitStateRule = defineRule({
   meta: {
     type: "problem",

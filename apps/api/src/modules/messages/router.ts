@@ -9,16 +9,13 @@ import type { Auth } from "../auth/service";
 import { messageListQuerySchema, messageParamsSchema, simulateEmailSchema } from "./schema";
 import { buildSimulatedEmail, getMessage, listMessages } from "./service";
 
-/**
- * What the router needs beyond the database. `recordEmail` records an email and publishes it to
- * the gate. `simulate` turns on the route that records a simulated email.
- */
+/** What the router needs beyond the database. */
 export type MessagesRouterDependencies = {
   recordEmail: (email: InboundEmail) => Promise<RecordResult>;
   simulate: boolean;
 };
 
-/** The dependencies of an API without an inbox. The simulation route answers with not found. */
+/** The dependencies of an API without an inbox. */
 export const NO_INBOX: MessagesRouterDependencies = {
   recordEmail: async () => {
     throw new Error("No inbox is configured");
@@ -26,14 +23,7 @@ export const NO_INBOX: MessagesRouterDependencies = {
   simulate: false,
 };
 
-/**
- * Mounts the routes of the signed-in user's message records under `/api/messages`. Every route
- * requires a session and every query is scoped by the session's user, so a record of another user
- * is reported as not found. The records are read only: the pipeline changes them, and no route
- * does. `POST /api/messages/simulate` exists only when `simulate` is set, which is the case while
- * the development provider is enabled (decision 0039). The routes are chained so that the platform
- * can infer their types through Hono RPC.
- */
+/** Mounts the message record routes. */
 export function createMessagesRouter({
   auth,
   db,

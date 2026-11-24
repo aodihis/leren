@@ -11,18 +11,10 @@ import { isKnowledgeUsable } from "./usable";
 /** The number of items a search returns at most. */
 export const KNOWLEDGE_SEARCH_LIMIT = 5;
 
-/**
- * The cosine similarity below which a vector is not considered a match. Scores depend on the
- * embedding model, so a deployment that changes the model should revisit this value. The value
- * lies between the highest score of an unrelated query and the lowest score of a paraphrased
- * question, as measured with `openai/text-embedding-3-small`.
- */
+/** The cosine similarity threshold for a match. */
 export const DEFAULT_MIN_SCORE = 0.36;
 
-/**
- * The number of vectors read from the index before validity is applied. It is larger than the
- * result limit so that items which are filtered out do not leave the result short.
- */
+/** The number of vectors read before filtering. */
 const CANDIDATE_LIMIT = 25;
 
 export type KnowledgeSearchDependencies = {
@@ -31,10 +23,7 @@ export type KnowledgeSearchDependencies = {
   embedder: Embedder;
 };
 
-/**
- * What a search is for. `userId` is mandatory, so a search can never read the playbooks of another
- * user.
- */
+/** What a search is for. */
 export type KnowledgeSearchQuery = {
   userId: string;
   text: string;
@@ -54,23 +43,14 @@ export type KnowledgeMatch = {
   score: number;
 };
 
-/**
- * The outcome of a search. `no_reliable_result` is an explicit answer that nothing usable is close
- * enough to the query, so a caller can abstain instead of guessing from weak matches.
- */
+/** The outcome of a search. */
 export type KnowledgeSearchResult =
   | { status: "found"; matches: KnowledgeMatch[] }
   | { status: "no_reliable_result" };
 
 const NO_RELIABLE_RESULT: KnowledgeSearchResult = { status: "no_reliable_result" };
 
-/**
- * Finds the playbooks that are closest in meaning to a text. The index narrows the search
- * to the user and drops vectors below `minScore`. The index is then checked against
- * PostgreSQL, which is the source of truth: only rows that still exist, still belong to the user
- * and satisfy `isKnowledgeUsable` at `now` are returned, with the content of the
- * row and not of the vector. Matches are ordered by descending score.
- */
+/** Finds the playbooks closest in meaning to a text. */
 export async function searchKnowledge(
   { db, store, embedder }: KnowledgeSearchDependencies,
   query: KnowledgeSearchQuery,

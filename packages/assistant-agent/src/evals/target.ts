@@ -6,13 +6,13 @@ import { z } from "zod";
 import { createAssistantAgent } from "../agent";
 import { getAgentModel, getInstructions } from "./models";
 
-/** The moment that every eval treats as now, so that periods have a fixed status. */
+/** The fixed time that every eval treats as now. */
 const NOW = new Date("2026-11-22T10:00:00.000Z");
 
-/** One turn of the conversation before the message that the agent must answer. */
+/** One turn of the conversation before the message. */
 export type Turn = { role: "user" | "assistant"; content: string };
 
-/** A playbook in the fake store that the playbook tools read and write. */
+/** A playbook in the fake store. */
 export type PlaybookFixture = {
   id: string;
   topic: string;
@@ -23,30 +23,26 @@ export type PlaybookFixture = {
   restrictions: string;
   startsAt: string | null;
   endsAt: string | null;
-  /** The connected account that the playbook answers on, or null when it names none. */
+  /** The connected account of a playbook, or null. */
   channelAccountId: string | null;
 };
 
-/** A connected email account of the user in the fake store. */
+/** A connected email account in the fake store. */
 export type AccountFixture = { id: string; label: string };
 
-/** A tool call that the agent made during the run, in order. */
+/** A tool call that the agent made during the run. */
 export type ToolCall = { name: string; input: Readonly<Record<string, unknown>> };
 
-/** What the agent produced: its final text, the tool calls it made and the store afterwards. */
+/** What the agent produced during a run. */
 export type AssistantEvalOutput = {
   text: string;
   toolCalls: readonly ToolCall[];
   playbooks: readonly PlaybookFixture[];
-  /** The agent run's trace, which lets the reporter link a result to the run that produced it. */
+  /** The trace of the agent run. */
   trace?: AgentResponse["trace"];
 };
 
-/**
- * The input of one eval case. `conversation` ends with the user message to answer, `playbooks`
- * seeds the store, and `accounts` are the connected email accounts of the user. Without it the user
- * has one account.
- */
+/** The input of one eval case. */
 export type AssistantEvalInput = {
   conversation: readonly Turn[];
   playbooks: readonly PlaybookFixture[];
@@ -55,7 +51,7 @@ export type AssistantEvalInput = {
 
 const DEFAULT_ACCOUNTS: readonly AccountFixture[] = [{ id: "acct-main", label: "me@example.com" }];
 
-/** Builds a playbook fixture. Anything that is not given is empty, enabled and without a period. */
+/** Builds a playbook fixture. */
 export function playbook(
   fields: Pick<PlaybookFixture, "id" | "topic" | "response"> & Partial<PlaybookFixture>,
 ): PlaybookFixture {
@@ -79,10 +75,7 @@ function periodStatus(item: PlaybookFixture): "scheduled" | "active" | "expired"
   return item.endsAt && new Date(item.endsAt) < NOW ? "expired" : "active";
 }
 
-/**
- * The view of a playbook that the real MCP tools return. `usable` is true only for an enabled
- * playbook whose period includes now, which is the definition in `@leren/knowledge`.
- */
+/** The playbook view that the MCP tools return. */
 function toView(item: PlaybookFixture) {
   const status = periodStatus(item);
 
@@ -94,30 +87,21 @@ function toView(item: PlaybookFixture) {
   };
 }
 
-/** The arguments that a write call names: those that are set, without the conditions. */
+/** The arguments that a write call names. */
 function defined(input: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(input).filter(([key, value]) => key !== "conditions" && value !== undefined),
   );
 }
 
-/**
- * Builds the playbook tools over an in-memory store. Names, descriptions and argument shapes match
- * the MCP tools in `@leren/mcp-server` and `apps/api`, so the agent sees the same tool surface as
- * in production. The store is the only state, and `search_playbooks` is a keyword match that
- * returns enabled playbooks that are valid now.
- */
+/** Builds the playbook tools over an in-memory store. */
 function createFakePlaybookTools(
   initial: readonly PlaybookFixture[],
   accounts: readonly AccountFixture[],
 ) {
   const store = initial.map((item) => ({ ...item }));
 
-  /**
-   * Chooses the account of a playbook the way the real tool does (decision 0044): a playbook that
-   * is on takes the account that is named, or else the only account, and otherwise the tool fails
-   * with the message that tells the assistant what to do.
-   */
+  /** Chooses the account of a playbook. */
   const chooseAccount = (requested: string | undefined, enabled: boolean): string | null => {
     if (!enabled) {
       return requested ?? null;
@@ -289,10 +273,7 @@ function createFakePlaybookTools(
   return { tools, store };
 }
 
-/**
- * Lists the tool calls in the messages of a run. The messages of a run start at the user message
- * that it answered and hold nothing from earlier turns, so every assistant message is the agent's.
- */
+/** Lists the tool calls in the messages of a run. */
 function toolCallsOf(messages: readonly Message[]): ToolCall[] {
   return messages.flatMap((message) => {
     if (message.role !== "assistant" || typeof message.content === "string") {
@@ -311,14 +292,10 @@ const model = await getAgentModel();
 const instructions = await getInstructions();
 const observer = createObserver();
 
-/** Where eval results are recorded. It is empty when no tracing backend is configured. */
+/** Where eval results are recorded. */
 export const reporters = [observer.evalReporter()].filter((reporter) => reporter !== undefined);
 
-/**
- * Runs the real Assistant Agent, with its production prompt, skills and model, against the fake
- * playbook store, and returns what it said and which tools it called. Call `closeTarget` when all
- * evals have finished so that traces are flushed.
- */
+/** Runs the real assistant against the fake store. */
 export const target: EvalTarget<AssistantEvalInput, AssistantEvalOutput> = async (
   input,
   _testCase,
@@ -350,7 +327,7 @@ export const target: EvalTarget<AssistantEvalInput, AssistantEvalOutput> = async
   }
 };
 
-/** Flushes the traces that the target's observer collected. */
+/** Flushes the collected traces. */
 export async function closeTarget(): Promise<void> {
   await observer.close();
 }

@@ -22,11 +22,7 @@ import {
   updatePlaybook,
 } from "./service";
 
-/**
- * Turns the error of a playbook whose account is missing or may not be used into its message, which
- * is written for the user, so that the route answers with a field error (decision 0044). Any other
- * error is thrown again.
- */
+/** Turns an account error into a user message. */
 function describeAccountError(error: unknown): string {
   if (
     error instanceof ChannelAccountRequiredError ||
@@ -38,10 +34,7 @@ function describeAccountError(error: unknown): string {
   throw error;
 }
 
-/**
- * The body of a 400 answer for a rejected account. It has the type of the field errors that request
- * validation returns, so that a client sees one shape for every 400 of a playbook route.
- */
+/** The body of a 400 answer for a rejected account. */
 function accountFieldErrors(message: string): {
   fieldErrors: Record<string, string[] | undefined>;
 } {
@@ -50,10 +43,7 @@ function accountFieldErrors(message: string): {
 
 type Attempt<Value> = { ok: true; value: Value } | { ok: false; message: string };
 
-/**
- * Runs a write and reports a rejected account as a message and not as an error, so that the route
- * can answer with a field error. Any other failure is thrown again.
- */
+/** Runs a write and reports a rejected account. */
 async function attempt<Value>(write: Promise<Value>): Promise<Attempt<Value>> {
   try {
     return { ok: true, value: await write };
@@ -62,13 +52,7 @@ async function attempt<Value>(write: Promise<Value>): Promise<Attempt<Value>> {
   }
 }
 
-/**
- * Mounts the routes of the signed-in user's playbooks under `/api/playbooks`. Every route requires
- * a session and every query is scoped by the session's user, so a playbook of another user is
- * reported as not found. `PATCH /api/playbooks/:id` turns a playbook on or off. After every change
- * that was written, `requestIndex` asks for the vector index of the playbook to be updated. The routes are chained so that the platform
- * can infer their types through Hono RPC.
- */
+/** Mounts the playbook routes. */
 export function createPlaybooksRouter(
   auth: Auth,
   db: Db,

@@ -30,26 +30,23 @@ export type AppDependencies = {
   auth: Auth;
   db: Db;
   logger: Logger;
-  /** Asks the worker to bring the vector index of a playbook up to date. Must not throw. */
+  /** Asks the worker to update a playbook's index. */
   requestKnowledgeIndex: (playbookId: string) => Promise<void>;
-  /** Runs the Assistant Agent for the chat. Without it, the chat reports that it is unavailable. */
+  /** Runs the assistant agent for the chat. */
   assistant?: Agent | undefined;
-  /** The enabled channel providers and their settings. Without it, no provider is enabled. */
+  /** The enabled channel providers and their settings. */
   channelAccounts?: ChannelAccountsRouterDependencies | undefined;
-  /** Records received emails for the gate. Without it, no email can be simulated. */
+  /** Records received emails for the gate. */
   inbox?: MessagesRouterDependencies | undefined;
   mcp: {
     /** Signs MCP session tokens. At least 32 characters. */
     secret: string;
-    /** The retrieval collaborators of the `search_playbooks` tool. */
+    /** The retrieval collaborators of the search tool. */
     search?: McpToolDependencies["search"];
   };
 };
 
-/**
- * Builds the Hono application from its collaborators, so tests can run it against a test database
- * without starting a server.
- */
+/** Builds the Hono application from collaborators. */
 export function createApp({
   auth,
   db,

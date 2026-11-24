@@ -1,18 +1,10 @@
-/** The wire protocols an OpenAI-compatible endpoint can speak. */
+/** The wire protocols an endpoint can speak. */
 export type ModelApi = "responses" | "chat";
 
-/** The reasoning effort levels a model can be asked to use. */
+/** The reasoning effort levels of a model. */
 export type ReasoningEffort = "minimal" | "low" | "medium" | "high";
 
-/**
- * One model the harness can run an agent on, together with the client that talks to it.
- *
- * `modelId` is the identifier the provider expects. `apiKeyEnv` names the environment variable that
- * holds the credentials, so the config file never contains a secret. `baseUrl` selects the
- * endpoint of an OpenAI-compatible service and defaults to the provider's own. `api` selects the
- * wire protocol and defaults to `"responses"`. When `reasoningEfforts` is empty the model does not
- * support reasoning effort, and `defaultReasoningEffort` must be omitted.
- */
+/** One model the harness can run an agent on. */
 export interface ModelDefinition {
   readonly provider: "openai";
   readonly modelId: string;
@@ -25,11 +17,7 @@ export interface ModelDefinition {
   readonly defaultReasoningEffort?: ReasoningEffort;
 }
 
-/**
- * One embedding model the harness can use. `baseUrl` is the endpoint root of an OpenAI-compatible
- * service, `apiKeyEnv` names the variable that holds its key, and `dimensions` is the length of
- * every vector the model returns.
- */
+/** One embedding model the harness can use. */
 export interface EmbeddingModelDefinition {
   readonly provider: "openai";
   readonly modelId: string;
@@ -38,16 +26,10 @@ export interface EmbeddingModelDefinition {
   readonly dimensions: number;
 }
 
-/** The agents that take a system prompt from the harness config. */
+/** The agents that take a system prompt from config. */
 export type AgentName = "assistant" | "reply";
 
-/**
- * The single configuration file of the harness, `harness.config.ts` in the repository root.
- *
- * Paths are relative to the directory that contains the config file. `models` is keyed by a
- * name chosen here, and `defaultModel` must be one of those keys. `embeddingModels` and
- * `defaultEmbeddingModel` follow the same rule for the models that produce vectors.
- */
+/** The single configuration file of the harness. */
 export interface HarnessConfig {
   readonly prompts: Readonly<Record<AgentName, string>>;
   readonly models: Readonly<Record<string, ModelDefinition>>;
@@ -57,14 +39,10 @@ export interface HarnessConfig {
   readonly pluginsDir: string;
 }
 
-/** The tasks whose model is chosen by an environment variable. */
+/** The tasks whose model a variable picks. */
 export type ModelTask = "assistant" | "reply" | "replyTriage" | "replyJudge";
 
-/**
- * The environment variable that holds the harness model key for each task. An unset or empty
- * variable selects the model of the task's fallback task, if it has one, and otherwise
- * `defaultModel`.
- */
+/** The environment variable of each task's model. */
 export const MODEL_TASK_ENV: Readonly<Record<ModelTask, string>> = {
   assistant: "ASSISTANT_MODEL",
   reply: "REPLY_MODEL",
@@ -72,30 +50,20 @@ export const MODEL_TASK_ENV: Readonly<Record<ModelTask, string>> = {
   replyJudge: "REPLY_JUDGE_MODEL",
 };
 
-/**
- * The task whose variable is read when a task's own variable is unset or empty. The triage and
- * judge steps of the reply pipeline follow the Reply Agent until they are given a model of their
- * own.
- */
+/** The fallback task for an unset model variable. */
 const FALLBACK_TASK: Readonly<Partial<Record<ModelTask, ModelTask>>> = {
   replyTriage: "reply",
   replyJudge: "reply",
 };
 
-/** A model chosen for a task, with the key it has in the config. */
+/** A model chosen for a task. */
 export interface ResolvedModel {
   readonly key: string;
   readonly definition: ModelDefinition;
   readonly apiKey: string;
 }
 
-/**
- * Finds the model a task runs on and reads its API key.
- *
- * The task's environment variable names a key of `config.models`. Throws an error that lists the
- * available keys when the key is unknown, and an error that names the variable when the model's
- * API key is not set, so a misconfigured process fails before the first request.
- */
+/** Finds the model a task runs on. */
 export function resolveTaskModel(
   config: HarnessConfig,
   task: ModelTask,
@@ -126,20 +94,17 @@ export function resolveTaskModel(
   return { key, definition, apiKey };
 }
 
-/** The environment variable that holds the key of the embedding model in `embeddingModels`. */
+/** The environment variable of the embedding model. */
 export const EMBEDDING_MODEL_ENV = "EMBEDDING_MODEL";
 
-/** An embedding model chosen from the config, with the key it has there. */
+/** An embedding model chosen from the config. */
 export interface ResolvedEmbeddingModel {
   readonly key: string;
   readonly definition: EmbeddingModelDefinition;
   readonly apiKey: string;
 }
 
-/**
- * Finds the embedding model named by `EMBEDDING_MODEL` and reads its API key. An unset or empty
- * variable selects `defaultEmbeddingModel`. The errors are the same as those of `resolveTaskModel`.
- */
+/** Finds the embedding model named by the config. */
 export function resolveEmbeddingModel(
   config: HarnessConfig,
   env: NodeJS.ProcessEnv = process.env,
@@ -164,7 +129,7 @@ export function resolveEmbeddingModel(
   return { key, definition, apiKey };
 }
 
-/** Returns the config unchanged, so that a config file gets full type checking. */
+/** Returns the config unchanged for type checking. */
 export function defineHarnessConfig(config: HarnessConfig): HarnessConfig {
   return config;
 }

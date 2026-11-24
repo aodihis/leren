@@ -1,18 +1,18 @@
 import { z } from "zod";
 
-/** The most revisions of a draft that the evaluator may ask for (decision 0042). */
+/** The most revisions the evaluator may ask for. */
 export const MAX_REVISIONS = 2;
 
-/** The most questions of one email that are searched for separately. */
+/** The most questions of one email searched. */
 export const MAX_QUESTIONS = 5;
 
-/** The longest reply body, in characters, that the evaluator accepts. */
+/** The longest reply body the evaluator accepts. */
 export const MAX_BODY_LENGTH = 5000;
 
-/** The longest reply instructions, in characters, that the pipeline passes to the drafter. */
+/** The longest reply instructions for the drafter. */
 export const MAX_INSTRUCTIONS_LENGTH = 2000;
 
-/** What a received email is about, as triage decides it. */
+/** What a received email is about. */
 export const CATEGORIES = [
   "project_question",
   "task_assignment",
@@ -28,7 +28,7 @@ export const OUTCOMES = ["answer", "escalate", "ignore"] as const;
 
 export type Outcome = (typeof OUTCOMES)[number];
 
-/** One received email, as the pipeline reads it. Every field is untrusted. */
+/** One received email, as the pipeline reads it. */
 export const emailSchema = z.object({
   from: z.string(),
   subject: z.string(),
@@ -47,10 +47,7 @@ export const pipelineInputSchema = z.object({
 
 export type PipelineInput = z.input<typeof pipelineInputSchema>;
 
-/**
- * A playbook that retrieval returned. Only the fields that the stages read are required, and the
- * rest of the view is kept as it arrived.
- */
+/** A playbook that retrieval returned. */
 export const playbookSchema = z.looseObject({
   id: z.string().min(1),
   topic: z.string(),
@@ -60,7 +57,7 @@ export const playbookSchema = z.looseObject({
 
 export type Playbook = z.infer<typeof playbookSchema>;
 
-/** The result of searching the knowledge for one email. */
+/** The result of searching for an email. */
 export type Retrieval =
   | { readonly status: "ok"; readonly playbooks: readonly Playbook[] }
   | { readonly status: "no_reliable_result" };
@@ -92,7 +89,7 @@ export const draftSchema = z.object({
 
 export type Draft = z.infer<typeof draftSchema>;
 
-/** The criteria that the judge scores, each as a pass or a fail. */
+/** The criteria that the judge scores. */
 export const CRITERIA = [
   "groundedness",
   "coverage",
@@ -115,7 +112,7 @@ export const verdictSchema = z.object({
 
 export type Verdict = z.infer<typeof verdictSchema>;
 
-/** The evaluator's result for one draft. It passes only when no check and no criterion fails. */
+/** The evaluator's result for one draft. */
 export interface Evaluation {
   readonly pass: boolean;
   readonly issues: readonly string[];

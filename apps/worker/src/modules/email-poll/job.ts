@@ -8,33 +8,27 @@ import { defineJob } from "../../job";
 import { logger } from "../../logger";
 import { listPollableAccountIds, pollAccount } from "./service";
 
-/** The name of the queue that asks for one poll of one account's mailbox. */
+/** The queue name of a mailbox poll request. */
 export const EMAIL_POLL_QUEUE = "email.poll";
 
-/**
- * The payload of `email.poll`. `requestedAt` is the time of the request in milliseconds, so a poll
- * that waited in the queue for longer than the job tolerates is dropped.
- */
+/** The payload of email.poll. */
 export const emailPollPayloadSchema = z.object({
   accountId: z.uuid(),
   requestedAt: z.number().int(),
 });
 
-/** A poll older than this many intervals is dropped, because a newer one has been requested. */
+/** The age in intervals after which a poll drops. */
 const STALE_AFTER_INTERVALS = 2;
 
 export type EmailPollJobDependencies = {
   db: Db;
   channels: ChannelAccountsDependencies;
   queue: Pick<QueueClient, "publish">;
-  /** The time between the requests for polls, in milliseconds. */
+  /** The time between poll requests, in milliseconds. */
   pollIntervalMs: number;
 };
 
-/**
- * Polls the mailbox of one account. Every failure is retried, because the provider and the
- * database may be briefly unavailable, and a retry resumes from the stored cursor.
- */
+/** Polls the mailbox of one account. */
 export function createEmailPollJob({
   db,
   channels,
@@ -81,10 +75,7 @@ export function createEmailPollJob({
   });
 }
 
-/**
- * Publishes one poll for every account that the listener reads. A failure is logged and does not
- * stop the others, because the next tick asks again.
- */
+/** Publishes one poll for every listened account. */
 export async function requestEmailPolls({
   db,
   channels,

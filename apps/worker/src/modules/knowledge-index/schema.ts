@@ -1,10 +1,6 @@
 import { z } from "zod";
 
-/**
- * The payload of a request to index one playbook. A message that was published before playbooks
- * replaced knowledge items names the playbook `itemId`, because a playbook keeps the id of the
- * knowledge item it came from, so that name is still accepted.
- */
+/** The payload of a request to index a playbook. */
 export const knowledgeIndexPayloadSchema = z.preprocess(
   (payload) =>
     typeof payload === "object" &&

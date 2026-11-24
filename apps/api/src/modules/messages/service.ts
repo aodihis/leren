@@ -12,19 +12,14 @@ import type { MessageListQuery, SimulateEmailInput } from "./schema";
 
 const PREVIEW_LENGTH = 300;
 
-/** The provider whose accounts may receive simulated messages (decision 0039). */
+/** The provider whose accounts receive simulations. */
 export const SIMULATION_PROVIDER = "mailpit";
 
 type MessageRow = typeof messages.$inferSelect;
 
 type DecisionRow = typeof replyDecisions.$inferSelect;
 
-/**
- * A message as the list returns it. `preview` is the start of the body, and the full body is
- * returned only for one message. `outcome` and `deliveryState` come from the decision of the
- * pipeline and are null while there is none, and `deliveryState` is also null for a decision that
- * has no reply to deliver (decisions 0043 and 0046).
- */
+/** A message as the list returns it. */
 export type MessageSummary = ReturnType<typeof toSummary>;
 
 export type MessageDetail = MessageSummary & {
@@ -84,11 +79,7 @@ function toSummary(row: MessageRow, decision: DecisionRow | null) {
   };
 }
 
-/**
- * Lists the user's message records, newest first, one page at a time. The query is scoped to
- * `userId`. One more row than the page size is read to learn whether a next page exists, and
- * `nextCursor` is null on the last page.
- */
+/** Lists the user's message records, newest first. */
 export async function listMessages(
   db: Db,
   userId: string,
@@ -131,11 +122,7 @@ export async function listMessages(
   };
 }
 
-/**
- * Returns one message record with its stored body and its decision, or `null` when the user has no
- * such record. The cited playbooks are the ones of the user that still exist, in the order of the
- * citations.
- */
+/** Returns one message record with its decision. */
 export async function getMessage(
   db: Db,
   userId: string,
@@ -174,10 +161,7 @@ export async function getMessage(
   };
 }
 
-/**
- * Builds the email that a development provider would have delivered to the user's account on
- * `SIMULATION_PROVIDER`. Returns `null` when the user has no such account or it is not active.
- */
+/** Builds a simulated email for the user's account. */
 export async function buildSimulatedEmail(
   db: Db,
   userId: string,

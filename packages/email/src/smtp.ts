@@ -3,17 +3,13 @@ import { createTransport } from "nodemailer";
 import type { EmailMessage, EmailSender } from "./types";
 
 export type SmtpEmailSenderOptions = {
-  /** An SMTP connection URL such as `smtp://localhost:51025` or `smtps://user:pass@host:465`. */
+  /** An SMTP connection URL. */
   url: string;
-  /** The address shown as the sender, for example `Leren <no-reply@leren.local>`. */
+  /** The address shown as the sender. */
   from: string;
 };
 
-/**
- * Creates an `EmailSender` that delivers through an SMTP server. The URL's scheme decides the
- * transport security: `smtps` connects over TLS and `smtp` upgrades with STARTTLS when the server
- * offers it.
- */
+/** Creates an EmailSender that uses SMTP. */
 export function createSmtpEmailSender(options: SmtpEmailSenderOptions): EmailSender {
   const transport = createTransport(options.url);
 

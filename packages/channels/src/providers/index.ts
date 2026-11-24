@@ -7,18 +7,14 @@ export { CHANNEL_PROVIDER_NAMES } from "./types";
 
 export type { ChannelProvider, ChannelProviderName } from "./types";
 
-/** The settings that the providers need, as read from the environment. */
+/** The settings that the providers need. */
 export type ProviderSettings = {
   CHANNEL_PROVIDERS: readonly ChannelProviderName[];
   GOOGLE_CLIENT_ID?: string | undefined;
   GOOGLE_CLIENT_SECRET?: string | undefined;
 };
 
-/**
- * Builds the adapter of every enabled provider, keyed by name. A provider that is not listed is
- * not built and needs none of its settings. `loadConfig` has already checked that the settings of
- * every enabled provider are present.
- */
+/** Builds the adapter of every enabled provider. */
 export function createChannelProviders(
   settings: ProviderSettings,
 ): ReadonlyMap<string, ChannelProvider> {

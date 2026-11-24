@@ -5,10 +5,7 @@ export type VectorStoreConfig = {
   url: string;
 };
 
-/**
- * Creates the application's vector store. This is the only place that chooses
- * the backend, so callers never depend on a specific vector database.
- */
+/** Creates the application's vector store. */
 export function createVectorStore(config: VectorStoreConfig): VectorStore {
   return createQdrantStore(config.url);
 }

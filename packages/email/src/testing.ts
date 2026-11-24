@@ -4,10 +4,7 @@ export type InMemoryEmailSender = EmailSender & {
   readonly sent: readonly EmailMessage[];
 };
 
-/**
- * Creates an `EmailSender` that records messages instead of delivering them. Tests read `sent` to
- * assert what would have been delivered.
- */
+/** Creates an EmailSender that records messages. */
 export function createInMemoryEmailSender(): InMemoryEmailSender {
   const sent: EmailMessage[] = [];
 

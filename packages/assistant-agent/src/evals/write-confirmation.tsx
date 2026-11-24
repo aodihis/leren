@@ -10,10 +10,7 @@ const WRITE_TOOLS = new Set(["create_playbook", "update_playbook"]);
 
 const { defineMetric } = createEvalTypes<AssistantEvalInput, AssistantEvalOutput, Expected>();
 
-/**
- * Passes when the write tool calls of the run match the case: none, or exactly one call with the
- * given tool, the given argument values and none of the omitted arguments.
- */
+/** Passes when the write tool calls match the case. */
 const writesMatch = defineMetric({
   name: "writes-match",
   dataType: "BOOLEAN",

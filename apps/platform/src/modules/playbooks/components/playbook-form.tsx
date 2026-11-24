@@ -52,13 +52,7 @@ interface SwitchFieldProps {
   description: string;
 }
 
-/**
- * Maps the name of each request field that the API can reject to the form field that shows the
- * message and to the tab that holds that field, or `null` for a field in the sidebar, which is
- * visible on every tab. The API reports a nested validation failure under
- * its top-level key, so a failure under `conditions` is shown at the only nested field that the
- * user can get wrong, the sender allowlist.
- */
+/** Maps API request fields to form fields and tabs. */
 const ERROR_FIELDS = {
   topic: { field: "topic", tab: "knowledge" },
   examples: { field: "examples", tab: "knowledge" },
@@ -74,17 +68,12 @@ const ERROR_FIELDS = {
 const ACCOUNT_REQUIRED =
   "Choose the account that this playbook answers on, or turn the playbook off";
 
-/**
- * Returns the IANA timezone that the browser is set to.
- */
+/** Returns the browser's IANA timezone. */
 function getBrowserTimezone(): string {
   return new Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-/**
- * Lists the IANA timezones the browser supports. The browser's own zone and the playbook's zone are
- * always included, because the list does not contain every alias.
- */
+/** Lists the IANA timezones the browser supports. */
 function listTimezones(playbookTimezone: string): string[] {
   const own = getBrowserTimezone();
 
@@ -118,14 +107,7 @@ interface PlaybookFormProps {
   accounts?: readonly ChannelAccount[];
 }
 
-/**
- * Creates a playbook, or replaces `playbook` when it is given, and returns to the playbook list
- * after a successful save. The Knowledge tab holds what the assistant may say and the Rules tab
- * holds the email conditions, while the sidebar holds whether the playbook is enabled and its
- * period. Everything belongs to one form that is saved as a whole from the header. The API
- * validates the request again, its field errors are shown next to the fields, and the form opens
- * the tab of the first field that was rejected.
- */
+/** Creates or edits a playbook. */
 export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabName>("knowledge");

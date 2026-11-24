@@ -8,10 +8,7 @@ const BADGES = {
   unavailable: { label: "Provider off", className: "bg-subtle text-ink-muted" },
 } as const;
 
-/**
- * Returns the badge key of an account. An account that is active but not usable belongs to a
- * provider that is not enabled on the server.
- */
+/** Returns the badge key of an account. */
 function badgeOf(account: ChannelAccount): keyof typeof BADGES {
   if (account.status === "revoked") {
     return "revoked";
@@ -24,10 +21,7 @@ interface AccountStatusBadgeProps {
   account: ChannelAccount;
 }
 
-/**
- * A status badge for a channel account. Following the design system, status colours only carry
- * status, and every badge has a dot so that the status never depends on colour alone.
- */
+/** A status badge for a channel account. */
 export function AccountStatusBadge({ account }: AccountStatusBadgeProps) {
   const { label, className } = BADGES[badgeOf(account)];
 

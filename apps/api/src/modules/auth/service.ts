@@ -23,10 +23,7 @@ export type CreateAuthOptions = {
   trustedOrigins: string[];
 };
 
-/**
- * Joins a first and last name into the display name Better Auth stores in `name`. Missing parts
- * are skipped, so a user with only a first name gets that name.
- */
+/** Joins a first and last name into a display name. */
 export function formatDisplayName(firstName?: string | null, lastName?: string | null): string {
   return [firstName ?? "", lastName ?? ""].flatMap((part) => part.trim() || []).join(" ");
 }
@@ -39,17 +36,7 @@ function textOrFallback(value: unknown, fallback: unknown): string {
   return typeof fallback === "string" ? fallback : "";
 }
 
-/**
- * Creates the Better Auth instance. Users register and sign in the same way: they enter an email
- * address, receive a one-time code and submit it. An unknown address becomes a new user when its
- * code is verified. There are no passwords.
- *
- * The code email is sent without awaiting delivery, so the response time does not reveal whether
- * an address is deliverable. A delivery failure is logged, and the API checks the email transport
- * at startup so a misconfigured SMTP server is reported before a user waits for a code.
- *
- * A partial profile update keeps the stored half of the display name.
- */
+/** Creates the Better Auth instance. */
 export function createAuth(options: CreateAuthOptions) {
   return betterAuth({
     appName: "Leren",
@@ -116,20 +103,14 @@ const profileColumns = {
   lastName: users.lastName,
 };
 
-/**
- * Returns the public profile of a user, or `null` when the user does not exist. The query is
- * scoped to `userId`, so a caller can only read the profile it was authenticated as.
- */
+/** Returns the public profile of a user. */
 export async function getProfile(db: Db, userId: string) {
   const [profile] = await db.select(profileColumns).from(users).where(eq(users.id, userId));
 
   return profile ?? null;
 }
 
-/**
- * Saves a user's first and last name and derives the display name from them. The update is
- * scoped to `userId`. Returns the updated profile, or `null` when the user does not exist.
- */
+/** Saves a user's name and derives the display name. */
 export async function updateProfile(db: Db, userId: string, input: UpdateProfileInput) {
   const [profile] = await db
     .update(users)

@@ -1,17 +1,12 @@
 import { isoToZonedLocal, zonedLocalToIso } from "./time";
 import type { EmailConditions, Playbook, PlaybookFormValues, PlaybookInput } from "./types";
 
-/**
- * Splits text that the user separated with new lines or commas into trimmed, non-empty items.
- */
+/** Splits text on new lines or commas into items. */
 function splitList(text: string): string[] {
   return text.split(/[\n,]/).flatMap((item) => item.trim() || []);
 }
 
-/**
- * Returns the email conditions of a playbook. The form edits only the `email` channel, so the
- * conditions of any other channel are left to the API.
- */
+/** Returns the email conditions of a playbook. */
 function findEmailConditions(playbook: Playbook): EmailConditions {
   const email = playbook.conditions.find((entry) => entry.channel === "email");
 
@@ -22,10 +17,7 @@ function findEmailConditions(playbook: Playbook): EmailConditions {
   return email;
 }
 
-/**
- * Returns the form values for a new playbook, with the same defaults as the email conditions of
- * the assistant's tools.
- */
+/** Returns the form values for a new playbook. */
 export function getNewPlaybookValues(timezone: string): PlaybookFormValues {
   return {
     enabled: true,
@@ -53,10 +45,7 @@ export function getNewPlaybookValues(timezone: string): PlaybookFormValues {
   };
 }
 
-/**
- * Converts a stored playbook to form values. The bounds are shown as wall clock time in the
- * playbook's own timezone.
- */
+/** Converts a stored playbook to form values. */
 export function toFormValues(playbook: Playbook): PlaybookFormValues {
   const { channel: _channel, ...email } = findEmailConditions(playbook);
 
@@ -77,10 +66,7 @@ export function toFormValues(playbook: Playbook): PlaybookFormValues {
   };
 }
 
-/**
- * Converts form values to the request body. The bounds are read as wall clock time in the chosen
- * timezone, and an empty bound is open. Blank examples are dropped.
- */
+/** Converts form values to the request body. */
 export function toRequestBody(values: PlaybookFormValues): PlaybookInput {
   return {
     enabled: values.enabled,

@@ -5,11 +5,7 @@ import { EmailStatusBadge } from "../../emails/components/email-status-badge";
 import { DELIVERY_LABELS, OUTCOME_FILTERS, OUTCOME_LABELS } from "../../emails/labels";
 import type { Overview } from "../types";
 
-/**
- * Shows how many emails arrived in the window of the overview and what the assistant decided for
- * them, with a link to the processed emails of each outcome, and lists the latest failures (decision
- * 0048). The counts are the ones the API computed, so this component does not derive them.
- */
+/** Shows email counts by outcome and recent failures. */
 export function MessageCounts({ overview }: { overview: Overview }) {
   return (
     <>

@@ -6,15 +6,10 @@ import { logger } from "../../logger";
 import { deliverReply, failUnfinishedDelivery } from "./service";
 import type { ReplyDeliverDependencies } from "./service";
 
-/** The number of deliveries after which a reply that cannot be delivered is marked as failed. */
+/** The delivery attempts before a reply fails. */
 export const REPLY_DELIVER_MAX_ATTEMPTS = 5;
 
-/**
- * Consumes `email.deliver`: delivers the reply of one message as a draft or as a sent mail
- * (decision 0046). A failure that is known not to have reached the provider is retried. When the
- * last attempt fails, or the failure cannot succeed on a retry, the delivery and the message are
- * marked as failed and the failure is reported, which sends the job to the dead-letter queue.
- */
+/** Consumes email.deliver. */
 export function createReplyDeliverJob(dependencies: ReplyDeliverDependencies) {
   return defineJob({
     name: EMAIL_DELIVER_QUEUE,

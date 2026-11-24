@@ -3,10 +3,7 @@ import type { EmailMessage } from "./types";
 const EXPIRY_NOTE =
   "The code expires in a few minutes. If you did not request it, ignore this email.";
 
-/**
- * Builds the email that carries a one-time sign-in code. The code is a short string of digits that
- * the recipient types into the sign-in form.
- */
+/** Builds the email that carries a sign-in code. */
 export function createVerificationCodeEmail(to: string, code: string): EmailMessage {
   return {
     to,

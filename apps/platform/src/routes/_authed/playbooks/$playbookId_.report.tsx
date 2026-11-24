@@ -45,11 +45,7 @@ function formatInTimezone(iso: string | null, timezone: string): string {
   });
 }
 
-/**
- * Summarizes what one playbook did during its period: how many emails it was used for, what was
- * decided for them and how far their delivery got (decision 0048). The API computes the numbers
- * when the page loads. A playbook whose period has not ended has no report yet.
- */
+/** Summarizes what one playbook did in its period. */
 function ReportPage() {
   const report = Route.useLoaderData();
   const { playbookId } = Route.useParams();

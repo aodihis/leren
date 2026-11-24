@@ -1,6 +1,6 @@
 import { closeTarget } from "./target";
 
-/** Maps an eval name to the module that runs it when it is imported. */
+/** Maps an eval name to its module. */
 const evals: Record<string, () => Promise<unknown>> = {
   "write-confirmation": () => import("./write-confirmation"),
   "tool-use": () => import("./tool-use"),
@@ -12,11 +12,7 @@ const evals: Record<string, () => Promise<unknown>> = {
   "edit-fidelity": () => import("./edit-fidelity"),
 };
 
-/**
- * Runs the named evals, or all of them when no name is given. Usage: `pnpm run evals [name...]`.
- * An unknown name prints the available names and exits with a failure. The exit code is
- * non-zero when any eval ends with an outcome that its cases did not expect.
- */
+/** Runs the named evals, or all of them. */
 async function main(): Promise<void> {
   const requested = process.argv.slice(2);
   const names = requested.length === 0 ? Object.keys(evals) : requested;

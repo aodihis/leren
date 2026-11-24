@@ -5,10 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createApp } from "./app";
 import type { Auth } from "./modules/auth/service";
 
-/**
- * The routes under test never touch the auth service or the database, so inert stand-ins are enough.
- * The request logger is a spy because logging each completed request is part of the app's contract.
- */
+/** Inert stand-ins for the auth service and database. */
 const MCP_SECRET = "an-mcp-test-secret-of-at-least-32-chars";
 
 function createTestApp() {

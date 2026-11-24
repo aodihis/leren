@@ -12,11 +12,7 @@ export type EmailGateJobDependencies = Pick<EmailGateDependencies, "db"> & {
   queue: Pick<QueueClient, "publish">;
 };
 
-/**
- * Runs the gate for one recorded message. Every failure is retried, because the database and the
- * queue may be briefly unavailable and a retry reads the current record. The message to the
- * pipeline carries the id of the record as its idempotency key.
- */
+/** Runs the gate for one recorded message. */
 export function createEmailGateJob({ db, queue }: EmailGateJobDependencies) {
   return defineJob({
     name: EMAIL_RECEIVED_QUEUE,

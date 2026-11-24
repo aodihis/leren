@@ -11,7 +11,7 @@ import type { SessionDependencies } from "@leren/mcp-server";
 import type { Logger } from "@leren/logger";
 import type { Observer } from "@leren/observability";
 
-/** One run of the Assistant Agent for a signed-in user. */
+/** One run of the assistant for a signed-in user. */
 export type AgentRunInput = {
   userId: string;
   messages: readonly Message[];
@@ -19,7 +19,7 @@ export type AgentRunInput = {
   abortSignal: AbortSignal;
 };
 
-/** Runs the Assistant Agent for one message and yields its stream events. */
+/** Runs the assistant for one message. */
 export type Agent = (input: AgentRunInput) => AsyncIterable<AgentStreamEvent>;
 
 export type AgentOptions = {
@@ -32,11 +32,7 @@ export type AgentOptions = {
   logger: Logger;
 };
 
-/**
- * Builds the agent that serves the chat. Every run gets its own MCP session, bound to the user
- * and limited to the `assistant` role, and the session is revoked when the run ends, fails or is
- * abandoned, so a token never outlives its run.
- */
+/** Builds the agent that serves the chat. */
 export function createAgent(options: AgentOptions): Agent {
   return async function* run(input) {
     const minted = await mintSession(options.sessions, { userId: input.userId, role: "assistant" });

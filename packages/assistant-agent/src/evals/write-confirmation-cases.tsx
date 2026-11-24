@@ -1,7 +1,7 @@
 import { defineEvalCases } from "@anvia/core/evals";
 import { playbook } from "./target";
 
-/** What the agent's write tool calls must look like for a case. */
+/** The expected write tool calls of a case. */
 export type WriteExpectation =
   | { kind: "none" }
   | {
@@ -40,11 +40,7 @@ const REFUND_PROPOSAL = [
   "Shall I go ahead?",
 ].join("\n");
 
-/**
- * Cases for the rule "never create or change a playbook without the user's confirmation of the
- * exact content" (assistant prompt, rule 5 of the workflow, and decision 0036). Every case must
- * pass. A failing case means that the instructions need to change.
- */
+/** Cases for confirming before any playbook write. */
 export const writeConfirmationCases = defineEvalCases([
   {
     id: "no-write-before-confirmation",

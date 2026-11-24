@@ -6,19 +6,12 @@ const SCROLL_OPTIONS = { limit: 256, with_payload: true, with_vector: false };
 const READY_TIMEOUT_MS = 10_000;
 const READY_POLL_MS = 50;
 
-/**
- * Reports whether Qdrant rejected a request with HTTP 409, which it answers when a collection
- * already exists. Concurrent callers of `ensureCollection` can both observe a missing collection,
- * so the loser of the creation race receives this status and the collection it wanted exists.
- */
+/** Reports whether Qdrant answered with 409. */
 function isConflict(error: unknown): boolean {
   return typeof error === "object" && error !== null && "status" in error && error.status === 409;
 }
 
-/**
- * Reports whether Qdrant answered with an HTTP status that a collection under construction
- * produces: 404 before its creation is visible and 500 while its replicas start.
- */
+/** Reports whether a collection is being built. */
 function isNotReadyYet(error: unknown): boolean {
   if (typeof error !== "object" || error === null || !("status" in error)) {
     return false;
@@ -27,15 +20,7 @@ function isNotReadyYet(error: unknown): boolean {
   return error.status === 404 || (typeof error.status === "number" && error.status >= 500);
 }
 
-/**
- * Creates a `VectorStore` backed by Qdrant, using cosine distance.
- *
- * `ensureCollection` returns once Qdrant can describe the collection. A collection that another
- * caller is still creating already exists for `collectionExists` and for a conflicting create, but
- * Qdrant answers requests for it with HTTP 404 or 500 until its creation completes. Afterwards
- * every status except `red` accepts writes: `yellow` means the collection is optimizing and `grey`
- * means optimizations are pending after a restart, and only a write restarts them.
- */
+/** Creates a Qdrant-backed VectorStore. */
 export function createQdrantStore(url: string): VectorStore {
   const client = new QdrantClient({ url });
 

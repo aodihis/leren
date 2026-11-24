@@ -27,18 +27,14 @@ export interface AssistantAgentOptions extends Pick<
   readonly abortSignal?: AbortSignal | undefined;
 }
 
-/** An Assistant Agent together with the MCP connection it owns. */
+/** An assistant agent with its MCP connection. */
 export interface AssistantAgent {
   readonly agent: Agent;
-  /** Closes the MCP connection, if there is one. Safe to call when there is none. */
+  /** Closes the MCP connection, if there is one. */
   close(): Promise<void>;
 }
 
-/**
- * Builds the Assistant Agent. When `mcp` is given, the MCP connection is opened here and the caller
- * must call `close` so that the connection does not outlive the agent. The agent is limited to 75
- * turns. The agent has the skills in the package's `skills` directory.
- */
+/** Builds the assistant agent. */
 export async function createAssistantAgent(
   options: AssistantAgentOptions,
 ): Promise<AssistantAgent> {
@@ -71,20 +67,13 @@ export async function createAssistantAgent(
 
 /** Everything one Assistant Agent run needs. */
 export interface RunAgentOptions extends Omit<AssistantAgentOptions, "memory"> {
-  /** The conversation so far, ending with the user's new message. */
+  /** The conversation, ending with the new message. */
   readonly messages: readonly Message[];
-  /** Where the conversation is stored. Without it, the run sees only `messages`. */
+  /** Where the conversation is stored. */
   readonly memory?: { readonly store: MemoryStore; readonly session: MemoryScope } | undefined;
 }
 
-/**
- * Runs the Assistant Agent once and yields its stream events as they happen.
- *
- * The MCP connection is opened when iteration starts and is closed when the stream ends, fails or
- * is abandoned by the caller, so it cannot outlive the run. When `memory` is given, the store
- * already holds the earlier turns, so only the newest user message is sent and the turn is saved
- * when it ends. Otherwise all of `messages` is sent and nothing is saved.
- */
+/** Runs the assistant once and yields stream events. */
 export async function* runAgent(options: RunAgentOptions): AsyncGenerator<AgentStreamEvent> {
   const { agent, close } = await createAssistantAgent({
     ...options,

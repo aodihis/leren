@@ -1,39 +1,28 @@
 import { McpClient, McpClientGroup } from "@anvia/mcp";
 import type { McpConnectOptions, McpServer, McpStreamableHttpTransport } from "@anvia/mcp";
 
-/** Connection details for the MCP server hosted by the API. */
+/** Connection details for the MCP server. */
 export interface McpConnectionOptions {
   readonly url: McpStreamableHttpTransport["url"];
   readonly token: string;
   readonly allowedTools: readonly string[];
-  /** The allowed tools whose every call needs the user's approval before it runs. */
+  /** The allowed tools that need user approval. */
   readonly approvalTools?: readonly string[] | undefined;
   readonly abortSignal?: McpConnectOptions["abortSignal"];
-  /**
-   * Whether the library refuses URLs that resolve to loopback or private addresses. It defaults
-   * to `strict`. Only the address of Leren's own MCP endpoint, which comes from deployment
-   * configuration, may use `disabled`. A server that a user or an administrator supplies must
-   * keep `strict`, so that it cannot be used to reach internal services.
-   */
+  /** Whether private addresses are refused. */
   readonly ssrfProtection?: "strict" | "disabled" | undefined;
 }
 
-/** The part of the connection that identifies the server and the user's session. */
+/** The part of the connection that identifies it. */
 export type McpOptions = Pick<McpConnectionOptions, "url" | "token">;
 
-/** Connected MCP servers, restricted to one role's tools. The owner must call `close`. */
+/** Connected MCP servers limited to one role. */
 export interface McpConnection {
   readonly servers: readonly McpServer[];
   close(): Promise<void>;
 }
 
-/**
- * Keeps only the tools whose remote name is in `allowedTools`.
- *
- * The result never contains a tool outside the allow-list, whatever the server advertises. A tool
- * whose remote name is in `approvalTools` requires the user's approval for every call, so the
- * runtime pauses the run until the user decides.
- */
+/** Keeps only the allowed tools. */
 export function restrictTools(
   server: McpServer,
   allowedTools: readonly string[],
@@ -49,12 +38,7 @@ export function restrictTools(
   };
 }
 
-/**
- * Connects to the MCP server with a user-bound session token and exposes only `allowedTools`.
- *
- * The token carries the user, scopes and expiry, and is minted by the API for one run. It is sent
- * as a bearer header and never appears in a tool argument or prompt.
- */
+/** Connects to the MCP server with a session token. */
 export async function connectMcp(options: McpConnectionOptions): Promise<McpConnection> {
   const client = new McpClient({
     name: "leren",

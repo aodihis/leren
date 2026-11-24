@@ -13,35 +13,24 @@ import { createReplyRunJob } from "./reply-run/job";
 import type { ReplyRunJobDependencies } from "./reply-run/job";
 import { runAgentJob } from "./run-agent/job";
 
-/**
- * What the jobs need, grouped by the role that needs it (decision 0045). A role whose group is
- * missing is not started, so a process only builds, and only requires, what its roles use.
- */
+/** What the jobs need, grouped by role. */
 export type JobDependencies = {
   db: Db;
   queue: Pick<QueueClient, "publish">;
   /** The `listener` role: reads mailboxes. */
   listener?: Pick<EmailPollJobDependencies, "channels" | "pollIntervalMs"> | undefined;
-  /**
-   * The `processor` role: runs the gate, the reply pipeline, the reply deliverer and the agent
-   * jobs. Without `reply` the reply pipeline is disabled, and the messages that the gate queued
-   * wait in the queue. `deliver` holds what the deliverer needs to reach the mailboxes.
-   */
+  /** The processor role. */
   processor?:
     | {
         reply?: ReplyRunJobDependencies | undefined;
         deliver: Pick<ReplyDeliverDependencies, "channels">;
       }
     | undefined;
-  /** The `indexer` role: keeps the vector index of the knowledge up to date. */
+  /** The indexer role. */
   indexer?: Pick<KnowledgeIndexDependencies, "store" | "embedder"> | undefined;
 };
 
-/**
- * Builds the jobs of the roles that the dependencies name. Jobs that need collaborators receive
- * them here, so tests and the entry point choose the database, the vector store, the embedder and
- * the queue.
- */
+/** Builds the jobs of the roles that are named. */
 export function createJobs({
   db,
   queue,

@@ -10,24 +10,17 @@ import { emailSettingsSchema } from "./schema";
 
 export type EmailGateDependencies = {
   db: Db;
-  /** Publishes a message that passed the gate to `email.process`. */
+  /** Publishes a gated message to email.process. */
   publishProcess: (message: EmailProcessMessage) => Promise<void>;
 };
 
-/**
- * What the gate did. `queued` means that the message was published to `email.process`.
- * `not_applicable` means that no playbook handles it. `ignored` means that the record was gone or
- * had already left the gate, so nothing was done.
- */
+/** The outcome of a gate run. */
 export type GateOutcome = "queued" | "not_applicable" | "ignored";
 
 export const NO_ACTIVE_PLAYBOOK = "no_active_playbook";
 export const ACCOUNT_UNAVAILABLE = "account_unavailable";
 
-/**
- * Returns the names that a mention of the user may use: the first name, the last name, both
- * together and the display name.
- */
+/** Returns the names a mention of the user may use. */
 function namesOf(user: {
   firstName: string | null;
   lastName: string | null;
@@ -38,12 +31,7 @@ function namesOf(user: {
   return [user.firstName, user.lastName, full, user.name].flatMap((name) => name?.trim() || []);
 }
 
-/**
- * Records that no playbook handles the message. The outcome is `not_applicable` only when the
- * record changed. A record that cannot move there, such as one that was already queued and
- * published, is left as it is and the outcome is `ignored`, so the outcome never claims a status
- * that was not written.
- */
+/** Records that no playbook handles the message. */
 async function settleNotApplicable(
   db: Db,
   messageId: string,
@@ -54,19 +42,7 @@ async function settleNotApplicable(
   return changed ? "not_applicable" : "ignored";
 }
 
-/**
- * Decides whether a recorded message is handled, and records the decision (decision 0039). The
- * decision is code only and calls no model. The function reads the current row and never trusts a
- * message about its state, so a repeated or reordered `email.received` leaves the same result:
- * a record that has left `received` and `queued` is ignored, and a `queued` record is published
- * again, which repairs a publish that was lost after the status changed.
- *
- * The playbooks considered are the user's, are usable at `now` according to `isKnowledgeUsable`,
- * and name the channel account that the message arrived on. An account that was deleted or revoked
- * has no playbooks to consider. A playbook whose stored email settings are invalid is not
- * evaluated. The reason of a `not_applicable` record is `no_active_playbook` when no playbook was
- * considered, and otherwise the reason of the first playbook that skipped the message.
- */
+/** Decides whether a message is handled. */
 export async function gateMessage(
   { db, publishProcess }: EmailGateDependencies,
   messageId: string,

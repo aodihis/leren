@@ -9,31 +9,24 @@ import { createModel } from "./model";
 
 const CONFIG_FILE = "harness.config.ts";
 
-/**
- * A harness config that was loaded and validated, together with what is derived from it.
- *
- * Paths in the config are relative to `rootDir`, the directory that contains the config file.
- */
+/** A loaded and validated harness config. */
 export interface Harness {
   readonly config: HarnessConfig;
   readonly rootDir: string;
   readonly pluginsDir: string;
   readPrompt(agent: AgentName): Promise<string>;
-  /** Builds the model that `task` runs on, as selected by its environment variable. */
+  /** Builds the model that a task runs on. */
   createModel(task: ModelTask): CompletionModel;
 }
 
-/** Where to look for the config file, and which environment holds the API keys. */
+/** Where to find the config and API keys. */
 export interface LoadHarnessOptions {
   readonly configPath?: string | undefined;
   readonly startDir?: string | undefined;
   readonly env?: Readonly<Record<string, string | undefined>> | undefined;
 }
 
-/**
- * Finds `harness.config.ts` in `startDir` or in the nearest parent directory that has one.
- * Returns `undefined` when no directory up to the filesystem root has it.
- */
+/** Finds harness.config.ts in a directory or parent. */
 export function findHarnessConfig(startDir: string): string | undefined {
   let directory = resolve(startDir);
 
@@ -54,10 +47,7 @@ export function findHarnessConfig(startDir: string): string | undefined {
   }
 }
 
-/**
- * Throws when the config contradicts itself, so a bad config fails at startup and not in the
- * middle of an agent run.
- */
+/** Throws when the config contradicts itself. */
 export function validateHarnessConfig(config: HarnessConfig): void {
   if (!config.models[config.defaultModel]) {
     throw new Error(`The default model "${config.defaultModel}" is not in the models list.`);
@@ -72,13 +62,7 @@ export function validateHarnessConfig(config: HarnessConfig): void {
   }
 }
 
-/**
- * Loads the harness config and returns a `Harness` for it.
- *
- * The config file is `options.configPath`, then `HARNESS_CONFIG`, then the nearest
- * `harness.config.ts` above `options.startDir`, which defaults to the working directory. The
- * process must be able to import TypeScript.
- */
+/** Loads the harness config. */
 export async function loadHarness(options: LoadHarnessOptions = {}): Promise<Harness> {
   const env = options.env ?? process.env;
 

@@ -6,12 +6,12 @@ import type {
   CompletionResponse,
 } from "@anvia/core";
 
-/** One scripted model turn: plain text, or tool calls the agent must execute. */
+/** One scripted model turn. */
 export type FakeStep =
   | { readonly text: string }
   | { readonly toolCalls: readonly { readonly name: string; readonly input: unknown }[] };
 
-/** A fake model that supports streaming and records the requests it received. */
+/** A fake model that records its requests. */
 export interface FakeModel extends CompletionModel {
   readonly requests: readonly CompletionRequest[];
   streamCompletion(request: CompletionRequest): AsyncIterable<CompletionModelStreamEvent>;
@@ -60,14 +60,7 @@ function toStreamEvent(part: AssistantContentPart): CompletionModelStreamEvent |
   return undefined;
 }
 
-/**
- * Creates a model that replays `steps` in order, one per model call, through either
- * `completion` or `streamCompletion`.
- *
- * It makes no network calls, so tests can check agent behavior such as the turn limit, tool use
- * and abstention deterministically. Calling it after the script ends throws, which makes an
- * unexpected extra turn fail the test.
- */
+/** Creates a model that replays scripted steps. */
 export function createFakeModel(steps: readonly FakeStep[]): FakeModel {
   const requests: CompletionRequest[] = [];
 

@@ -4,7 +4,7 @@ import type { ReplyPipelineDeps } from "@leren/reply-agent";
 
 import type { PipelineRunner } from "./service";
 
-/** What the pipeline runner needs from the process. It is built once and shared by every run. */
+/** What the pipeline runner needs from the process. */
 export type PipelineRunnerOptions = {
   models: ReplyPipelineDeps["models"];
   /** The fixed system prompt of the Reply Agent. */
@@ -14,11 +14,7 @@ export type PipelineRunnerOptions = {
   mcpUrl: string;
 };
 
-/**
- * Builds the function that runs the reply pipeline for one message. Each run has its own MCP
- * connection, which searches for the questions of the email and is closed when the run ends,
- * whether it succeeded or failed. The drafting agent connects with the same session token.
- */
+/** Builds the function that runs the reply pipeline. */
 export function createPipelineRunner(options: PipelineRunnerOptions): PipelineRunner {
   return async ({ input, allowedPlaybookIds, token, signal }) => {
     const mcp = { url: options.mcpUrl, token };

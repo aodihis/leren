@@ -2,11 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import type { ValidationTargets } from "hono";
 import { z } from "zod";
 
-/**
- * Validates a request target with a zod schema. A failure responds with `400` and
- * `{ fieldErrors }`, which maps each invalid field to its messages. The response type is part of
- * the API's Hono RPC types, so clients can show the messages next to their fields.
- */
+/** Validates a request target with a zod schema. */
 export function validate<Target extends keyof ValidationTargets, Schema extends z.ZodType>(
   target: Target,
   schema: Schema,

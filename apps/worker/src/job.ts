@@ -6,14 +6,11 @@ export type JobContext = {
   /** The delivery attempt, starting at 1. */
   attempt: number;
   idempotencyKey: string;
-  /** Aborted when the worker stops while the job is still running. */
+  /** Aborted when the worker stops during a job. */
   signal: AbortSignal;
 };
 
-/**
- * A unit of background work. `name` is the name of the queue the job consumes. Delivery is at
- * least once, so a handler must be safe to run again for the same message.
- */
+/** A unit of background work. */
 export type JobDefinition<T = unknown> = {
   name: string;
   /** Validates the payload before the handler runs. */

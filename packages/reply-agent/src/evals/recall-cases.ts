@@ -1,6 +1,6 @@
 import { defineEvalCases } from "@anvia/core/evals";
 
-/** A playbook of the retrieval corpus. `key` names it in the cases, because its id is generated. */
+/** A playbook of the retrieval corpus. */
 export interface CorpusPlaybook {
   key: string;
   topic: string;
@@ -8,16 +8,13 @@ export interface CorpusPlaybook {
   response: string;
 }
 
-/** The input of one retrieval case: the text that is searched for. */
+/** The input of one retrieval case. */
 export type RecallInput = { text: string };
 
-/**
- * What a retrieval case expects: the keys of the playbooks that a correct search returns. An empty
- * list means that nothing in the corpus is relevant, so a correct search finds no reliable result.
- */
+/** The playbook keys a correct search returns. */
 export type RecallExpectation = { relevant: readonly string[] };
 
-/** The playbooks that are indexed before the retrieval cases run. All details are invented. */
+/** The playbooks indexed before the retrieval cases. */
 export const corpus: readonly CorpusPlaybook[] = [
   {
     key: "deadline",
@@ -93,11 +90,7 @@ export const corpus: readonly CorpusPlaybook[] = [
   },
 ];
 
-/**
- * Retrieval cases: a paraphrase for each playbook, an email that needs two playbooks, a question
- * that shares words with a playbook but means something else, and questions that nothing in the
- * corpus answers. A case without a relevant playbook expects an abstention.
- */
+/** Retrieval cases for the playbook corpus. */
 export const recallCases = defineEvalCases([
   {
     id: "deadline-paraphrase",

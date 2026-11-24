@@ -12,43 +12,36 @@ import { chooseDeliveryMode } from "./delivery-mode";
 /** What the pipeline needs to run for one message. */
 export type PipelineRun = {
   input: PipelineInput;
-  /** The playbooks that the gate named for the message. No other playbook may be used. */
+  /** The playbooks that the gate named for the message. */
   allowedPlaybookIds: ReadonlySet<string>;
   /** The token of the MCP session of this run. */
   token: string;
   signal: AbortSignal;
 };
 
-/** Runs the reply pipeline for one message and returns its result. */
+/** Runs the reply pipeline for one message. */
 export type PipelineRunner = (run: PipelineRun) => Promise<ReplyResult>;
 
 export type ReplyRunDependencies = {
   db: Db;
   sessions: ReplySessionDependencies;
   runPipeline: PipelineRunner;
-  /** Publishes a reply that is ready to `email.deliver`, with the message id as its idempotency key. */
+  /** Publishes a ready reply to email.deliver. */
   publishDeliver: (message: EmailDeliverMessage) => Promise<void>;
 };
 
-/**
- * What the run did. `processed` means that the decision is saved and the message has left
- * `processing`. `ignored` means that the record was gone or had already left the pipeline.
- */
+/** The outcome of a reply run. */
 export type ReplyRunOutcome = "processed" | "ignored";
 
-/** The reason that is stored when an email that needed a mention check does not address the user. */
+/** The reason stored for a mention check that fails. */
 export const NOT_ADDRESSED = "not_addressed";
 
-/** The longest reason, in characters, that is copied to the status of a message. */
+/** The longest status reason, in characters. */
 const STATUS_REASON_LENGTH = 200;
 
 type Destination = { status: MessageStatus; reason: string | null };
 
-/**
- * The status that a result moves the message to. A reply, for an answer, waits as a draft. A
- * message that the pipeline hands back is escalated, and one that is not for the user is not
- * applicable (decision 0043).
- */
+/** The status that a result moves a message to. */
 function destinationOf(outcome: ReplyResult["outcome"], reasons: readonly string[]): Destination {
   switch (outcome) {
     case "answer":
@@ -60,16 +53,12 @@ function destinationOf(outcome: ReplyResult["outcome"], reasons: readonly string
   }
 }
 
-/** Whether a result is a reply that has to be delivered, as opposed to a message that has none. */
+/** Whether a result is a reply to deliver. */
 function isReply(outcome: ReplyResult["outcome"]): boolean {
   return outcome === "answer";
 }
 
-/**
- * Saves the result of the pipeline. A message has at most one decision, so saving it twice keeps the
- * first one. A reply is saved with its delivery mode and the delivery state `pending`, so that the
- * decision and the fact that it waits for delivery are written together (decision 0046).
- */
+/** Saves the result of the pipeline. */
 async function saveDecision(
   db: Db,
   record: { id: string; userId: string; channel: string; channelAccountId: string | null },
@@ -100,10 +89,7 @@ async function saveDecision(
     .onConflictDoNothing({ target: replyDecisions.messageId });
 }
 
-/**
- * Moves the message to the status that its decision calls for. Returns without a change when the
- * message has already left `processing`.
- */
+/** Moves the message to the status of its decision. */
 async function settle(
   db: Db,
   messageId: string,
@@ -115,12 +101,7 @@ async function settle(
   await transitionMessage(db, messageId, destination.status, destination.reason);
 }
 
-/**
- * Publishes `email.deliver` for the decision of a message whose delivery is `pending`. It returns
- * whether it did. The publish is safe to repeat, because the deliverer lets only one delivery move
- * the state from `pending` to `started`, so it is repeated whenever the job finds a reply that was
- * saved but may not have been published (decision 0046).
- */
+/** Publishes email.deliver for a pending delivery. */
 async function publishPendingDelivery(
   { db, publishDeliver }: ReplyRunDependencies,
   messageId: string,
@@ -139,18 +120,7 @@ async function publishPendingDelivery(
   return true;
 }
 
-/**
- * Runs the reply pipeline for one message that the gate queued (decision 0043). The function reads
- * the current record and never trusts the job about its state, so a repeated delivery does nothing
- * once the message has left the pipeline, and a delivery after a crash finishes the work: a saved
- * decision is not computed again, the move to the final status is repeated, and a reply that waits
- * for delivery is published again. When the pipeline ends in a reply, the mode of its playbooks
- * decides whether it is delivered as a draft or sent, and `email.deliver` is published.
- *
- * The MCP session of the run is bound to the owner of the record and is revoked when the run ends,
- * whether it succeeded or failed. The mention check is made only when every playbook of the job asks
- * for it.
- */
+/** Runs the reply pipeline for a queued message. */
 export async function processMessage(
   dependencies: ReplyRunDependencies,
   payload: EmailProcessMessage,

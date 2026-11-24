@@ -11,31 +11,25 @@ const manifestSchema = z.object({
   entry: z.string().min(1),
 });
 
-/** The contents of a plugin manifest. `entry` is relative to the plugin directory. */
+/** The contents of a plugin manifest. */
 export type PluginManifest = z.infer<typeof manifestSchema>;
 
-/** What the entry file of a plugin exports as its default: the tools it registers. */
+/** What a plugin entry file exports by default. */
 export interface Plugin {
   readonly tools: readonly AgentToolInput[];
 }
 
-/** A plugin that was read from disk, with its manifest and the tools its entry file exports. */
+/** A plugin that was read from disk. */
 export interface LoadedPlugin extends Plugin {
   readonly manifest: PluginManifest;
 }
 
-/** Returns the plugin unchanged, so that an entry file gets full type checking. */
+/** Returns the plugin unchanged for type checking. */
 export function definePlugin(plugin: Plugin): Plugin {
   return plugin;
 }
 
-/**
- * Loads every plugin in `pluginsDir`.
- *
- * Each subdirectory is one plugin and contains a `manifest.json`. Subdirectories without a
- * manifest are skipped. An invalid manifest, or an entry file without a default export, throws, so
- * a broken plugin fails at startup and not in the middle of an agent run.
- */
+/** Loads every plugin in a directory. */
 export async function loadPlugins(pluginsDir: string): Promise<LoadedPlugin[]> {
   const root = resolve(pluginsDir);
   const entries = await readdir(root, { withFileTypes: true });

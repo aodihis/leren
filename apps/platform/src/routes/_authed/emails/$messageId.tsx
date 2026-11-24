@@ -65,12 +65,7 @@ function Json({ label, value }: { label: string; value: unknown }) {
   );
 }
 
-/**
- * Shows one email and what the assistant did with it: the email, the reply, the playbooks that the
- * reply cites, why the pipeline ended as it did, what the evaluator found, and the delivery record
- * with the request and the answer of the provider. The page has no action, because the user acts on
- * a draft in the mailbox (decision 0046).
- */
+/** Shows one email and the assistant's action. */
 function EmailPage() {
   const email = Route.useLoaderData();
   const { decision } = email;

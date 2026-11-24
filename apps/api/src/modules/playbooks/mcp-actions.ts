@@ -15,10 +15,7 @@ import {
 } from "./service";
 import type { ActiveAccount } from "./service";
 
-/**
- * The conditions of each channel that the web form starts from. A playbook that the assistant
- * creates has these unless the user chose otherwise.
- */
+/** The default conditions of each channel. */
 const CHANNEL_DEFAULTS = {
   email: {
     channel: "email",
@@ -78,11 +75,7 @@ const updatePlaybookArgs = playbookFields.partial().extend({ playbookId: z.uuid(
 
 type ConditionsPatch = Partial<ReplyConditionsInput> & { channel: ReplyConditionsInput["channel"] };
 
-/**
- * Applies the conditions that the caller names on top of `base`. A named channel starts from its
- * entry in `base`, or from the defaults of the channel when `base` has none, and the channels that
- * are not named stay as they are.
- */
+/** Applies named conditions on top of a base. */
 function mergeConditions(
   base: readonly ReplyConditionsInput[],
   patches: readonly ConditionsPatch[],
@@ -98,10 +91,7 @@ function mergeConditions(
   return [...merged.values()];
 }
 
-/**
- * Tells the assistant why no account could be chosen for a playbook that is on (decision 0044): the
- * user has none, or has several and must say which one.
- */
+/** Explains why no account could be chosen. */
 function describeAccountProblem(
   channel: string,
   accounts: readonly ActiveAccount[],
@@ -120,15 +110,7 @@ function describeAccountProblem(
   return `conditions: ${rejected}The user has ${accounts.length === 1 ? "one" : "several"} ${channel} ${accounts.length === 1 ? "account" : "accounts"}: ${choices}. Ask the user which one the playbook answers on, and pass its id as channelAccountId.`;
 }
 
-/**
- * Names the account for every entry that has none, when the playbook is on. An entry takes the
- * only active account that the user has on its channel. An entry that names an account that is not
- * active is not replaced silently: the result is the message that lists the active accounts. The
- * exception is an account that the playbook already names, in `kept`, which may have been revoked
- * after the playbook was saved and stays so that the playbook can still be edited. The same message
- * tells the assistant what to do when the user has none or has several. A playbook that is off keeps
- * its entries as they are.
- */
+/** Names the account for each entry that has none. */
 async function resolveAccounts(
   db: Db,
   userId: string,
@@ -169,10 +151,7 @@ async function resolveAccounts(
   return { conditions: resolved };
 }
 
-/**
- * Converts the error of a write whose account was rejected into the outcome that the assistant
- * reads, or returns `undefined` for any other error, which the caller throws again.
- */
+/** Converts an account rejection into a tool outcome. */
 function describeAccountError(error: unknown): McpWriteOutcome | undefined {
   if (error instanceof ChannelAccountRequiredError) {
     return invalidMessage("conditions: A playbook that is on must name a connected account");
@@ -200,14 +179,7 @@ function fromUpdate(result: Awaited<ReturnType<typeof updatePlaybook>>): McpWrit
     : { status: "not_found" };
 }
 
-/**
- * Builds the tools that let the Assistant Agent create and change playbooks on behalf of the
- * session's user. Each tool validates the complete result with the same schema as the web API and
- * calls the same service, so a playbook saved here is the same as one saved in the interface. The
- * assistant asks for the user's confirmation in the conversation before it calls a write tool, and
- * nothing in code enforces that (decision 0036). `requestIndex` asks for the vector index of a
- * written playbook to be updated, as the web API does.
- */
+/** Builds the assistant's playbook write tools. */
 export function createPlaybookMcpActions(
   db: Db,
   requestIndex: (playbookId: string) => Promise<void>,

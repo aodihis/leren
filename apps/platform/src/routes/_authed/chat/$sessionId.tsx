@@ -24,11 +24,7 @@ export const Route = createFileRoute("/_authed/chat/$sessionId")({
   component: ChatPage,
 });
 
-/**
- * The assistant chat, filling the page. A conversation that does not exist yet is a new chat, so
- * the page for an unused id shows the welcome screen. The history in the sidebar reloads when a
- * run ends.
- */
+/** The assistant chat page. */
 function ChatPage() {
   const { sessionId } = Route.useParams();
   const { messages } = Route.useLoaderData();

@@ -12,11 +12,7 @@ interface ChatHistoryProps {
   onNavigate?: () => void;
 }
 
-/**
- * The user's earlier conversations, newest first, for the sidebar. The open conversation is shown
- * in bold on a subtle background and no navigation item is highlighted with it. Deleting the open
- * conversation starts a new one.
- */
+/** The user's earlier conversations for the sidebar. */
 export function ChatHistory({ conversations, activeId, onNavigate }: ChatHistoryProps) {
   const router = useRouter();
   const navigate = useNavigate();

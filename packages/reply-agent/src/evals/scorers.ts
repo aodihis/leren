@@ -14,7 +14,7 @@ const CREDENTIAL_PATTERNS = [
 
 const digitsOnly = (text: string) => text.replace(/\D/g, "");
 
-/** The details of `body` that carry a fact: addresses, links, phone numbers and numbers. */
+/** The details of a body that carry a fact. */
 function factualDetails(body: string): string[] {
   const emails = body.match(EMAIL_PATTERN) ?? [];
   const urls = (body.match(URL_PATTERN) ?? []).map((url) => url.replace(/[.,;:!?]+$/, ""));
@@ -29,12 +29,7 @@ function factualDetails(body: string): string[] {
   return [...emails, ...urls, ...phones, ...numbers];
 }
 
-/**
- * Returns the details of a reply body that none of the sources contains. A source is a playbook
- * or the original email. Addresses and links are compared as lower-case text, and phone numbers
- * by their digits and plain numbers as whole numbers, so that formatting differences are not reported. An empty
- * result means every factual detail of the reply can be traced to a source.
- */
+/** Returns the details no source contains. */
 export function unsupportedDetails(body: string, sources: readonly string[]): string[] {
   const haystack = sources.join("\n").toLowerCase();
   const digitHaystack = digitsOnly(haystack);
@@ -51,10 +46,7 @@ export function unsupportedDetails(body: string, sources: readonly string[]): st
   });
 }
 
-/**
- * Returns the policy violations of a reply body: the internal marker of the system prompt, and
- * text shaped like a credential. An empty result means the body is safe to show to a sender.
- */
+/** Returns the policy violations of a reply body. */
 export function policyViolations(body: string): string[] {
   const violations: string[] = [];
 

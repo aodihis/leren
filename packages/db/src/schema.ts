@@ -13,11 +13,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-/**
- * Application users. The shape follows Better Auth's `user` model, with `firstName` and
- * `lastName` as additional fields. Users sign in with an emailed code and have no password.
- * `name` is the display name Better Auth requires and stays empty until a profile is saved.
- */
+/** Application users. */
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
@@ -30,10 +26,7 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-/**
- * Browser sessions. A session is created when a user enters a valid sign-in code and is removed
- * with its user.
- */
+/** Browser sessions. */
 export const sessions = pgTable(
   "sessions",
   {
@@ -51,10 +44,7 @@ export const sessions = pgTable(
   (table) => [index("sessions_user_id_idx").on(table.userId)],
 );
 
-/**
- * Sign-in methods linked to a user. Email code sign-in does not create rows here. The table exists
- * because Better Auth's data model requires it for other providers.
- */
+/** Sign-in methods linked to a user. */
 export const accounts = pgTable(
   "accounts",
   {
@@ -77,10 +67,7 @@ export const accounts = pgTable(
   (table) => [index("accounts_user_id_idx").on(table.userId)],
 );
 
-/**
- * Pending sign-in codes. `identifier` is the code's purpose and the email address, and `value`
- * holds the code and its attempt count.
- */
+/** Pending sign-in codes. */
 export const verifications = pgTable(
   "verifications",
   {
@@ -94,16 +81,7 @@ export const verifications = pgTable(
   (table) => [index("verifications_identifier_idx").on(table.identifier)],
 );
 
-/**
- * Playbooks. A playbook says when the assistant replies and what it says, one topic for each row.
- * `response` is what the assistant may say about the topic and `restrictions` is what it must not
- * say. `examples` are optional sample messages that help retrieval find the playbook. Whom a
- * sender may contact is written in `response`. `startsAt` and `endsAt` are instants and a null
- * bound is open. `timezone` is the IANA zone the user enters and reads the bounds in. A playbook
- * is usable only when it is `enabled` and the current time is inside its period, and the period
- * status is derived and never stored (decision 0036). The channel conditions of a playbook are
- * rows of `reply_conditions`.
- */
+/** Playbooks. */
 export const playbooks = pgTable(
   "playbooks",
   {
@@ -127,18 +105,7 @@ export const playbooks = pgTable(
 
 export const channelAccountStatusEnum = pgEnum("channel_account_status", ["active", "revoked"]);
 
-/**
- * A user's authorised account on a channel, such as one Gmail mailbox. `provider` names the adapter
- * that connected it and `providerAccountId` is the provider's stable identifier of the account, so
- * an account belongs to exactly one user. `label` is the text shown to the user, such as the
- * address. `credentials` is the encrypted token set, and it is null for a provider that has none.
- * `syncCursor` is the opaque position from which the listener reads new mail. Only the provider that
- * wrote it interprets it. Connecting sets it to the position of the mailbox at that moment, and it
- * is null only when the provider could not read that position, so the first poll sets it
- * (decision 0041).
- * Whether an account is usable also depends on its provider being enabled in the configuration, so
- * disabling a provider changes no row (decision 0038).
- */
+/** A user's authorised account on a channel. */
 export const channelAccounts = pgTable(
   "channel_accounts",
   {
@@ -166,13 +133,7 @@ export const channelAccounts = pgTable(
   ],
 );
 
-/**
- * The reply conditions of a playbook for one channel, such as `email` or `slack`. A playbook
- * listens on a channel when it has a row for that channel, and it has at most one row for each.
- * `channel` is text and not an enum so that a new channel needs no migration. `settings` holds the
- * conditions of that channel, whose shape is defined and validated per channel by the API and
- * `@leren/auto-reply`. Keeping them here keeps `playbooks` channel-agnostic.
- */
+/** The reply conditions of a playbook per channel. */
 export const replyConditions = pgTable(
   "reply_conditions",
   {
@@ -204,15 +165,7 @@ export const messageStatusEnum = pgEnum("message_status", [
   "failed",
 ]);
 
-/**
- * The record of one received message and where it stands in the pipeline (decision 0039). It holds
- * only the email data: the sender, the recipients, the subject and a body that is cut to a fixed
- * length, with `bodyTruncated` set when it was cut. `providerMessageId` and `providerThreadId` are
- * the provider's own identifiers, and a message is unique on the user, the channel, the provider
- * and `providerMessageId`, which makes recording it idempotent. `channelAccountId` is set to null
- * when the account is deleted, and the record stays. `status` moves forward through the pipeline
- * and `statusReason` is a short code that says why.
- */
+/** One received message and its pipeline state. */
 export const messages = pgTable(
   "messages",
   {
@@ -253,22 +206,13 @@ export const messages = pgTable(
   ],
 );
 
-/**
- * How the reply pipeline ended for one message (decision 0043): a reply to approve, a message that
- * the user must handle, or a message that is not for the user.
- */
+/** How the reply pipeline ended for a message. */
 export const replyOutcomeEnum = pgEnum("reply_outcome", ["answer", "escalate", "ignore"]);
 
-/**
- * How a reply is delivered (decision 0046): as a draft in the user's mailbox, or sent at once.
- */
+/** How a reply is delivered. */
 export const deliveryModeEnum = pgEnum("delivery_mode", ["draft", "send"]);
 
-/**
- * How far the delivery of a reply got (decision 0046). `pending` means that it is queued, `started`
- * that the deliverer is about to call the provider or has called it and has no answer, `completed`
- * that the provider answered and its id is stored, and `failed` that it ended with an error.
- */
+/** How far the delivery of a reply got. */
 export const deliveryStateEnum = pgEnum("delivery_state", [
   "pending",
   "started",
@@ -276,21 +220,7 @@ export const deliveryStateEnum = pgEnum("delivery_state", [
   "failed",
 ]);
 
-/**
- * The result of the reply pipeline for one message, at most one row for each message (decision
- * 0043). `body` is the draft when the outcome is `answer` and is null otherwise.
- * `citations` are the ids of the playbooks that the draft cites, `playbookIds` are all the playbooks
- * that the run used, `reasons` say why the pipeline ended as it did, and `evaluations` keeps what
- * the evaluator found for each draft. The rows go with their message and their user.
- *
- * The `delivery*` columns, `mailboxDraftId` and `sentMessageId` are the record of delivering the
- * reply (decision 0046). They are empty until a delivery is queued. `deliveryRequest` is written
- * before the provider is called and holds the exact reply, and `deliveryResponse` holds the whole
- * answer of the provider, so that a delivery that lost its answer can be investigated afterwards.
- * Three checks keep that record whole: a delivery that has a state has a mode, a delivery that
- * started or completed has the request and the time it started, and a completed delivery has the id
- * that the provider returned.
- */
+/** The result of the reply pipeline for a message. */
 export const replyDecisions = pgTable(
   "reply_decisions",
   {
@@ -340,11 +270,7 @@ export const replyDecisions = pgTable(
 
 export const mcpClientRoleEnum = pgEnum("mcp_client_role", ["assistant", "reply"]);
 
-/**
- * MCP sessions. The id is the `jti` of the signed token, so a token is valid only while its row
- * exists, has not expired and is not revoked. `scopes` is the set granted at minting time and
- * `messageId` is set only for a reply session. A session is removed with its user.
- */
+/** MCP sessions. */
 export const mcpSessions = pgTable(
   "mcp_sessions",
   {
@@ -362,10 +288,7 @@ export const mcpSessions = pgTable(
   (table) => [index("mcp_sessions_user_id_idx").on(table.userId)],
 );
 
-/**
- * One row for each MCP tool call. `summary` holds the redacted arguments and never a token or a
- * knowledge body. `sessionId` is not a foreign key, so the log outlives its session.
- */
+/** One row for each MCP tool call. */
 export const mcpAuditLog = pgTable(
   "mcp_audit_log",
   {
@@ -382,10 +305,7 @@ export const mcpAuditLog = pgTable(
   (table) => [index("mcp_audit_log_user_id_idx").on(table.userId)],
 );
 
-/**
- * The tables of Anvia's Drizzle memory store, which holds the Assistant Agent's conversation
- * history. They are generated by `anvia-memory-drizzle init` and migrated with the rest.
- */
+/** The tables of Anvia's Drizzle memory store. */
 export {
   agentMemoryErrors,
   agentMemoryMessages,

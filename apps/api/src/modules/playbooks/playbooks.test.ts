@@ -116,11 +116,7 @@ describe("playbooks API", () => {
     return cookie;
   };
 
-  /**
-   * Names the user's own account in every entry of a request that does not mention one, because an
-   * enabled playbook must have an account (decision 0044). A test that wants no account passes
-   * `null`.
-   */
+  /** Names the user's account in request entries. */
   function withDefaultAccount(cookie: string, payload: unknown): unknown {
     const conditions = (payload as { conditions?: unknown } | null)?.conditions;
 

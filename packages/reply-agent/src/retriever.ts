@@ -5,14 +5,14 @@ import type { Retrieval } from "./pipeline";
 
 const SEARCH_TOOL = "search_playbooks";
 
-/** A retriever that holds one MCP connection. The owner must call `close`. */
+/** A retriever that holds one MCP connection. */
 export interface McpRetriever {
   retrieve(query: string, abortSignal?: AbortSignal): Promise<Retrieval>;
-  /** Closes the MCP connection, if one was opened. Safe to call more than once. */
+  /** Closes the MCP connection, if one was opened. */
   close(): Promise<void>;
 }
 
-/** Whether a tool result is the server's own report that the call failed. */
+/** Whether a tool result reports a failed call. */
 function isToolError(output: unknown): boolean {
   return (
     typeof output === "object" &&
@@ -21,17 +21,7 @@ function isToolError(output: unknown): boolean {
   );
 }
 
-/**
- * Creates the `retrieve` function of the pipeline over the MCP server (decision 0042). The session
- * token fixes the user, so a query can only reach that user's playbooks. The connection is opened
- * on the first query and is shared by the queries of one message, and it exposes the search tool
- * only. It does not depend on the abort signal of any one query: a signal stops its own call. A
- * connection that failed to open is not kept, so the next query opens a new one.
- *
- * A result without a playbook is `no_reliable_result`. A failed call is not that: it throws, so
- * that a server or authorization problem is retried by the queue and is not recorded as an
- * escalation for every message.
- */
+/** Creates the retrieve function over the MCP server. */
 export function createMcpRetriever(options: McpOptions): McpRetriever {
   let connection: Promise<McpConnection> | undefined;
 

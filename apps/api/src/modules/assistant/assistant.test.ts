@@ -54,7 +54,7 @@ function textOf(events: StreamEvent[]): string {
   return events.flatMap((event) => (event.type === "text_delta" ? [event.delta] : [])).join("");
 }
 
-/** An agent that runs the real Assistant Agent against a scripted model. */
+/** An agent that runs the real assistant on a script. */
 function createScriptedAgent(steps: readonly FakeStep[]): Agent {
   const model = createFakeModel(steps);
 

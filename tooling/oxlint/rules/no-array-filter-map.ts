@@ -6,7 +6,7 @@ import {
   unwrapArrayExpression,
 } from "../shared/array-method.ts";
 
-/** Reject eager array filter/map pipelines; lazy iterator helpers remain allowed. */
+/** Bans eager array filter and map pipelines. */
 export const noArrayFilterMapRule = defineRule({
   meta: {
     type: "suggestion",

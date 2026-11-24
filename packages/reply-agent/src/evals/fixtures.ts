@@ -1,6 +1,6 @@
 import { playbook } from "./target";
 
-/** The playbooks that the reply evals use. All of the people and details are invented. */
+/** The playbooks that the reply evals use. */
 export const DEADLINE = playbook({
   id: "pb-deadline",
   topic: "Project Atlas deadline",

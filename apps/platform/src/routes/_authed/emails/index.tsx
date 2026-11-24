@@ -33,10 +33,7 @@ interface EmailsSearch {
 
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 
-/**
- * Returns `value` when it is an ISO instant that the API accepts and `undefined` otherwise, so a
- * malformed address is dropped instead of making the list fail.
- */
+/** Returns a valid ISO instant or undefined. */
 function parseSince(value: unknown): string | undefined {
   return typeof value === "string" && ISO_INSTANT.test(value) && !Number.isNaN(Date.parse(value))
     ? value
@@ -81,12 +78,7 @@ export const Route = createFileRoute("/_authed/emails/")({
 
 const TIME_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
-/**
- * Lists what the assistant did with each email, newest first, with the sender, the subject, the
- * status, the outcome and the delivery state. The status filter and the page are in the address, so
- * a filtered view can be shared and survives a reload. The list is read only: a draft is acted on in
- * the mailbox (decision 0046).
- */
+/** Lists what the assistant did with each email. */
 function EmailsPage() {
   const { messages, nextCursor } = Route.useLoaderData();
   const { status, outcome, failed, since, cursor } = Route.useSearch();

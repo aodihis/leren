@@ -19,17 +19,14 @@ const QUERY_LIMIT = 2000;
 
 type ParsedInput = ReturnType<typeof pipelineInputSchema.parse>;
 
-/**
- * What passes from one stage to the next. A stage that ends the run sets `final`, and every later
- * stage returns the state unchanged.
- */
+/** What passes from one stage to the next. */
 interface State {
   readonly input: ParsedInput;
   readonly email: PreparedEmail;
   readonly emailText: string;
   readonly triage?: Triage | undefined;
   readonly playbooks: readonly Playbook[];
-  /** The questions of the email for which retrieval found no playbook. */
+  /** The email questions with no playbook found. */
   readonly unmatched: readonly string[];
   readonly evaluations: readonly Evaluation[];
   readonly revisions: number;
@@ -43,7 +40,7 @@ interface Ending {
   readonly citations?: readonly string[];
 }
 
-/** Builds the result of a run that ends in `outcome`, with what the stages found until now. */
+/** Builds the result of a run. */
 function settle(state: State, outcome: Outcome, fields: Ending): ReplyResult {
   return {
     outcome,
@@ -57,26 +54,17 @@ function settle(state: State, outcome: Outcome, fields: Ending): ReplyResult {
   };
 }
 
-/** Ends the run in `outcome`, so that every later stage returns the state unchanged. */
+/** Ends the run in the given outcome. */
 function finish(state: State, outcome: Outcome, fields: Ending): State {
   return { ...state, final: settle(state, outcome, fields) };
 }
 
-/**
- * The query for an email in which triage found no question: its subject and the start of its body,
- * so that a statement or a notice is still matched against the playbooks.
- */
+/** The query for an email without a question. */
 function wholeEmailQuery(email: PreparedEmail): string {
   return [email.subject, email.body].join("\n").slice(0, QUERY_LIMIT);
 }
 
-/**
- * Builds the reply pipeline (decision 0042). The stages run in order: input guardrail, triage,
- * retrieval, routing, drafting with evaluation and revision, and the output guardrail. A stage that
- * decides the outcome ends the run, and the later stages, including every model call after it, are
- * skipped. A run ends in `answer`, `escalate` or `ignore`, and any failure of the
- * checks ends in `escalate`. The caller saves the result and moves the message status.
- */
+/** Builds the reply pipeline. */
 export function createReplyPipeline(deps: ReplyPipelineDeps) {
   return new Pipeline({
     id: "reply",
@@ -230,11 +218,7 @@ export function createReplyPipeline(deps: ReplyPipelineDeps) {
     });
 }
 
-/**
- * Runs the reply pipeline for one message and returns its result. Throws when a model call fails or
- * answers in an unusable format, so that the queue can retry the message. A failure of the
- * evaluator or of a guardrail is not an error: it ends the run in `escalate`.
- */
+/** Runs the reply pipeline for one message. */
 export async function runReplyPipeline(
   deps: ReplyPipelineDeps,
   input: PipelineInput,

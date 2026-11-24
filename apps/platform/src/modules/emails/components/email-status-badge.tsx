@@ -7,10 +7,7 @@ interface EmailStatusBadgeProps {
   status: EmailSummary["status"];
 }
 
-/**
- * A status badge for an email. Following the design system, status colours only carry status, and
- * every badge has a dot so that the status never depends on colour alone.
- */
+/** A status badge for an email. */
 export function EmailStatusBadge({ status }: EmailStatusBadgeProps) {
   const { label, tone } = STATUS_LABELS[status];
 

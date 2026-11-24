@@ -18,10 +18,7 @@ const MISSING_ID = "00000000-0000-4000-8000-000000000000";
 
 const NEW_ID = "11111111-1111-4111-8111-111111111111";
 
-/**
- * A write action that saves nothing and records how it was called, so these tests cover the
- * endpoint's scopes, user binding and audit and not the business rules of the API.
- */
+/** A write action that records how it was called. */
 function stubAction(
   fields: z.ZodRawShape,
   outcome: McpWriteOutcome = { status: "saved", id: NEW_ID, data: { id: NEW_ID } },

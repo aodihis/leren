@@ -14,12 +14,7 @@ const CONFIRMED_CONVERSATION = [
   { role: "user", content: "Yes, go ahead." },
 ] as const;
 
-/**
- * Cases for the mailbox of a playbook (decision 0044): a playbook that is on must name a connected
- * email account. The fake `create_playbook` tool behaves like the real one: it uses the only account
- * that the user has, and it fails with a message that says what to do when the user has none or has
- * several. A judge grades each answer against the criteria of the case.
- */
+/** Cases for the mailbox account of a playbook. */
 export const accountCases = defineEvalCases([
   {
     id: "one-account-is-used-without-asking",

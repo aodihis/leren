@@ -4,11 +4,7 @@ import { NonRetryableError } from "./errors";
 
 export type FailurePlan = { kind: "retry"; delayMs: number } | { kind: "dead-letter" };
 
-/**
- * Decides what happens to a message whose handler threw on `attempt`.
- *
- * Both queue implementations call this function, so they retry and dead-letter identically.
- */
+/** Decides what happens to a failed message. */
 export function planFailure(
   error: unknown,
   attempt: number,

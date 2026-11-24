@@ -11,17 +11,14 @@ import type { Db } from "@leren/db";
 import type { Logger } from "@leren/logger";
 import { and, asc, eq } from "drizzle-orm";
 
-/** How many accounts a user may have on a channel in the first version (decision 0021). */
+/** The most accounts a user may have on a channel. */
 const ACCOUNT_LIMIT_PER_CHANNEL: Readonly<Record<string, number>> = { email: 1 };
 
 const POSTGRES_UNIQUE_VIOLATION = "23505";
 
 type AccountRow = typeof channelAccounts.$inferSelect;
 
-/**
- * The account as the API returns it. `usable` is true when the account is active and its provider
- * is enabled. Credentials are never part of a view.
- */
+/** The account as the API returns it. */
 export type ChannelAccountView = {
   id: string;
   channel: string;
@@ -31,11 +28,7 @@ export type ChannelAccountView = {
   usable: boolean;
 };
 
-/**
- * The outcome of saving a connected account. `conflict` means that the provider's account belongs
- * to another user. `limit` means that the user already has the most accounts that the channel
- * allows.
- */
+/** The outcome of saving a connected account. */
 export type SaveResult =
   | { status: "saved"; account: ChannelAccountView }
   | { status: "conflict" }
@@ -61,7 +54,7 @@ function isUniqueViolation(error: unknown): boolean {
   return code.code === POSTGRES_UNIQUE_VIOLATION || code.cause?.code === POSTGRES_UNIQUE_VIOLATION;
 }
 
-/** Lists the user's channel accounts, oldest first. The query is scoped to `userId`. */
+/** Lists the user's channel accounts. */
 export async function listChannelAccounts(
   db: Db,
   userId: string,
@@ -76,22 +69,14 @@ export async function listChannelAccounts(
   return rows.map((row) => toView(row, providers));
 }
 
-/** Returns the sign-in address of a user, which a provider without OAuth identifies the account by. */
+/** Returns the sign-in address of a user. */
 export async function getUserEmail(db: Db, userId: string): Promise<string | null> {
   const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
 
   return row?.email ?? null;
 }
 
-/**
- * Saves an account that a provider has authorised for `userId`.
- *
- * The user's row is locked for the transaction, so two connections of one user cannot both pass
- * the account limit. An account that already belongs to this user has its label and credentials
- * replaced and becomes active again. An account of another user is a conflict, which the unique
- * index also enforces if two users connect it at once. The id of the account is the additional
- * authenticated data of its encrypted credentials.
- */
+/** Saves an account authorised by a provider. */
 export async function saveAuthorisedAccount(
   db: Db,
   dependencies: ChannelAccountsDependencies,
@@ -174,12 +159,7 @@ export async function saveAuthorisedAccount(
   }
 }
 
-/**
- * Disconnects one of the user's accounts: revokes its tokens at the provider and deletes the row.
- * Returns `false` when the account does not exist or belongs to another user. The row is deleted
- * even when the provider is disabled, the tokens cannot be read or revoking them fails, so a user
- * can always remove an account. A failure is logged without the tokens.
- */
+/** Disconnects one of the user's accounts. */
 export async function disconnectChannelAccount(
   db: Db,
   dependencies: ChannelAccountsDependencies,

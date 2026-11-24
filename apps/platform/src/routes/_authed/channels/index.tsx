@@ -40,11 +40,7 @@ export const Route = createFileRoute("/_authed/channels/")({
   component: ChannelsPage,
 });
 
-/**
- * Connects and disconnects the user's channel accounts. Connecting an OAuth provider sends the
- * browser to the provider, which returns to the API and then to this page with `connected` or
- * `error` in the address. A provider without OAuth connects at once.
- */
+/** Connects and disconnects channel accounts. */
 function ChannelsPage() {
   const { providers, accounts } = Route.useLoaderData();
   const { connected, error } = Route.useSearch();

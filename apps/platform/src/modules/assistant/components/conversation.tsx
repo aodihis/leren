@@ -23,11 +23,7 @@ function titleFrom(text: string): string {
   return line.length > TITLE_LENGTH ? `${line.slice(0, TITLE_LENGTH - 1)}…` : line;
 }
 
-/**
- * Styles for the elements of an assistant reply. The assistant writes Markdown, so lists, bold text
- * and links are rendered as elements instead of showing their markers. Raw HTML in a reply is not
- * rendered, because react-markdown ignores it by default.
- */
+/** Styles for the elements of an assistant reply. */
 const MARKDOWN_COMPONENTS: Components = {
   p: ({ node: _node, ...props }) => <p className="whitespace-pre-wrap" {...props} />,
   ul: ({ node: _node, ...props }) => <ul className="list-disc space-y-1.5 pl-6" {...props} />,
@@ -51,27 +47,20 @@ function textOf(message: UIMessage): string {
 }
 
 interface ConversationProps {
-  /** The id of the conversation, which is the agent's memory session. */
+  /** The id of the conversation. */
   id: string;
-  /** The title that was stored with an existing conversation. */
+  /** The stored title of an existing conversation. */
   title: string | undefined;
   initialMessages: readonly UIMessage[];
   /** Whether the server has an assistant to talk to. */
   available: boolean;
   /** The name the welcome screen greets. */
   userName: string;
-  /** Called when a run ends, so that the history list can show the conversation. */
+  /** Called when a run ends. */
   onRunEnd: () => void;
 }
 
-/**
- * One conversation of the assistant chat, filling the page like a full-width chat: a welcome
- * screen with starter cards while it is empty, then the messages and the composer in one centred
- * column. It is driven by Anvia's `useChat` over the chat endpoint. Mount it with a new `key` for
- * each conversation, because the hook reads its initial messages once. The assistant asks for
- * confirmation in the conversation before it changes anything, so the user's answer is an
- * ordinary message.
- */
+/** One conversation of the assistant chat. */
 export function Conversation({
   id,
   title,

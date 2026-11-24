@@ -1,10 +1,6 @@
 import type { ChannelProvider } from "./types";
 
-/**
- * The Mailpit provider for the `email` channel, for development and tests only (decision 0038).
- * Mailpit has no OAuth step and no credentials, so connecting creates the account at once and
- * identifies it by the sign-in address of the user.
- */
+/** The Mailpit provider for development and tests. */
 export function createMailpitProvider(): ChannelProvider {
   return {
     name: "mailpit",

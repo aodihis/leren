@@ -16,12 +16,7 @@ const REFUND = playbook({
     "Refunds are possible within 30 days of purchase if the item is unused. Send the order number and the refund goes back to the original payment method.",
 });
 
-/**
- * Cases for edit proposals that must match the source. The agent changes only what the user asks
- * for, keeps every fact of the stored text, adds none, shows the exact new text and asks before it
- * writes (workflow steps 3 and 5). A judge compares the proposal with the stored text, and the
- * criteria list the facts that must survive.
- */
+/** Cases for edit proposals that match the source. */
 export const editFidelityCases = defineEvalCases([
   {
     id: "better-wording-keeps-every-fact",

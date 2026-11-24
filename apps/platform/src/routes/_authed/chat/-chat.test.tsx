@@ -28,10 +28,7 @@ const history = [
   { id: OTHER_ID, title: "Launch dates", updatedAt: "2026-11-20" },
 ];
 
-/**
- * Stands in for the API's chat endpoint: it runs a real agent over a scripted model and answers
- * with a real Anvia client stream, so the page is tested against the actual protocol.
- */
+/** A stand-in for the chat endpoint. */
 function stubChatEndpoint(steps: readonly FakeStep[]) {
   const agent = new Agent({
     id: "assistant",

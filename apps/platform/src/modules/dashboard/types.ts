@@ -4,10 +4,10 @@ import type { api } from "../api/api-client";
 
 type DashboardEndpoint = (typeof api.api)["dashboard"];
 
-/** The counts of the messages of a window and the latest failures, as the API returns them. */
+/** The message counts and latest failures. */
 export type Overview = InferResponseType<DashboardEndpoint["overview"]["$get"], 200>;
 
-/** The report of a playbook whose period has ended, as the API returns it. */
+/** The report of a playbook whose period has ended. */
 export type PlaybookReport = InferResponseType<
   DashboardEndpoint["playbooks"][":id"]["report"]["$get"],
   200

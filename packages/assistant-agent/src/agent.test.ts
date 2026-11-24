@@ -68,10 +68,7 @@ describe("runAgent", () => {
 });
 
 describe("runAgent with memory", () => {
-  /**
-   * The store holds the earlier turns, so a client that sends its whole history must not make the
-   * model see the same message twice.
-   */
+  /** The store holds the earlier turns. */
   it("sends only the newest user message and replays the rest from the store", async () => {
     const model = createFakeModel([{ text: "First answer" }, { text: "Second answer" }]);
     const store = new InMemoryMemoryStore();
@@ -109,10 +106,7 @@ describe("allowedTools", () => {
     expect(allowedTools).not.toContain("send_reply");
   });
 
-  /**
-   * Guards the boundary that only the user approves knowledge and deletes data: the assistant is
-   * never given a tool for either, whatever the MCP server offers.
-   */
+  /** Guards that the assistant has no approve tool. */
   it("has no tool that approves or deletes", () => {
     expect(allowedTools.filter((tool) => /approve|delete|archive/.test(tool))).toEqual([]);
   });

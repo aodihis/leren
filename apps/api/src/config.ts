@@ -25,10 +25,7 @@ const configSchema = z
 
 export type Config = z.infer<typeof configSchema>;
 
-/**
- * Reads and validates the API's configuration from environment variables. Throws one error that
- * lists every missing or invalid variable, so a misconfigured process fails at startup.
- */
+/** Reads and validates the API configuration. */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const result = configSchema.safeParse(env);
 

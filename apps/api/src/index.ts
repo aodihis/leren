@@ -22,10 +22,7 @@ const logger = createLogger({ name: "api" });
 const config = loadConfig();
 const db = createDb(config.DATABASE_URL);
 
-/**
- * The one observer of the process. It batches telemetry, so it must be closed when the process
- * stops, or the last batch is lost.
- */
+/** The one observer of the process. */
 const observer = createObserver();
 
 const queue = await createRabbitMqQueue({
@@ -51,10 +48,7 @@ const auth = createAuth({
   emailSender,
 });
 
-/**
- * Builds the collaborators of the `search_playbooks` tool. Search is optional, so a deployment
- * without an embedding key still serves every other tool.
- */
+/** Builds the collaborators of the search tool. */
 function createSearchDependencies() {
   try {
     const model = resolveEmbeddingModel(harness);
@@ -75,10 +69,7 @@ function createSearchDependencies() {
   }
 }
 
-/**
- * Builds the agent of the assistant chat. The chat is optional, so a deployment whose assistant
- * model or prompt cannot be loaded still serves every other route.
- */
+/** Builds the agent of the assistant chat. */
 async function createAssistant() {
   try {
     const loaded = await loadHarness();
@@ -126,10 +117,7 @@ const server = serve({ fetch: app.fetch, port: config.PORT }, (info) => {
 
 const state = { shuttingDown: false };
 
-/**
- * Stops accepting requests, delivers the buffered telemetry and closes the queue connection, then
- * exits. A second signal while this runs is ignored.
- */
+/** Shuts the process down gracefully. */
 const shutdown = async () => {
   if (state.shuttingDown) {
     return;

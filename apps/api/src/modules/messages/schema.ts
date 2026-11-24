@@ -19,12 +19,12 @@ const ADDRESS = z.string().trim().toLowerCase().min(3).max(320);
 
 export type Cursor = { receivedAt: Date; id: string };
 
-/** Encodes the position after a message as an opaque string for the next page. */
+/** Encodes a position as an opaque cursor. */
 export function encodeCursor({ receivedAt, id }: Cursor): string {
   return Buffer.from(`${receivedAt.toISOString()}|${id}`).toString("base64url");
 }
 
-/** Decodes a cursor. Returns `null` for a string that `encodeCursor` could not have produced. */
+/** Decodes a cursor, or returns null. */
 export function decodeCursor(value: string): Cursor | null {
   const [instant, id, ...rest] = Buffer.from(value, "base64url").toString().split("|");
   const receivedAt = new Date(instant ?? "");
@@ -41,9 +41,7 @@ export function decodeCursor(value: string): Cursor | null {
   return { receivedAt, id };
 }
 
-/**
- * The filters and the page of the list route. `cursor` is the `nextCursor` of the previous page.
- */
+/** The filters and page of the list route. */
 export const messageListQuerySchema = z.object({
   status: z.enum(MESSAGE_STATUSES).optional(),
   outcome: z.enum(MESSAGE_OUTCOMES).optional(),
@@ -73,11 +71,7 @@ export type MessageListQuery = z.infer<typeof messageListQuerySchema>;
 
 export const messageParamsSchema = z.object({ id: z.uuid() });
 
-/**
- * The body of a request that records an email as if a development provider had delivered it. The
- * recipients default to the connected account, and the provider's message id defaults to a new
- * random value, so each request records one new message unless the caller repeats an id.
- */
+/** The body that records a simulated email. */
 export const simulateEmailSchema = z.object({
   from: ADDRESS,
   to: z.array(ADDRESS).max(MAX_RECIPIENTS).optional(),

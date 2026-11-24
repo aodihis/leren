@@ -5,9 +5,7 @@ import type {
   KnowledgeSearchQuery,
 } from "./search";
 
-/**
- * A labelled retrieval case: a search and the ids of the playbooks that a correct search returns.
- */
+/** A labelled retrieval case. */
 export type RecallCase = {
   query: KnowledgeSearchQuery;
   relevantIds: string[];
@@ -18,10 +16,7 @@ export type RecallReport = {
   cases: { query: string; recall: number; retrieved: string[] }[];
 };
 
-/**
- * Computes the share of `relevantIds` that appear among the first `k` retrieved ids. A case with
- * no relevant ids has nothing to find and scores 1, so it never lowers an average.
- */
+/** Computes recall among the first k retrieved ids. */
 export function recallAtK(relevantIds: string[], retrievedIds: string[], k: number): number {
   if (relevantIds.length === 0) {
     return 1;
@@ -33,11 +28,7 @@ export function recallAtK(relevantIds: string[], retrievedIds: string[], k: numb
   return found / relevantIds.length;
 }
 
-/**
- * Runs every case through `searchKnowledge` and reports Recall@5 per case and as the mean over
- * all cases. It is the entry point for a retrieval evaluation: a dataset supplies the cases, and
- * a quality gate compares the mean with a threshold.
- */
+/** Reports Recall@5 per case and as a mean. */
 export async function measureRecall(
   dependencies: KnowledgeSearchDependencies,
   cases: RecallCase[],

@@ -15,13 +15,7 @@ const REFUND = playbook({
   response: "Refunds are possible within 30 days of purchase if the item is unused.",
 });
 
-/**
- * Cases for the workflow step that suggests questions: realistic incoming messages in the voice of
- * a colleague, client or manager, including statements and requests, checked with
- * `search_playbooks`, and reported as covered or not covered. A judge grades each answer, because
- * the messages differ between runs, so the criteria state what a correct answer does and not which
- * messages it picks.
- */
+/** Cases for the question suggestion step. */
 export const suggestionsCases = defineEvalCases([
   {
     id: "suggests-messages-and-reports-coverage",

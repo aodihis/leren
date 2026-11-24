@@ -28,6 +28,7 @@
     "react/react-in-jsx-scope": "off",
     "no-nested-ternary": "error",
     "rules/no-inline-comments": "error",
+    "rules/max-comment-length": "error",
     "rules/no-implicit-state": "error",
     "rules/require-readable-spacing": "error",
     "rules/no-conditional-empty-object-spread": "error",

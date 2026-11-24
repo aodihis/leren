@@ -2,14 +2,7 @@ import { loadHarness } from "@leren/agents";
 import { createObserver } from "@leren/observability";
 import { runAgent } from "./agent";
 
-/**
- * Runs the Reply Agent from the command line on one email text and prints the answer.
- *
- * Usage: `pnpm runner:reply "email text"`.
- * It loads `harness.config.ts`, which supplies the prompt, the model, its endpoint and the name of
- * the variable that holds its API key. The model is the one that `REPLY_MODEL` selects, or the
- * default model. It connects to the MCP server only when `MCP_URL` and `MCP_TOKEN` are set.
- */
+/** Runs the Reply Agent from the command line. */
 async function main(): Promise<void> {
   const prompt = process.argv.slice(2).join(" ");
   const url = process.env.MCP_URL;

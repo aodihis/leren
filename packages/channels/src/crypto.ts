@@ -6,10 +6,7 @@ const KEY_BYTES = 32;
 const NONCE_BYTES = 12;
 const TAG_BYTES = 16;
 
-/**
- * Decodes `CHANNEL_TOKEN_ENCRYPTION_KEY`, which is 32 random bytes encoded as base64. Throws when the
- * value decodes to any other length, so a truncated or mistyped key fails at startup.
- */
+/** Decodes the channel token encryption key. */
 export function parseEncryptionKey(encoded: string): Buffer {
   const key = Buffer.from(encoded, "base64");
 
@@ -20,12 +17,7 @@ export function parseEncryptionKey(encoded: string): Buffer {
   return key;
 }
 
-/**
- * Encrypts `plaintext` with AES-256-GCM and returns text of the form
- * `v1.<nonce>.<tag>.<ciphertext>`, each part base64url. `accountId` is the additional
- * authenticated data, so the result decrypts only for the account that it was made for. Every call
- * uses a fresh random nonce.
- */
+/** Encrypts credentials with AES-256-GCM. */
 export function encryptCredentials(key: Buffer, accountId: string, plaintext: string): string {
   const nonce = randomBytes(NONCE_BYTES);
   const cipher = createCipheriv(ALGORITHM, key, nonce);
@@ -39,10 +31,7 @@ export function encryptCredentials(key: Buffer, accountId: string, plaintext: st
     .join(".");
 }
 
-/**
- * Decrypts text made by `encryptCredentials` for the same key and account. Throws when the text is
- * malformed, was made for another account or has been modified.
- */
+/** Decrypts credentials made by encryptCredentials. */
 export function decryptCredentials(key: Buffer, accountId: string, stored: string): string {
   const [version, nonce, tag, ciphertext, ...rest] = stored.split(".");
 

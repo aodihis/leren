@@ -7,23 +7,18 @@ import { logger } from "../../logger";
 import { processMessage } from "./service";
 import type { ReplyRunDependencies } from "./service";
 
-/** The number of deliveries after which a failing message is marked as failed. */
+/** The delivery attempts before a message fails. */
 export const REPLY_RUN_MAX_ATTEMPTS = 3;
 
-/** The reason that is stored when the pipeline could not finish a message. */
+/** The reason stored when the pipeline fails. */
 export const PIPELINE_ERROR = "pipeline_error";
 
 export type ReplyRunJobDependencies = ReplyRunDependencies & {
-  /** Delivers the telemetry of a run when it ends, so that it is not held until shutdown. */
+  /** Delivers a run's telemetry when it ends. */
   observer: Pick<Observer, "flush">;
 };
 
-/**
- * Consumes `email.process`: runs the reply pipeline for one message that the gate queued (decision
- * 0043). A failure is retried. When the last attempt fails, or the failure cannot succeed on a
- * retry, the message is marked as failed so that the user can see it, and the failure is reported,
- * which sends the message to the dead-letter queue.
- */
+/** Consumes email.process. */
 export function createReplyRunJob(dependencies: ReplyRunJobDependencies) {
   const { db, observer } = dependencies;
 
