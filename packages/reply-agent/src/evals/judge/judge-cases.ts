@@ -1,7 +1,7 @@
 import { defineEvalCases } from "@anvia/core/evals";
-import { playbook } from "./target";
-import { prepareEmail, wrapUntrusted } from "../pipeline/guardrails";
-import type { Playbook } from "../pipeline";
+import { playbook } from "../pipeline/target";
+import { prepareEmail, wrapUntrusted } from "../../pipeline/guardrails";
+import type { Playbook } from "../../agents/retriever";
 
 const DEADLINE = playbook({
   id: "pb-deadline",

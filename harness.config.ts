@@ -10,6 +10,9 @@ export default defineHarnessConfig({
   prompts: {
     assistant: "prompts/assistant.md",
     reply: "prompts/reply.md",
+    replyTriage: "prompts/reply-triage.md",
+    replyRoute: "prompts/reply-route.md",
+    replyJudge: "prompts/reply-judge.md",
   },
   models: {
     "gpt-5": {

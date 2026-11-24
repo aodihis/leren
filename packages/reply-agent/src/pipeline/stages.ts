@@ -2,20 +2,19 @@ import { MaxTurnsError } from "@anvia/core";
 import type { CompletionModel } from "@anvia/core";
 import type { McpOptions } from "@leren/agents";
 import type { Observer } from "@leren/observability";
-import { generateReply } from "../agent";
-import type { ReplyRun } from "../agent";
+import { generateReply } from "../agents/drafter/agent";
+import type { ReplyRun } from "../agents/drafter/agent";
 import { checkDraft } from "./guardrails";
 import { InvalidModelOutputError, generateJson, parseJsonOutput } from "./llm";
 import {
-  JUDGE_INSTRUCTIONS,
-  ROUTE_INSTRUCTIONS,
-  TRIAGE_INSTRUCTIONS,
   buildDraftInstructions,
   buildDraftPrompt,
   buildJudgePrompt,
   buildRoutePrompt,
 } from "./prompts";
-import { collectPlaybooks, keepAllowed, mergePlaybooks } from "./retrieve";
+import type { ReplyPrompts } from "./prompts";
+import { collectPlaybooks, keepAllowed, mergePlaybooks } from "../agents/retriever/search-result";
+import type { Playbook, Retrieval } from "../agents/retriever/types";
 import {
   CRITERIA,
   MAX_REVISIONS,
@@ -24,16 +23,7 @@ import {
   triageSchema,
   verdictSchema,
 } from "./types";
-import type {
-  Category,
-  Draft,
-  Evaluation,
-  Playbook,
-  Retrieval,
-  Route,
-  Triage,
-  Verdict,
-} from "./types";
+import type { Category, Draft, Evaluation, Route, Triage, Verdict } from "./types";
 
 /** Everything the stages need from the outside: models, retrieval and the system prompt. */
 export interface ReplyPipelineDeps {
@@ -42,8 +32,8 @@ export interface ReplyPipelineDeps {
     readonly draft: CompletionModel;
     readonly judge: CompletionModel;
   };
-  /** The fixed system prompt of the Reply Agent. */
-  readonly rules: string;
+  /** The fixed prompts of the stages and of the drafting agent. */
+  readonly prompts: ReplyPrompts;
   /** Searches the knowledge of the user for an email, through the MCP server. */
   readonly retrieve: (query: string, abortSignal?: AbortSignal) => Promise<Retrieval>;
   readonly observer: Observer;
@@ -70,7 +60,7 @@ function ask<Value>(
 export function triage(deps: ReplyPipelineDeps, email: string): Promise<Triage> {
   return ask(
     deps,
-    { model: deps.models.triage, instructions: TRIAGE_INSTRUCTIONS, schema: triageSchema },
+    { model: deps.models.triage, instructions: deps.prompts.triage, schema: triageSchema },
     email,
   );
 }
@@ -86,7 +76,7 @@ export function route(
 ): Promise<Route> {
   return ask(
     deps,
-    { model: deps.models.triage, instructions: ROUTE_INSTRUCTIONS, schema: routeSchema },
+    { model: deps.models.triage, instructions: deps.prompts.route, schema: routeSchema },
     buildRoutePrompt(options),
   );
 }
@@ -108,7 +98,7 @@ export function judge(
 ): Promise<Verdict> {
   return ask(
     deps,
-    { model: deps.models.judge, instructions: JUDGE_INSTRUCTIONS, schema: verdictSchema },
+    { model: deps.models.judge, instructions: deps.prompts.judge, schema: verdictSchema },
     buildJudgePrompt(options),
   );
 }
@@ -167,7 +157,7 @@ export async function draftAndEvaluate(
   deps: ReplyPipelineDeps,
   context: DraftContext,
 ): Promise<DraftOutcome> {
-  const instructions = buildDraftInstructions(deps.rules, context.replyInstructions);
+  const instructions = buildDraftInstructions(deps.prompts.rules, context.replyInstructions);
   let known: readonly Playbook[] = context.playbooks;
   const evaluations: Evaluation[] = [];
   let feedback: string[] = [];

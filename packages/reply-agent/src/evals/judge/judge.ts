@@ -1,9 +1,10 @@
 import { EvalOutcome, createEvalTypes, runEvalCli } from "@anvia/core/evals";
 import type { EvalTarget } from "@anvia/core/evals";
-import { CRITERIA, judge } from "../pipeline";
+import { CRITERIA, judge } from "../../pipeline";
 import { judgeCases } from "./judge-cases";
 import type { JudgeEvalInput, JudgeExpectation } from "./judge-cases";
-import { reporters, sharedDeps } from "./target";
+import { reporters } from "../observer";
+import { sharedDeps } from "../pipeline/target";
 
 /** What the judge decided for one draft. */
 type JudgeEvalOutput = { pass: boolean; failed: readonly string[]; feedback: string };

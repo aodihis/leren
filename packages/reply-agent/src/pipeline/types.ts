@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Playbook } from "../agents/retriever/types";
 
 /** The most revisions of a draft that the evaluator may ask for (decision 0042). */
 export const MAX_REVISIONS = 2;
@@ -46,24 +47,6 @@ export const pipelineInputSchema = z.object({
 });
 
 export type PipelineInput = z.input<typeof pipelineInputSchema>;
-
-/**
- * A playbook that retrieval returned. Only the fields that the stages read are required, and the
- * rest of the view is kept as it arrived.
- */
-export const playbookSchema = z.looseObject({
-  id: z.string().min(1),
-  topic: z.string(),
-  response: z.string(),
-  restrictions: z.unknown().optional(),
-});
-
-export type Playbook = z.infer<typeof playbookSchema>;
-
-/** The result of searching the knowledge for one email. */
-export type Retrieval =
-  | { readonly status: "ok"; readonly playbooks: readonly Playbook[] }
-  | { readonly status: "no_reliable_result" };
 
 /** What the triage model answers. */
 export const triageSchema = z.object({

@@ -1,12 +1,14 @@
-export { createReplyPipeline, runReplyPipeline } from "./pipeline";
+export { createReplyPipeline, runReplyPipeline, runReplyPipelineTraced } from "./pipeline";
+
+export { readReplyPrompts } from "./prompts";
+
+export type { ReplyPrompts } from "./prompts";
 
 export { judge } from "./stages";
 
 export { CRITERIA } from "./types";
 
 export type { ReplyPipelineDeps } from "./stages";
-
-export { parseSearchResult } from "./retrieve";
 
 export type {
   Category,
@@ -15,9 +17,7 @@ export type {
   Evaluation,
   Outcome,
   PipelineInput,
-  Playbook,
   ReplyResult,
-  Retrieval,
   Triage,
   Verdict,
 } from "./types";

@@ -1,19 +1,13 @@
 import { Pipeline } from "@anvia/core/pipeline";
+import type { PipelineTraceInfo } from "@anvia/core/pipeline";
 import { checkOutput, prepareEmail, wrapUntrusted } from "./guardrails";
 import type { PreparedEmail } from "./guardrails";
 import { draftAndEvaluate, route, triage } from "./stages";
 import type { ReplyPipelineDeps } from "./stages";
-import { keepAllowed, mergePlaybooks } from "./retrieve";
+import { keepAllowed, mergePlaybooks } from "../agents/retriever/search-result";
+import type { Playbook } from "../agents/retriever/types";
 import { MAX_QUESTIONS, pipelineInputSchema } from "./types";
-import type {
-  Draft,
-  Evaluation,
-  Outcome,
-  PipelineInput,
-  Playbook,
-  ReplyResult,
-  Triage,
-} from "./types";
+import type { Draft, Evaluation, Outcome, PipelineInput, ReplyResult, Triage } from "./types";
 
 const QUERY_LIMIT = 2000;
 
@@ -239,10 +233,29 @@ export async function runReplyPipeline(
   deps: ReplyPipelineDeps,
   input: PipelineInput,
 ): Promise<ReplyResult> {
-  const { output } = await createReplyPipeline(deps).run({
+  const { result } = await runReplyPipelineTraced(deps, input);
+
+  return result;
+}
+
+/** The result of a run and the reference to its trace, which is absent when tracing is off. */
+export interface TracedReplyResult {
+  readonly result: ReplyResult;
+  readonly trace?: PipelineTraceInfo | undefined;
+}
+
+/**
+ * Runs the reply pipeline like `runReplyPipeline` and also returns the reference to the trace of
+ * the run, so that a caller can link something to that trace, such as an eval result.
+ */
+export async function runReplyPipelineTraced(
+  deps: ReplyPipelineDeps,
+  input: PipelineInput,
+): Promise<TracedReplyResult> {
+  const { output, trace } = await createReplyPipeline(deps).run({
     input,
     abortSignal: deps.abortSignal,
   });
 
-  return output;
+  return { result: output, trace };
 }

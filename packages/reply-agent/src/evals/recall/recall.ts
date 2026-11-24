@@ -14,12 +14,12 @@ import {
 import { createVectorStore } from "@leren/vector-db";
 import type { VectorStore } from "@leren/vector-db";
 import { resolveEmbeddingModel } from "@leren/agents";
-import harness from "../../../../harness.config";
+import harness from "../../../../../harness.config";
 import { NOT_APPLICABLE, applyGate } from "@leren/evals";
 import type { Thresholds } from "@leren/evals";
 import { corpus, recallCases } from "./recall-cases";
 import type { RecallExpectation, RecallInput } from "./recall-cases";
-import { reporters } from "./target";
+import { reporters } from "../observer";
 
 const QDRANT_URL = process.env.VECTOR_STORE_URL ?? "http://localhost:16333";
 const COLLECTION = `knowledge_eval_${crypto.randomUUID().replaceAll("-", "")}`;

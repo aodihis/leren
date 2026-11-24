@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { defineHarnessConfig, resolveEmbeddingModel, resolveTaskModel } from "./config";
 
 const config = defineHarnessConfig({
-  prompts: { assistant: "a.md", reply: "r.md" },
+  prompts: {
+    assistant: "a.md",
+    reply: "r.md",
+    replyTriage: "t.md",
+    replyRoute: "o.md",
+    replyJudge: "j.md",
+  },
   models: {
     fast: {
       provider: "openai",

@@ -5,7 +5,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { findHarnessConfig, loadHarness } from "./harness";
 
 const CONFIG = `export default {
-  prompts: { assistant: "prompts/assistant.md", reply: "prompts/reply.md" },
+  prompts: {
+    assistant: "prompts/assistant.md",
+    reply: "prompts/reply.md",
+    replyTriage: "prompts/reply-triage.md",
+    replyRoute: "prompts/reply-route.md",
+    replyJudge: "prompts/reply-judge.md",
+  },
   models: {
     small: {
       provider: "openai",

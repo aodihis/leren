@@ -1,13 +1,13 @@
 import { runSuites } from "@leren/evals";
-import { closeTarget } from "./target";
+import { closeObserver } from "./observer";
 
 /** Runs the named reply evals, or all of them. */
 await runSuites({
   suites: {
-    pipeline: () => import("./pipeline"),
-    judge: () => import("./judge"),
-    recall: () => import("./recall"),
+    pipeline: () => import("./pipeline/pipeline"),
+    judge: () => import("./judge/judge"),
+    recall: () => import("./recall/recall"),
   },
   requested: process.argv.slice(2),
-  close: closeTarget,
+  close: closeObserver,
 });

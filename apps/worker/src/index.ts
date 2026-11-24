@@ -5,6 +5,7 @@ import { EMAIL_DELIVER_QUEUE } from "@leren/inbox";
 import { createEmbedder } from "@leren/embedder";
 import { createObserver } from "@leren/observability";
 import { createRabbitMqQueue } from "@leren/queue";
+import { readReplyPrompts } from "@leren/reply-agent";
 import { createVectorStore } from "@leren/vector-db";
 
 import harness from "../../../harness.config";
@@ -63,7 +64,7 @@ async function createReplyRun() {
           draft: loaded.createModel("reply"),
           judge: loaded.createModel("replyJudge"),
         },
-        rules: await loaded.readPrompt("reply"),
+        prompts: await readReplyPrompts(loaded),
         observer,
         mcpUrl: config.MCP_URL,
       }),

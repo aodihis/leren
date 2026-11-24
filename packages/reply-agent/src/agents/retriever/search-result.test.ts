@@ -1,6 +1,6 @@
 import type { Message } from "@anvia/core";
 import { describe, expect, it } from "vitest";
-import { collectPlaybooks, parseSearchResult, readPlaybooks } from "./retrieve";
+import { collectPlaybooks, parseSearchResult, readPlaybooks } from "./search-result";
 
 const playbook = { id: "p1", topic: "Deadline", response: "Friday.", usable: true };
 
