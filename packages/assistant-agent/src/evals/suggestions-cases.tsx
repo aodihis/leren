@@ -36,7 +36,7 @@ export const suggestionsCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent suggests several realistic incoming messages written as a colleague, client or manager would write them, and at least one is a statement or a request and not a question. It says which messages the playbooks cover and which they do not. It calls no tool that changes data.",
+        "The agent suggests several realistic incoming messages written as a colleague, client or manager would write them, and at least one is a statement or a request and not a question. It says whether the playbooks cover the messages it suggests, and it may say that none of them is covered. It calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 4: suggest messages, check them, report covered and not covered.",
