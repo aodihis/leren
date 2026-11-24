@@ -54,9 +54,8 @@ const email = {
 const scheduled = {
   id: "11111111-1111-4111-8111-111111111111",
   topic: "Project status",
-  examples: [],
-  response: "On track.",
-  restrictions: "",
+  information: "On track.",
+  instruction: "",
   startsAt: "2026-12-01T02:00:00.000Z",
   endsAt: null,
   timezone: "Asia/Jakarta",
@@ -289,8 +288,7 @@ describe("playbooks routes", () => {
       const router = await renderApp("/playbooks/new");
 
       await user.type(await screen.findByLabelText("Topic"), "Project status");
-      await user.type(screen.getByLabelText("Examples"), "How is it going?{Enter}When?");
-      await user.type(screen.getByLabelText("Response"), "On track.");
+      await user.type(screen.getByLabelText("Information"), "On track.");
       await chooseAccount(user);
       await user.click(await screen.findByRole("combobox", { name: "Senders" }));
       await user.click(screen.getByRole("button", { name: "Create playbook" }));
@@ -301,9 +299,8 @@ describe("playbooks routes", () => {
         json: {
           enabled: true,
           topic: "Project status",
-          examples: ["How is it going?", "When?"],
-          response: "On track.",
-          restrictions: "",
+          information: "On track.",
+          instruction: "",
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           startsAt: null,
           endsAt: null,
@@ -331,7 +328,7 @@ describe("playbooks routes", () => {
     it("shows the errors of the API next to the knowledge fields", async () => {
       playbooksApi.$post.mockResolvedValue(
         jsonResponse(
-          { fieldErrors: { topic: ["Enter a topic"], response: ["Enter a response"] } },
+          { fieldErrors: { topic: ["Enter a topic"], information: ["Enter the information"] } },
           400,
         ),
       );
@@ -343,7 +340,7 @@ describe("playbooks routes", () => {
       await user.click(screen.getByRole("button", { name: "Create playbook" }));
 
       expect(await screen.findByText("Enter a topic")).toBeTruthy();
-      expect(screen.getByText("Enter a response")).toBeTruthy();
+      expect(screen.getByText("Enter the information")).toBeTruthy();
     });
 
     it("shows a general error when the save fails for another reason", async () => {

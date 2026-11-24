@@ -76,9 +76,8 @@ function toPlaybookView(
   return {
     id: playbook.id,
     topic: playbook.topic,
-    examples: playbook.examples,
-    response: playbook.response,
-    restrictions: playbook.restrictions,
+    information: playbook.information,
+    instruction: playbook.instruction,
     startsAt: playbook.startsAt?.toISOString() ?? null,
     endsAt: playbook.endsAt?.toISOString() ?? null,
     timezone: playbook.timezone,
@@ -374,7 +373,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
               type: "text" as const,
               text: [
                 "Call search_playbooks to find playbooks for the question below.",
-                "Answer only from the returned playbooks and respect their restrictions.",
+                "Answer only from the returned playbooks and follow their instructions.",
                 "If the search reports no reliable result, say that the playbooks do not cover it.",
                 "",
                 `Question: ${question}`,

@@ -19,7 +19,7 @@ export async function restrictionBreaches(
   playbooks: readonly Playbook[],
   emailBody: string,
 ): Promise<string[]> {
-  const restrictions = playbooks.map((entry) => `- ${entry.topic}: ${String(entry.restrictions)}`);
+  const restrictions = playbooks.map((entry) => `- ${entry.topic}: ${String(entry.instruction)}`);
 
   const verdict = await generateJson({
     model: judgeModel,

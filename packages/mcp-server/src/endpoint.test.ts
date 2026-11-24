@@ -83,7 +83,7 @@ describe("MCP endpoint", () => {
       .values({
         userId: user.id,
         topic: "Opening hours",
-        response: "We open at nine",
+        information: "We open at nine",
         timezone: "UTC",
       })
       .returning();
@@ -110,7 +110,7 @@ describe("MCP endpoint", () => {
 
     clock = NOW;
     store = createInMemoryVectorStore();
-    createPlaybook = stubAction({ topic: z.string(), response: z.string() });
+    createPlaybook = stubAction({ topic: z.string(), information: z.string() });
 
     actions = {
       createPlaybook: createPlaybook.action,
@@ -234,7 +234,7 @@ describe("MCP endpoint", () => {
     it("rejects a write from a session without the write scope", async () => {
       const token = await tokenFor({ role: "reply", messageId: "m1" });
 
-      const result = await call(token, "create_playbook", { topic: "T", response: "R" });
+      const result = await call(token, "create_playbook", { topic: "T", information: "R" });
 
       expect(result.error ?? result.isError).toBeTruthy();
       expect(createPlaybook.run).not.toHaveBeenCalled();
@@ -269,7 +269,7 @@ describe("MCP endpoint", () => {
 
       await database.db
         .insert(playbooks)
-        .values({ userId, topic: "Off", enabled: false, response: "r", timezone: "UTC" });
+        .values({ userId, topic: "Off", enabled: false, information: "r", timezone: "UTC" });
 
       const all = parsed(await call(token, "list_playbooks"));
       const usable = parsed(await call(token, "list_playbooks", { usableOnly: true }));
@@ -348,7 +348,7 @@ describe("MCP endpoint", () => {
   });
 
   describe("write tools", () => {
-    const newPlaybook = { topic: "Parking", response: "Free parking" };
+    const newPlaybook = { topic: "Parking", information: "Free parking" };
 
     it("runs the action for the session's user and returns its result", async () => {
       const result = await call(await tokenFor(), "create_playbook", newPlaybook);
@@ -435,7 +435,7 @@ describe("MCP endpoint", () => {
       await call(token, "get_playbook", { playbookId: otherPlaybookId });
       await call(token, "create_playbook", {
         topic: "Secret topic",
-        response: "Secret response",
+        information: "Secret response",
       });
 
       const rows = await database.db.select().from(mcpAuditLog);

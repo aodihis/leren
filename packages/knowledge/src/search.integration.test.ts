@@ -88,7 +88,7 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
           ...owner,
           timezone: "UTC",
           topic: "Topic",
-          response: "Response.",
+          information: "Response.",
           ...values,
         })
         .returning();
@@ -116,7 +116,7 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
     it("finds an indexed playbook and returns the row from PostgreSQL", async () => {
       const playbook = await createIndexedPlaybook({
         topic: "Opening hours",
-        response: "We are open from 9 to 5.",
+        information: "We are open from 9 to 5.",
       });
 
       const result = await search("opening hours");
@@ -144,7 +144,10 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
     });
 
     it("reports no reliable result for an unrelated query", async () => {
-      await createIndexedPlaybook({ topic: "Opening hours", response: "We are open from 9 to 5." });
+      await createIndexedPlaybook({
+        topic: "Opening hours",
+        information: "We are open from 9 to 5.",
+      });
 
       expect(await search("quarterly tax declaration deadline")).toEqual({
         status: "no_reliable_result",
@@ -154,7 +157,7 @@ function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder,
     it("scores a labelled case as Recall@5 of 1", async () => {
       const hours = await createIndexedPlaybook({
         topic: "Opening hours",
-        response: "We are open from 9 to 5.",
+        information: "We are open from 9 to 5.",
       });
 
       const report = await measureRecall(
@@ -220,12 +223,12 @@ describe.skipIf(!embeddingApiKey)("semantic retrieval with the embedding endpoin
         {
           ...owner,
           topic: "Office opening hours",
-          response: "The office is open Monday to Friday, 9 to 5.",
+          information: "The office is open Monday to Friday, 9 to 5.",
         },
         {
           ...owner,
           topic: "Invoice payment terms",
-          response: "Invoices are due within 30 days of the invoice date.",
+          information: "Invoices are due within 30 days of the invoice date.",
         },
       ])
       .returning();

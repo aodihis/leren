@@ -4,8 +4,7 @@ import { defineEvalCases } from "@anvia/core/evals";
 export interface CorpusPlaybook {
   key: string;
   topic: string;
-  examples: string[];
-  response: string;
+  information: string;
 }
 
 /** The input of one retrieval case: the text that is searched for. */
@@ -22,74 +21,59 @@ export const corpus: readonly CorpusPlaybook[] = [
   {
     key: "deadline",
     topic: "Project Atlas deadline",
-    examples: ["When is the Atlas deliverable due?", "What is the delivery date for Atlas?"],
-    response: "The Atlas deliverable is due on Friday 28 November at 17:00 Jakarta time.",
+    information: "The Atlas deliverable is due on Friday 28 November at 17:00 Jakarta time.",
   },
   {
     key: "scope",
     topic: "Project Atlas scope",
-    examples: ["What does Atlas include?", "Is a mobile app part of Atlas?"],
-    response:
+    information:
       "Atlas covers the customer portal, the billing export and single sign-on. Mobile apps are out of scope.",
   },
   {
     key: "sync",
     topic: "Weekly project sync",
-    examples: ["When is the weekly meeting?", "Where do we meet for the Atlas sync?"],
-    response: "The Atlas sync is every Tuesday at 10:00 Jakarta time on the team call link.",
+    information: "The Atlas sync is every Tuesday at 10:00 Jakarta time on the team call link.",
   },
   {
     key: "status",
     topic: "Project Atlas status",
-    examples: ["How is Atlas going?", "Has the beta shipped?"],
-    response: "Atlas is on track. The beta went to customers on 12 November.",
+    information: "Atlas is on track. The beta went to customers on 12 November.",
   },
   {
     key: "refund",
     topic: "Refund policy",
-    examples: ["Can I get my money back?", "How do refunds work?"],
-    response: "Refunds are possible within 30 days of purchase. Send the order number.",
+    information: "Refunds are possible within 30 days of purchase. Send the order number.",
   },
   {
     key: "urgent",
     topic: "Urgent matters while away",
-    examples: ["Who do I call in an emergency?", "I need someone urgently"],
-    response: "For anything urgent, call Devi on the number in the signature.",
+    information: "For anything urgent, call Devi on the number in the signature.",
   },
   {
     key: "budget",
     topic: "Project Atlas budget",
-    examples: ["How much does Atlas cost?", "What is the Atlas budget?"],
-    response: "Budget figures are confidential. Ask Alex in person.",
+    information: "Budget figures are confidential. Ask Alex in person.",
   },
   {
     key: "tasks",
     topic: "Task requests",
-    examples: [
-      "Can you do this task for me?",
-      "Please build a new feature for me",
-      "I need a report or an export made by Friday",
-    ],
-    response:
+    information:
       "Requests for Alex to build, change or deliver something are accepted only through the board.",
   },
   {
     key: "design",
     topic: "Design requests",
-    examples: ["I need a banner", "Can someone update our logo?"],
-    response: "Maya handles every design request, such as banners and logos.",
+    information: "Maya handles every design request, such as banners and logos.",
   },
   {
     key: "outage",
     topic: "Production incident",
-    examples: ["The site is down", "Production is broken"],
-    response: "For a production outage, call the on-call engineer.",
+    information: "For a production outage, call the on-call engineer.",
   },
   {
     key: "office",
     topic: "Office closure",
-    examples: ["Is the office open on Monday?", "When is the company retreat?"],
-    response: "The office is closed on Monday 1 December for the company retreat.",
+    information: "The office is closed on Monday 1 December for the company retreat.",
   },
 ];
 

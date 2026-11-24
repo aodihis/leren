@@ -21,8 +21,7 @@ export interface KnowledgeIndexable extends KnowledgeUsability {
   id: string;
   userId: string;
   topic: string;
-  examples: string[];
-  response: string;
+  information: string;
   updatedAt: Date;
 }
 
@@ -51,13 +50,11 @@ export function isKnowledgeIndexable(playbook: KnowledgeUsability, now: Date): b
 }
 
 /**
- * Builds the text that is embedded for a playbook: the topic, the response and the example messages,
- * which makes a playbook findable by how a sender might phrase a message and not only by its topic.
+ * Builds the text that is embedded for a playbook: the topic and the information. The instruction
+ * says how to answer and not what a message is about, so it is not embedded.
  */
-export function toEmbeddingText(
-  playbook: Pick<KnowledgeIndexable, "topic" | "response" | "examples">,
-) {
-  return [playbook.topic, playbook.response, ...playbook.examples].join("\n\n");
+export function toEmbeddingText(playbook: Pick<KnowledgeIndexable, "topic" | "information">) {
+  return [playbook.topic, playbook.information].join("\n\n");
 }
 
 /**

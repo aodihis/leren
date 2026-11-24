@@ -60,8 +60,8 @@ describe("the reply session", () => {
     const [own, foreign] = await database.db
       .insert(playbooks)
       .values([
-        { userId: ownerId, topic: "Own", response: "Reply", timezone: "UTC" },
-        { userId: otherId, topic: "Foreign", response: "Reply", timezone: "UTC" },
+        { userId: ownerId, topic: "Own", information: "Reply", timezone: "UTC" },
+        { userId: otherId, topic: "Foreign", information: "Reply", timezone: "UTC" },
       ])
       .returning({ id: playbooks.id });
 

@@ -65,6 +65,7 @@ export function createAuth(options: CreateAuthOptions) {
       additionalFields: {
         firstName: { type: "string", required: false, input: true },
         lastName: { type: "string", required: false, input: true },
+        replyInstruction: { type: "string", required: false, input: true },
       },
     },
     databaseHooks: {
@@ -114,6 +115,7 @@ const profileColumns = {
   email: users.email,
   firstName: users.firstName,
   lastName: users.lastName,
+  replyInstruction: users.replyInstruction,
 };
 
 /**
@@ -127,18 +129,26 @@ export async function getProfile(db: Db, userId: string) {
 }
 
 /**
- * Saves a user's first and last name and derives the display name from them. The update is
- * scoped to `userId`. Returns the updated profile, or `null` when the user does not exist.
+ * Saves a user's first and last name and derives the display name from them. The default reply
+ * instruction is saved only when the input has one, so a request without it keeps the stored
+ * value. The update is scoped to `userId`. Returns the updated profile, or `null` when the user
+ * does not exist.
  */
 export async function updateProfile(db: Db, userId: string, input: UpdateProfileInput) {
+  const changes: Partial<typeof users.$inferInsert> = {
+    firstName: input.firstName,
+    lastName: input.lastName,
+    name: formatDisplayName(input.firstName, input.lastName),
+    updatedAt: new Date(),
+  };
+
+  if (input.replyInstruction !== undefined) {
+    changes.replyInstruction = input.replyInstruction;
+  }
+
   const [profile] = await db
     .update(users)
-    .set({
-      firstName: input.firstName,
-      lastName: input.lastName,
-      name: formatDisplayName(input.firstName, input.lastName),
-      updatedAt: new Date(),
-    })
+    .set(changes)
     .where(eq(users.id, userId))
     .returning(profileColumns);
 

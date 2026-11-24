@@ -59,7 +59,7 @@ describe("the reply run job", () => {
 
     const [playbook] = await database.db
       .insert(playbooks)
-      .values({ userId, topic: "Topic", response: "Reply", timezone: "UTC" })
+      .values({ userId, topic: "Topic", information: "Reply", timezone: "UTC" })
       .returning({ id: playbooks.id });
 
     const [message] = await database.db

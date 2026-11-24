@@ -165,8 +165,8 @@ const ruleCompliance = defineMetric({
     const restricted = playbooks.filter(
       (entry) =>
         output.citations.includes(entry.id) &&
-        typeof entry.restrictions === "string" &&
-        entry.restrictions.trim() !== "",
+        typeof entry.instruction === "string" &&
+        entry.instruction.trim() !== "",
     );
 
     const breached =

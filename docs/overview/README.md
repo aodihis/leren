@@ -18,7 +18,7 @@ Leren is an AI email assistant. The user defines **playbooks** that say what the
 
 A **playbook** says when the assistant replies and what it says. It has two parts that the web interface shows as the tabs **Knowledge** and **Rules**.
 
-The knowledge part has a topic, a response that the assistant may give, optional example messages that help find the playbook, and restrictions on what must not be said. A response that sends the sender to someone names that person, for example "For design requests, write to Maya <maya@example.com>".
+The knowledge part has a topic, the information that the assistant knows about it, and an optional instruction on how to answer, such as a tone or what must not be said. The instruction of a playbook replaces the default instruction that the user sets in the profile. Information that sends the sender to someone names that person, for example "For design requests, write to Maya <maya@example.com>".
 
 The rules part has an optional start, an optional end, a timezone and conditions for each channel. For email, the conditions say:
 
@@ -124,8 +124,8 @@ input guardrail ─▶ triage ─▶ retrieve ─▶ route ─▶ draft ─▶ e
 - **Guardrails** are code. They treat the email as untrusted data and block credentials, answers without citations and a repeated system prompt.
 - **Triage** also reports its confidence. An email below 0.6 is escalated before anything is searched (product decision 0003).
 - **Retrieve** calls the `search_playbooks` MCP tool for each question in the email. When nothing reliable is found for any of them, the pipeline escalates and does not call the drafting agent.
-- **Draft** is the Reply Agent. It cites the playbooks it used and follows the user's reply instructions, such as a persona or a tone.
-- **Evaluate** checks the draft against the retrieved playbooks, their restrictions, and the reply instructions, and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
+- **Draft** is the Reply Agent. It cites the playbooks it used and follows the instruction of each playbook it uses, and the default instruction of the user, such as a persona or a tone, where a playbook has none.
+- **Evaluate** checks the draft against the retrieved playbooks, their instructions, and the default instruction, and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
 - **Persist** saves the decision and the draft and moves the message status. Nothing in the pipeline sends email.
 
 ## Message records
@@ -184,7 +184,7 @@ The queues are `email.poll`, `email.received`, `email.process`, `email.deliver`,
 
 ## Knowledge indexing
 
-Only an enabled playbook whose period has not ended is searchable. Each such playbook has one vector in the Qdrant collection `knowledge`, and the vector id is the playbook id. The text that is embedded is the topic, the response and the examples. The payload holds the playbook and user ids, the type, the period and the `updatedAt` of the row that the vector was built from.
+Only an enabled playbook whose period has not ended is searchable. Each such playbook has one vector in the Qdrant collection `knowledge`, and the vector id is the playbook id. The text that is embedded is the topic and the information. The payload holds the playbook and user ids, the type, the period and the `updatedAt` of the row that the vector was built from.
 
 When the API creates, edits, enables, disables or deletes a playbook, it publishes the playbook id to `knowledge.index`. The worker reads the current row and makes the index match it, so a repeated or reordered message does no harm. A periodic `knowledge.drift` job compares PostgreSQL with Qdrant, repairs any difference and removes the vectors of expired playbooks. Embeddings come from an OpenAI-compatible endpoint, which is OpenRouter by default (decision 0024).
 

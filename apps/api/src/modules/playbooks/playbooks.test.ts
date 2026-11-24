@@ -51,9 +51,8 @@ const validEmail: PlaybookInput["conditions"][number] = {
 const validBody = {
   enabled: true,
   topic: "Project status",
-  examples: ["How is the project going?"],
-  response: "The project is on track.",
-  restrictions: "Do not share the budget.",
+  information: "The project is on track.",
+  instruction: "Do not share the budget.",
   startsAt: null,
   endsAt: null,
   timezone: "Asia/Jakarta",
@@ -446,7 +445,7 @@ describe("playbooks API", () => {
   describe("validation", () => {
     it.each([
       ["a blank topic", { topic: " " }, "topic"],
-      ["a blank response", { response: "" }, "response"],
+      ["blank information", { information: "" }, "information"],
       [
         "an end before the start",
         { startsAt: "2026-12-10T00:00:00Z", endsAt: "2026-12-01T00:00:00Z" },
@@ -551,11 +550,11 @@ describe("playbooks API", () => {
         cookie,
         "PUT",
         `${PATH}/${created.id}`,
-        body({ enabled: false, response: "The project is late." }),
+        body({ enabled: false, information: "The project is late." }),
       );
 
       expect((await response.json()).playbook).toMatchObject({
-        response: "The project is late.",
+        information: "The project is late.",
         enabled: false,
         usable: false,
       });

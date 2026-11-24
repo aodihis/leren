@@ -9,6 +9,7 @@ await runSuites({
     scope: () => import("./scope"),
     account: () => import("./account"),
     clarification: () => import("./clarification"),
+    intake: () => import("./intake"),
     faithfulness: () => import("./faithfulness"),
     suggestions: () => import("./suggestions"),
     "edit-fidelity": () => import("./edit-fidelity"),

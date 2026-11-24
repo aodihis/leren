@@ -31,14 +31,14 @@ const answer: ReplyResult = {
     addressesUser: true,
     confidence: 0.9,
   },
-  playbooks: [{ id: "p1", topic: "Deadline", response: "Friday." }],
+  playbooks: [{ id: "p1", topic: "Deadline", information: "Friday." }],
   evaluations: [{ pass: true, issues: [] }],
   revisions: 0,
 };
 
 const used = (...ids: string[]): ReplyResult => ({
   ...answer,
-  playbooks: ids.map((id) => ({ id, topic: "Topic", response: "Reply." })),
+  playbooks: ids.map((id) => ({ id, topic: "Topic", information: "Reply." })),
 });
 
 describe("processMessage", () => {
@@ -99,7 +99,7 @@ describe("processMessage", () => {
   const addPlaybook = async (mode: "draft" | "send" | null) => {
     const [playbook] = await database.db
       .insert(playbooks)
-      .values({ userId, topic: "Other", response: "Reply.", timezone: "UTC" })
+      .values({ userId, topic: "Other", information: "Reply.", timezone: "UTC" })
       .returning({ id: playbooks.id });
 
     if (mode) {
@@ -164,7 +164,7 @@ describe("processMessage", () => {
 
     const [playbook] = await database.db
       .insert(playbooks)
-      .values({ userId, topic: "Deadline", response: "Friday.", timezone: "UTC" })
+      .values({ userId, topic: "Deadline", information: "Friday.", timezone: "UTC" })
       .returning({ id: playbooks.id });
 
     playbookId = playbook?.id ?? "";

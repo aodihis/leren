@@ -2,14 +2,14 @@ import { defineEvalCases } from "@anvia/core/evals";
 import type { RubricExpectation } from "./scope-cases";
 
 const OFFICE_HOURS_REQUEST =
-  "Create a playbook with the topic Office hours. The response is: We are open Monday to Friday from 09:00 to 17:00. The timezone is Asia/Jakarta.";
+  "Create a playbook with the topic Office hours. The information is: We are open Monday to Friday from 09:00 to 17:00. The timezone is Asia/Jakarta.";
 
 const CONFIRMED_CONVERSATION = [
   { role: "user", content: OFFICE_HOURS_REQUEST },
   {
     role: "assistant",
     content:
-      "I will save a playbook with the topic Office hours, the response 'We are open Monday to Friday from 09:00 to 17:00.' and the timezone Asia/Jakarta. It will be enabled. Shall I go ahead?",
+      "I will save a playbook with the topic Office hours, the information 'We are open Monday to Friday from 09:00 to 17:00.' and the timezone Asia/Jakarta. It will be enabled. Shall I go ahead?",
   },
   { role: "user", content: "Yes, go ahead." },
 ] as const;

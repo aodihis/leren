@@ -26,7 +26,7 @@ async function createPlaybook(
 ): Promise<void> {
   await page.goto("/playbooks/new");
   await page.getByLabel("Topic", { exact: true }).fill(topic);
-  await page.getByLabel("Response", { exact: true }).fill("We are open from 9 to 5.");
+  await page.getByLabel("Information", { exact: true }).fill("We are open from 9 to 5.");
 
   await page.getByRole("tab", { name: "Rules" }).click();
   await page.getByLabel("Email account").selectOption({ label: account });
@@ -91,7 +91,7 @@ test("saves an edited playbook and keeps it enabled", async ({ page }) => {
     .getByRole("link", { name: "Opening hours" })
     .click();
 
-  await page.getByLabel("Response", { exact: true }).fill("We are open from 10 to 6.");
+  await page.getByLabel("Information", { exact: true }).fill("We are open from 10 to 6.");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page).toHaveURL(/\/playbooks$/);
 

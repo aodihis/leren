@@ -10,8 +10,7 @@ const playbook: KnowledgeIndexable = {
   userId: "22222222-2222-4222-8222-222222222222",
   topic: "Opening hours",
   enabled: true,
-  examples: ["When are you open?"],
-  response: "We are open from 9 to 5.",
+  information: "We are open from 9 to 5.",
   startsAt: null,
   endsAt: null,
   updatedAt: new Date("2026-06-01T00:00:00Z"),
@@ -41,10 +40,8 @@ describe("isKnowledgeIndexable", () => {
 });
 
 describe("toEmbeddingText", () => {
-  it("joins the topic, the response and the examples", () => {
-    expect(toEmbeddingText(playbook)).toBe(
-      "Opening hours\n\nWe are open from 9 to 5.\n\nWhen are you open?",
-    );
+  it("joins the topic and the information", () => {
+    expect(toEmbeddingText(playbook)).toBe("Opening hours\n\nWe are open from 9 to 5.");
   });
 });
 

@@ -5,14 +5,13 @@ import type { RubricExpectation } from "./scope-cases";
 const OFFICE_HOURS = playbook({
   id: "pb-hours",
   topic: "Office hours",
-  response: "We are open Monday to Friday from 09:00 to 17:00.",
-  examples: ["When are you open?"],
+  information: "We are open Monday to Friday from 09:00 to 17:00.",
 });
 
 const REFUND = playbook({
   id: "pb-refund",
   topic: "Refund policy",
-  response: "Refunds are possible within 30 days of purchase if the item is unused.",
+  information: "Refunds are possible within 30 days of purchase if the item is unused.",
 });
 
 /**

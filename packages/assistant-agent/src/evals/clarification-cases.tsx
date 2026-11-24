@@ -5,26 +5,26 @@ import { playbook } from "./target";
 export type RubricExpectation = { criteria: string };
 
 const COMPLETE_REQUEST =
-  "Add a playbook. Topic: Delivery times. Response: Deliveries take 2 to 3 working days. Timezone: Asia/Jakarta.";
+  "Add a playbook. Topic: Delivery times. Information: Deliveries take 2 to 3 working days. Timezone: Asia/Jakarta.";
 
 const SHOW_AND_CONFIRM =
-  "The agent shows the exact values it will save (topic, response and timezone, in the user's own words) and asks whether to go ahead. It does not ask about examples, restrictions, a period, conditions or whether the playbook is enabled.";
+  "The agent shows the exact values it will save (topic, information and timezone, in the user's own words) and asks whether to go ahead. It does not ask separate questions about the instruction, a period, conditions or whether the playbook is enabled, and the shown values say that the playbook is always active and uses the default instruction.";
 
 const ENGLISH_TOPICS = [
   playbook({
     id: "pb-hours",
     topic: "Office hours",
-    response: "We are open Monday to Friday from 09:00 to 17:00.",
+    information: "We are open Monday to Friday from 09:00 to 17:00.",
   }),
   playbook({
     id: "pb-refund",
     topic: "Refund policy",
-    response: "Refunds are possible within 30 days of purchase.",
+    information: "Refunds are possible within 30 days of purchase.",
   }),
 ];
 
 const ANSWER_ONLY_ENABLED_STATE =
-  "The agent says whether the Office hours playbook is enabled, and, only if relevant, why it is not usable. It does not mention the timezone, the response text, the period or the conditions, does not mention the Refund policy playbook, and adds no suggestions, offers or next steps.";
+  "The agent says whether the Office hours playbook is enabled, and, only if relevant, why it is not usable. It does not mention the timezone, the information text, the period or the conditions, does not mention the Refund policy playbook, and adds no suggestions, offers or next steps.";
 
 const LIST_IN_INDONESIAN =
   "The answer is written in Indonesian, the language of the user, and names the topics Office hours and Refund policy.";
@@ -42,17 +42,17 @@ export const clarificationCases = defineEvalCases([
         {
           role: "user",
           content:
-            "Add a playbook. Topic: Delivery times. Response: Deliveries take 2 to 3 working days.",
+            "Add a playbook. Topic: Delivery times. Information: Deliveries take 2 to 3 working days.",
         },
       ],
       playbooks: [],
     },
     expected: {
       criteria:
-        "The agent tells the user that the timezone is missing and asks for it. It does not invent a timezone and does not call a tool that changes data. It does not ask about examples, restrictions, a period or conditions.",
+        "The agent tells the user that the timezone is missing and asks for it. It does not invent a timezone and does not call a tool that changes data. It may also say once that the playbook is always active unless it is limited, and ask whether to limit it, and it may say that the instruction is optional.",
     } satisfies RubricExpectation,
     metadata: {
-      note: "Workflow step 2: a playbook needs a topic, a response and a timezone, and the agent says what is missing.",
+      note: "Workflow step 2: a playbook needs a topic, information and a timezone, and the agent says what is missing.",
     },
   },
   {
@@ -76,12 +76,12 @@ export const clarificationCases = defineEvalCases([
         playbook({
           id: "pb-refund-online",
           topic: "Refund policy for online orders",
-          response: "Online orders can be refunded within 30 days.",
+          information: "Online orders can be refunded within 30 days.",
         }),
         playbook({
           id: "pb-refund-store",
           topic: "Refund policy for store purchases",
-          response: "Store purchases can be refunded within 14 days with a receipt.",
+          information: "Store purchases can be refunded within 14 days with a receipt.",
         }),
       ],
     },
@@ -123,7 +123,7 @@ export const clarificationCases = defineEvalCases([
         playbook({
           id: "pb-promo",
           topic: "Old promo",
-          response: "The old promo code gives free shipping.",
+          information: "The old promo code gives free shipping.",
           enabled: false,
         }),
         ...ENGLISH_TOPICS,
@@ -131,7 +131,7 @@ export const clarificationCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent says that the Old promo playbook is not enabled, and nothing more. It does not explain what that means for Leren, does not mention the timezone, the response text or the conditions, does not mention other playbooks, and adds no suggestions, offers or next steps, such as offering to enable it.",
+        "The agent says that the Old promo playbook is not enabled, and nothing more. It does not explain what that means, does not mention the timezone, the information text or the conditions, does not mention other playbooks, and adds no suggestions, offers or next steps, such as offering to enable it.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Rule: a yes or no answer may carry the reason that changes it, and nothing else. Offering to enable the playbook is a next step.",
@@ -145,14 +145,14 @@ export const clarificationCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent says that the user has two playbooks. It does not list the topics, responses, timezones or states of the playbooks, and adds no suggestions, offers or next steps.",
+        "The agent says that the user has two playbooks. It does not list the topics, information texts, timezones or states of the playbooks, and adds no suggestions, offers or next steps.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Rule: answer only what was asked. A count question does not ask for the list.",
     },
   },
   {
-    id: "asks-for-the-missing-response",
+    id: "asks-for-the-missing-information",
     input: {
       conversation: [
         { role: "user", content: "Add a playbook. Topic: Delivery times. Timezone: Asia/Jakarta." },
@@ -161,7 +161,7 @@ export const clarificationCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent tells the user that the response is missing and asks for it. It does not invent a response and does not call a tool that changes data. It does not ask about examples, restrictions, a period or conditions.",
+        "The agent tells the user that the information is missing and asks for it. It does not invent information and does not call a tool that changes data. Suggesting what the information could contain is fine. It may say that an instruction is optional, but it does not ask about a period, senders or conditions.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 2: the agent never invents what the user did not give.",

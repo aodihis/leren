@@ -16,11 +16,11 @@ export type Turn = { role: "user" | "assistant"; content: string };
 export type PlaybookFixture = {
   id: string;
   topic: string;
-  response: string;
+  information: string;
   timezone: string;
   enabled: boolean;
-  examples: readonly string[];
-  restrictions: string;
+
+  instruction: string;
   startsAt: string | null;
   endsAt: string | null;
   /** The connected account that the playbook answers on, or null when it names none. */
@@ -57,13 +57,12 @@ const DEFAULT_ACCOUNTS: readonly AccountFixture[] = [{ id: "acct-main", label: "
 
 /** Builds a playbook fixture. Anything that is not given is empty, enabled and without a period. */
 export function playbook(
-  fields: Pick<PlaybookFixture, "id" | "topic" | "response"> & Partial<PlaybookFixture>,
+  fields: Pick<PlaybookFixture, "id" | "topic" | "information"> & Partial<PlaybookFixture>,
 ): PlaybookFixture {
   return {
     timezone: "Asia/Jakarta",
     enabled: true,
-    examples: [],
-    restrictions: "",
+    instruction: "",
     startsAt: null,
     endsAt: null,
     channelAccountId: "acct-main",
@@ -165,10 +164,14 @@ function createFakePlaybookTools(
   const fields = z.object({
     enabled: z.boolean().optional().describe("Whether the playbook is on. Defaults to true."),
     topic: z.string().describe("The subject of the playbook, up to 200 characters."),
-    response: z.string().describe("What may be said about the subject, up to 5000 characters."),
+    information: z
+      .string()
+      .describe("What the assistant knows about the subject, up to 5000 characters."),
     timezone: z.string().describe("An IANA timezone name, such as Asia/Jakarta."),
-    examples: z.array(z.string()).optional().describe("Sample incoming messages."),
-    restrictions: z.string().optional().describe("What must not be said."),
+    instruction: z
+      .string()
+      .optional()
+      .describe("How to answer when this playbook is used. It replaces the default instruction."),
     startsAt: z
       .string()
       .nullable()
@@ -234,7 +237,7 @@ function createFakePlaybookTools(
 
         const matches = store.flatMap((item) => {
           const view = toView(item);
-          const text = [view.topic, view.response, ...view.examples].join(" ").toLowerCase();
+          const text = [view.topic, view.information].join(" ").toLowerCase();
 
           const found =
             view.enabled &&
@@ -258,7 +261,7 @@ function createFakePlaybookTools(
         const created = playbook({
           id: crypto.randomUUID(),
           topic: input.topic,
-          response: input.response,
+          information: input.information,
           ...defined(input),
           channelAccountId: chooseAccount(
             input.conditions?.[0]?.channelAccountId,

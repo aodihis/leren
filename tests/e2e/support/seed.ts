@@ -76,7 +76,7 @@ export async function seedFinishedPlaybook(email: string): Promise<string> {
       .values({
         userId: user.id,
         topic: "Vacation cover",
-        response: "I am away and back on Monday.",
+        information: "I am away and back on Monday.",
         timezone: "UTC",
         startsAt: new Date(now - 10 * DAY),
         endsAt: new Date(now - DAY),

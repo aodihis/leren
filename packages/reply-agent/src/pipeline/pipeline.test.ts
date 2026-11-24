@@ -9,8 +9,8 @@ import type { Playbook, Retrieval } from "../agents/retriever/types";
 const playbook: Playbook = {
   id: "p1",
   topic: "Deadline",
-  response: "The deadline is Friday.",
-  restrictions: null,
+  information: "The deadline is Friday.",
+  instruction: "",
 };
 
 const input = {
@@ -349,7 +349,7 @@ describe("runReplyPipeline", () => {
     const refund: Playbook = {
       id: "p2",
       topic: "Refunds",
-      response: "Refunds are possible within 30 days.",
+      information: "Refunds are possible within 30 days.",
     };
 
     const twoQuestions: FakeStep = {

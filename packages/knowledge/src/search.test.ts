@@ -61,7 +61,7 @@ describe("knowledge retrieval", () => {
         ...owner,
         timezone: "UTC",
         topic: "Opening hours",
-        response: "We are open from 9 to 5.",
+        information: "We are open from 9 to 5.",
         ...values,
       })
       .returning();
@@ -96,13 +96,13 @@ describe("knowledge retrieval", () => {
   it("ranks matches by descending score and returns at most the top 5", async () => {
     const exact = await createIndexedPlaybook({
       topic: "Parking permit",
-      response: "Parking permit.",
+      information: "Parking permit.",
     });
 
     for (let index = 0; index < 6; index += 1) {
       await createIndexedPlaybook({
         topic: `Visitor parking ${index}`,
-        response: `Ask reception about parking option ${index} for visitors.`,
+        information: `Ask reception about parking option ${index} for visitors.`,
       });
     }
 
@@ -136,7 +136,7 @@ describe("knowledge retrieval", () => {
   it("never returns the knowledge of another user", async () => {
     const other = await createUser();
 
-    await createIndexedPlaybook({ topic: "Salary details", response: "Private." }, other);
+    await createIndexedPlaybook({ topic: "Salary details", information: "Private." }, other);
 
     expect(await search("salary details")).toEqual({ status: "no_reliable_result" });
   });
@@ -198,12 +198,12 @@ describe("knowledge retrieval", () => {
 
       await database.db
         .update(playbooks)
-        .set({ response: "We are open from 10 to 6." })
+        .set({ information: "We are open from 10 to 6." })
         .where(eq(playbooks.id, playbook.id));
 
       const result = await search("opening hours");
 
-      expect(result.status === "found" && result.matches[0].playbook.response).toBe(
+      expect(result.status === "found" && result.matches[0].playbook.information).toBe(
         "We are open from 10 to 6.",
       );
     });
@@ -213,7 +213,7 @@ describe("knowledge retrieval", () => {
         await createIndexedPlaybook({ topic: "Opening hours hours hours", endsAt: PAST });
       }
 
-      const usable = await createIndexedPlaybook({ topic: "Opening hours", response: "Open." });
+      const usable = await createIndexedPlaybook({ topic: "Opening hours", information: "Open." });
 
       const result = await search("opening hours hours hours");
 
@@ -235,7 +235,7 @@ describe("knowledge retrieval", () => {
 
       const parking = await createIndexedPlaybook({
         topic: "Parking",
-        response: "Use the garage.",
+        information: "Use the garage.",
       });
 
       const report = await measureRecall(

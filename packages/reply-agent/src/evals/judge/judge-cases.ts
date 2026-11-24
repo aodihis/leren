@@ -6,15 +6,15 @@ import type { Playbook } from "../../agents/retriever";
 const DEADLINE = playbook({
   id: "pb-deadline",
   topic: "Project Atlas deadline",
-  response:
+  information:
     "The Atlas deliverable is due on Friday 28 November at 17:00 Jakarta time. For questions, contact Devi <devi@email.com>.",
 });
 
 const REFUND = playbook({
   id: "pb-refund",
   topic: "Refund policy",
-  response: "Refunds are possible within 30 days of purchase.",
-  restrictions: "Never promise a refund after 30 days.",
+  information: "Refunds are possible within 30 days of purchase.",
+  instruction: "Never promise a refund after 30 days.",
 });
 
 /** The input of one calibration case: a draft that a person has already judged. */

@@ -4,11 +4,13 @@ import {
   Button,
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
   Input,
+  Textarea,
 } from "@leren/ui";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { InferRequestType } from "hono/client";
@@ -28,7 +30,11 @@ function ProfilePage() {
   const navigate = useNavigate();
 
   const form = useForm<ProfileValues>({
-    defaultValues: { firstName: user.firstName ?? "", lastName: user.lastName ?? "" },
+    defaultValues: {
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      replyInstruction: user.replyInstruction ?? "",
+    },
   });
 
   async function handleSubmit(values: ProfileValues) {
@@ -39,6 +45,7 @@ function ProfilePage() {
 
       form.setError("firstName", { message: fieldErrors.firstName?.[0] });
       form.setError("lastName", { message: fieldErrors.lastName?.[0] });
+      form.setError("replyInstruction", { message: fieldErrors.replyInstruction?.[0] });
 
       return;
     }
@@ -96,6 +103,27 @@ function ProfilePage() {
                 <FormControl>
                   <Input autoComplete="family-name" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="replyInstruction"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Default instruction</FormLabel>
+                <FormControl>
+                  <Textarea
+                    className="min-h-28"
+                    placeholder="Write in a friendly and short tone. Sign as Erin."
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  How replies are written, such as the tone and what must not be said. A playbook
+                  can replace it with its own instruction.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

@@ -13,13 +13,13 @@ export type ToolExpectation = {
 const OFFICE_HOURS = playbook({
   id: "pb-hours",
   topic: "Office hours",
-  response: "We are open Monday to Friday from 09:00 to 17:00.",
+  information: "We are open Monday to Friday from 09:00 to 17:00.",
 });
 
 const REFUND = playbook({
   id: "pb-refund",
   topic: "Refund policy",
-  response: "Refunds are possible within 30 days of purchase.",
+  information: "Refunds are possible within 30 days of purchase.",
 });
 
 const SKILL_TOOL = ".*skill.*";
@@ -56,7 +56,7 @@ export const toolUseCases = defineEvalCases([
         {
           role: "user",
           content:
-            "Add a playbook. Topic: Shipping days. Response: We ship on Tuesdays and Thursdays. Timezone: Asia/Jakarta.",
+            "Add a playbook. Topic: Shipping days. Information: We ship on Tuesdays and Thursdays. Timezone: Asia/Jakarta.",
         },
       ],
       playbooks: [OFFICE_HOURS, REFUND],
@@ -103,7 +103,7 @@ export const toolUseCases = defineEvalCases([
     expected: {
       mustCall: ["search_playbooks"],
     } satisfies ToolExpectation,
-    metadata: { note: "Workflow step 4: search_playbooks shows what Leren would find for a text." },
+    metadata: { note: "Workflow step 4: search_playbooks shows what would be found for a text." },
   },
   {
     id: "loads-the-structuring-skill-for-messy-input",
@@ -126,7 +126,7 @@ export const toolUseCases = defineEvalCases([
         {
           role: "user",
           content:
-            "Add a playbook. Topic: Office parking. Response: Visitors can park at the back of the building for free. Timezone: Asia/Jakarta.",
+            "Add a playbook. Topic: Office parking. Information: Visitors can park at the back of the building for free. Timezone: Asia/Jakarta.",
         },
       ],
       playbooks: [],
@@ -135,7 +135,7 @@ export const toolUseCases = defineEvalCases([
       mustNotCall: [SKILL_TOOL, "create_playbook"],
     } satisfies ToolExpectation,
     metadata: {
-      note: "Workflow step 2: a clear topic and response about one subject are used as given, without the skill.",
+      note: "Workflow step 2: a clear topic and information about one subject are used as given, without the skill.",
     },
   },
 ]);
