@@ -2,7 +2,7 @@ export { runAgent } from "./agents/drafter";
 
 export type { RunAgentOptions } from "./agents/drafter";
 
-export { createReplyPipeline, judge, runReplyPipeline } from "./pipeline";
+export { createReplyPipeline, judge, readReplyPrompts, runReplyPipeline } from "./pipeline";
 
 export type {
   Category,
@@ -12,6 +12,7 @@ export type {
   Outcome,
   PipelineInput,
   ReplyPipelineDeps,
+  ReplyPrompts,
   ReplyResult,
   Triage,
   Verdict,

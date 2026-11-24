@@ -7,8 +7,8 @@ import type { PipelineRunner } from "./service";
 /** What the pipeline runner needs from the process. It is built once and shared by every run. */
 export type PipelineRunnerOptions = {
   models: ReplyPipelineDeps["models"];
-  /** The fixed system prompt of the Reply Agent. */
-  rules: string;
+  /** The fixed prompts of the reply pipeline. */
+  prompts: ReplyPipelineDeps["prompts"];
   observer: Observer;
   /** The address of the MCP server of the API. */
   mcpUrl: string;
@@ -28,7 +28,7 @@ export function createPipelineRunner(options: PipelineRunnerOptions): PipelineRu
       return await runReplyPipeline(
         {
           models: options.models,
-          rules: options.rules,
+          prompts: options.prompts,
           observer: options.observer,
           retrieve: (query, abortSignal) => retriever.retrieve(query, abortSignal),
           allowedPlaybookIds,

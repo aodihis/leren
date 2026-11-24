@@ -58,7 +58,7 @@ function setup(options: Setup) {
 
   const deps: ReplyPipelineDeps = {
     models,
-    rules: "Be brief.",
+    prompts: { rules: "Be brief.", triage: "Triage.", route: "Route.", judge: "Judge." },
     retrieve,
     observer: createNoopObserver(),
   };

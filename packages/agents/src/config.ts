@@ -38,8 +38,11 @@ export interface EmbeddingModelDefinition {
   readonly dimensions: number;
 }
 
-/** The agents that take a system prompt from the harness config. */
-export type AgentName = "assistant" | "reply";
+/**
+ * The prompts that the harness config names. `reply` is the system prompt of the drafting agent,
+ * and the others are the fixed instructions of the stages of the reply pipeline.
+ */
+export type AgentName = "assistant" | "reply" | "replyTriage" | "replyRoute" | "replyJudge";
 
 /**
  * The single configuration file of the harness, `harness.config.ts` in the repository root.

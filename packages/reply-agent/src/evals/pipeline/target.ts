@@ -3,7 +3,7 @@ import type { PipelineTraceInfo } from "@anvia/core/pipeline";
 import { loadHarness } from "@leren/agents";
 import { observer } from "../observer";
 import type { Playbook, Retrieval } from "../../agents/retriever";
-import { runReplyPipelineTraced } from "../../pipeline";
+import { readReplyPrompts, runReplyPipelineTraced } from "../../pipeline";
 import type { Category, Outcome, ReplyPipelineDeps } from "../../pipeline";
 
 const harness = await loadHarness();
@@ -15,7 +15,7 @@ export const sharedDeps = {
     draft: harness.createModel("reply"),
     judge: harness.createModel("replyJudge"),
   },
-  rules: await harness.readPrompt("reply"),
+  prompts: await readReplyPrompts(harness),
   observer,
 };
 

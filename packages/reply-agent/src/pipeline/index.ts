@@ -1,5 +1,9 @@
 export { createReplyPipeline, runReplyPipeline, runReplyPipelineTraced } from "./pipeline";
 
+export { readReplyPrompts } from "./prompts";
+
+export type { ReplyPrompts } from "./prompts";
+
 export { judge } from "./stages";
 
 export { CRITERIA } from "./types";
