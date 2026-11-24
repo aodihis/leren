@@ -315,6 +315,9 @@ importers:
       '@leren/agents':
         specifier: workspace:*
         version: link:../agents
+      '@leren/evals':
+        specifier: workspace:*
+        version: link:../evals
       '@leren/observability':
         specifier: workspace:*
         version: link:../observability
@@ -408,6 +411,22 @@ importers:
         version: 7.0.2
 
   packages/embedder:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/evals:
+    dependencies:
+      '@anvia/core':
+        specifier: ^1.21.0
+        version: 1.21.0(zod@4.6.7)
+      '@leren/agents':
+        specifier: workspace:*
+        version: link:../agents
     devDependencies:
       '@types/node':
         specifier: ^26.6.6
@@ -575,6 +594,9 @@ importers:
       '@leren/embedder':
         specifier: workspace:*
         version: link:../embedder
+      '@leren/evals':
+        specifier: workspace:*
+        version: link:../evals
       '@leren/knowledge':
         specifier: workspace:*
         version: link:../knowledge

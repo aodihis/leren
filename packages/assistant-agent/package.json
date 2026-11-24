@@ -18,6 +18,7 @@
     "@anvia/core": "^1.21.0",
     "@anvia/mcp": "^1.2.7",
     "@leren/agents": "workspace:*",
+    "@leren/evals": "workspace:*",
     "@leren/observability": "workspace:*",
     "zod": "^4.6.7"
   },

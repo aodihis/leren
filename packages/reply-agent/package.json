@@ -19,6 +19,7 @@
     "@leren/agents": "workspace:*",
     "@leren/db": "workspace:*",
     "@leren/embedder": "workspace:*",
+    "@leren/evals": "workspace:*",
     "@leren/knowledge": "workspace:*",
     "@leren/observability": "workspace:*",
     "@leren/vector-db": "workspace:*",
