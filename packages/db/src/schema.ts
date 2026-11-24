@@ -102,8 +102,8 @@ export const verifications = pgTable(
  * `information` is what the assistant knows about the topic, and retrieval finds the playbook by
  * its topic and its information. `instruction` says how to answer when the playbook is used and
  * replaces the default instruction of the user. It is empty when the playbook has none (decision
- * 0051). Whom a sender may contact is written in `information`. `startsAt` and `endsAt` are instants and a null
- * bound is open. `timezone` is the IANA zone the user enters and reads the bounds in. A playbook
+ * 0051). Whom a sender may contact is written in `information`. `startsAt` and `endsAt` are
+ * instants and a null bound is open. `timezone` is the IANA zone the user enters and reads the bounds in. A playbook
  * is usable only when it is `enabled` and the current time is inside its period, and the period
  * status is derived and never stored (decision 0036). The channel conditions of a playbook are
  * rows of `reply_conditions`.

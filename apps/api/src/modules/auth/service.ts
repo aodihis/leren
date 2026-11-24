@@ -65,7 +65,7 @@ export function createAuth(options: CreateAuthOptions) {
       additionalFields: {
         firstName: { type: "string", required: false, input: true },
         lastName: { type: "string", required: false, input: true },
-        replyInstruction: { type: "string", required: false, input: true },
+        replyInstruction: { type: "string", required: false, input: false },
       },
     },
     databaseHooks: {
