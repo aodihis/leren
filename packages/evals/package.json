@@ -11,6 +11,10 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@anvia/core": "^1.21.0",
+    "@leren/agents": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^26.6.6",
     "typescript": "^7.0.2"

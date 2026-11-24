@@ -420,6 +420,13 @@ importers:
         version: 7.0.2
 
   packages/evals:
+    dependencies:
+      '@anvia/core':
+        specifier: ^1.21.0
+        version: 1.21.0(zod@4.6.7)
+      '@leren/agents':
+        specifier: workspace:*
+        version: link:../agents
     devDependencies:
       '@types/node':
         specifier: ^26.6.6
