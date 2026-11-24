@@ -50,7 +50,7 @@ export const editFidelityCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent shows a shorter response that keeps every fact: refunds within 30 days of purchase, only for an unused item, the order number is needed, and the refund goes back to the original payment method. It adds no fact. It asks whether to save it and calls no tool that changes data.",
+        "The agent shows a shorter response that keeps every fact: refunds within 30 days, only for an unused item, the order number is needed, and the refund goes back to the original payment method. It adds no fact. It asks whether to save it and calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: { note: "Workflow step 3: change only what the user asks for, and keep the facts." },
   },
