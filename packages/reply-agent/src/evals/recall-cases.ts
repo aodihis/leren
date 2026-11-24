@@ -65,8 +65,13 @@ export const corpus: readonly CorpusPlaybook[] = [
   {
     key: "tasks",
     topic: "Task requests",
-    examples: ["Can you do this task for me?", "I need a new feature added"],
-    response: "Tasks for Alex are accepted only through the board.",
+    examples: [
+      "Can you do this task for me?",
+      "Please build a new feature for me",
+      "I need a report or an export made by Friday",
+    ],
+    response:
+      "Requests for Alex to build, change or deliver something are accepted only through the board.",
   },
   {
     key: "design",
