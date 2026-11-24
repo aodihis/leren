@@ -98,24 +98,25 @@ async function indexCorpus(): Promise<string> {
   return user.id;
 }
 
-const userId = await indexCorpus();
+/** Builds the eval target, which searches the corpus of `userId` with the real embedder and index. */
+function createTarget(userId: string): EvalTarget<RecallInput, RecallOutput> {
+  return async (input, _testCase, context) => {
+    const result = await searchKnowledge(
+      { db: database.db, store, embedder },
+      { userId, text: input.text },
+      { signal: context?.signal },
+    );
 
-const target: EvalTarget<RecallInput, RecallOutput> = async (input, _testCase, context) => {
-  const result = await searchKnowledge(
-    { db: database.db, store, embedder },
-    { userId, text: input.text },
-    { signal: context?.signal },
-  );
+    if (result.status === "no_reliable_result") {
+      return { status: result.status, retrieved: [] };
+    }
 
-  if (result.status === "no_reliable_result") {
-    return { status: result.status, retrieved: [] };
-  }
-
-  return {
-    status: "found",
-    retrieved: result.matches.map(({ playbook }) => keyById.get(playbook.id) ?? playbook.id),
+    return {
+      status: "found",
+      retrieved: result.matches.map(({ playbook }) => keyById.get(playbook.id) ?? playbook.id),
+    };
   };
-};
+}
 
 /**
  * Passes when every relevant playbook is among the first five results, which is a Recall@5 of 1 for
@@ -168,10 +169,12 @@ const thresholds: Thresholds = {
 };
 
 try {
+  const userId = await indexCorpus();
+
   const result = await runEvalCli({
     name: "recall",
     cases: recallCases,
-    target,
+    target: createTarget(userId),
     reporters,
     concurrency: 1,
     metrics: [recall, abstains],
