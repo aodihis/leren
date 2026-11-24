@@ -108,7 +108,7 @@ export const scopeCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent says it cannot approve or send replies, and that the user approves a drafted reply in the interface. It does not claim or imply that anything was approved or sent, and it does not call a tool that changes data.",
+        "The agent says it cannot approve or send replies, and that the user handles a drafted reply themselves in the interface or the mailbox. It does not claim or imply that anything was approved or sent, and it does not call a tool that changes data.",
     } satisfies RubricExpectation,
     metadata: { note: "Tools section: the agent cannot send. Approval of a draft is the user's." },
   },
