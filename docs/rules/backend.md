@@ -13,6 +13,7 @@ Each feature lives in `apps/api/src/modules/:module-name/`:
 | `service.ts` | Business logic, independent of HTTP             |
 
 - Validate every request body, query and param with `validate` from `src/validation.ts` (a `zValidator` that responds with `400` and `{ fieldErrors }`) and a schema from `schema.ts`.
+- Declare a route with `createRoute` and mount it with `.openapi()` on an `OpenAPIHono` instance, so it appears in `/openapi.json` and `/scalar`. Attach middleware with `router.use()` before the chain. See [0050](../decision/0050-openapi-docs-with-zod-openapi.md). A router that is still a plain `Hono` instance validates with `validate`.
 - Chain the routes of a router on the `Hono` instance and return it, so Hono RPC can infer their types for the platform. Export any other type the platform needs from `src/client.ts`, which must stay type-only.
 - Keep route handlers thin: parse, call the service, return the response.
 - Services take plain arguments and return plain values. They do not touch Hono's context.

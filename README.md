@@ -1,53 +1,50 @@
 # Leren
 
-Leren is a pnpm monorepo with a web platform, an HTTP API and a background worker for jobs and AI agents.
+Leren is an AI email assistant for people whose inbox fills up while they are away or busy. You write **playbooks**: short notes that say what the assistant may tell people and when it may reply. Leren reads your incoming work email, answers what a playbook covers, and leaves everything else to you.
 
-For how the system fits together, read the [high-level design](docs/overview/README.md).
+## How it works
 
-## Requirements
+1. **Connect a mailbox.** Sign in with an email code and connect your Gmail account.
+2. **Write playbooks.** A playbook has a topic, the response the assistant may give, optional example messages and restrictions on what must not be said. Rules choose the period it is active, which senders it answers and whether it answers new threads, replies or both.
+3. **Leren handles the mail.** Each new email is checked against your rules, classified, and matched to the playbooks that cover it. The reply is written only from your playbooks, so it does not invent facts.
+4. **You stay in control.** By default the reply is saved as a draft in your own mailbox, in the right thread, and you edit and send it. A playbook can instead send replies on its own. An email that no playbook covers is escalated to you with the reason.
 
-- Node.js 20 or later
-- pnpm 11
-- [Podman](https://podman.io/) with a Compose provider, to run the local services
+The dashboard shows what was answered, escalated or ignored, and how each playbook performs. An optional assistant chat can look up, suggest and edit playbooks for you, but it cannot send mail or change a reply mode.
 
-## Getting started
+## What keeps it safe
+
+- The assistant answers only from enabled playbooks that are inside their period.
+- Prompt injections in an email are treated as text, never as instructions.
+- Replies are drafts unless you turn on sending for a playbook.
+- Every agent has an evaluation suite: `pnpm run evals` for the assistant and `pnpm run evals:reply` for the reply pipeline.
+
+## Built with
+
+| Part       | Role                                                       |
+| ---------- | ---------------------------------------------------------- |
+| `platform` | React web app: playbooks, message log, dashboard, chat     |
+| `api`      | Hono API with OpenAPI docs and an MCP server for the agent |
+| `worker`   | Queue consumers: email listener, pipeline, reply delivery  |
+| Infra      | PostgreSQL, Qdrant, RabbitMQ, Anvia agents and Lens traces |
+
+Read the [user guide](docs/overview/guide.md), the [high-level design](docs/overview/README.md) and the [decisions](docs/README.md) for details.
+
+## Run it
+
+You need Node.js 20+, pnpm 11 and Podman with a Compose provider.
 
 ```sh
+cp .env.example .env   # set BETTER_AUTH_SECRET, RABBITMQ_URL, EMBEDDING_API_KEY
 pnpm install
-pnpm services:up
+pnpm services:up       # PostgreSQL, Qdrant, RabbitMQ, Mailpit
+pnpm --filter @leren/db db:migrate
 pnpm --filter @leren/api dev
 pnpm --filter @leren/platform dev
 pnpm --filter @leren/worker dev
 ```
 
-Copy `.env.example` to `.env` first and set `BETTER_AUTH_SECRET`. The worker needs `RABBITMQ_URL` and `EMBEDDING_API_KEY`, which is an OpenRouter key by default, and the API needs `RABBITMQ_URL`.
-
-To keep `.env` encrypted with [dotenvx](https://dotenvx.com/docs/quickstart), run `pnpm env:encrypt`. It writes the private key to `.env.keys`, which must never be committed. Then start the processes with `pnpm api:dev:secure`, `pnpm worker:dev:secure`, `pnpm runner:assistant:secure` or `pnpm runner:reply:secure`. The `api:start:secure` and `worker:start:secure` scripts run without file watching.
-
-`pnpm services:up` starts the local services from `docker-compose.dev.yml`, which is for development only: PostgreSQL, Qdrant, RabbitMQ and Mailpit. Mailpit catches every email the API sends. Open its inbox at http://localhost:58025 to read sign-in codes.
-
-Apply the database migrations with `pnpm --filter @leren/db db:migrate`.
-
-## Commands
-
-| Command             | Purpose           |
-| ------------------- | ----------------- |
-| `pnpm lint`         | Run oxlint        |
-| `pnpm format`       | Format with oxfmt |
-| `pnpm format:check` | Check formatting  |
-| `pnpm test`         | Run unit tests    |
-| `pnpm test:e2e`     | Run Playwright    |
-
-## Repository layout
-
-| Folder      | Contents                                      |
-| ----------- | --------------------------------------------- |
-| `apps/`     | `api`, `platform` and `worker`                |
-| `packages/` | Shared packages under the `@leren` scope      |
-| `tests/`    | End-to-end tests                              |
-| `tooling/`  | Local development tooling, such as lint rules |
-| `docs/`     | Overview, decisions, rules                    |
-
-## Documentation
-
-- [Overview and high-level design](docs/overview/README.md)
+- Sign-in codes arrive in Mailpit at http://localhost:58025.
+- API reference (Scalar): http://localhost:3000/scalar. The raw OpenAPI document is at `/openapi.json`.
+- Walkthrough of the success criteria with simulated emails: `pnpm demo`.
+- Checks: `pnpm lint`, `pnpm format:check`, `pnpm test`, `pnpm test:e2e`.
+- To keep `.env` encrypted, run `pnpm env:encrypt` and use the `*:secure` scripts.

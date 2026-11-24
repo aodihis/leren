@@ -74,7 +74,7 @@ Status: Done. Branch: `feat/05-auto-reply-rules`. PR: [#10](https://github.com/a
 
 ### F06 Knowledge management
 
-Status: In progress. Branch: `feat/06-knowledge`.
+Status: Done. Branch: `feat/06-knowledge`. PRs: [#13](https://github.com/aodihis/leren/pull/13), [#14](https://github.com/aodihis/leren/pull/14).
 
 - [x] Add `knowledge_items` (topic, response, examples, contacts, restrictions, validity, approval `draft|approved|archived`). Contacts are a list of text on the item (ADR 0020).
 - [x] Add the API modules.
@@ -83,7 +83,7 @@ Status: In progress. Branch: `feat/06-knowledge`.
 
 ### F07 Indexing pipeline
 
-Status: In progress. Branch: `feat/07-indexing`.
+Status: Done. Branch: `feat/07-indexing`. PR: [#18](https://github.com/aodihis/leren/pull/18).
 
 - [x] Add an `Embedder` interface, an ADR for the provider (ADR 0024) and a deterministic fake.
 - [x] Index approved knowledge in Qdrant with knowledge id, user id, rule id, type and validity in the payload.
@@ -93,7 +93,7 @@ Status: In progress. Branch: `feat/07-indexing`.
 
 ### F08 Retrieval
 
-Status: In progress. Branch: `feat/08-retrieval`.
+Status: Done. Branch: `feat/08-retrieval`. PRs: [#19](https://github.com/aodihis/leren/pull/19), [#20](https://github.com/aodihis/leren/pull/20), [#21](https://github.com/aodihis/leren/pull/21).
 
 - [x] Add `searchKnowledge` with mandatory filters: user, rule, approved, valid now (ADR 0028).
 - [x] Return the top 5 above a score threshold, or an explicit "no reliable result".
@@ -104,7 +104,7 @@ Status: In progress. Branch: `feat/08-retrieval`.
 
 ### F09 MCP server and sessions
 
-Status: In progress. Branch: `feat/09-mcp-server`.
+Status: Done. Branch: `feat/09-mcp-server`. PR: [#22](https://github.com/aodihis/leren/pull/22).
 
 - [x] Add `packages/mcp-server`, mounted by `apps/api` (ADR 0031).
 - [x] Mint user-bound session tokens with scopes, expiry and revocation. Write an audit log.
@@ -113,7 +113,7 @@ Status: In progress. Branch: `feat/09-mcp-server`.
 
 ### F10 Assistant Agent
 
-Status: Todo. Branch: `feat/10-assistant-agent`.
+Status: Done. Branch: `feat/10-assistant-agent`. PRs: [#24](https://github.com/aodihis/leren/pull/24), [#25](https://github.com/aodihis/leren/pull/25), [#26](https://github.com/aodihis/leren/pull/26), [#27](https://github.com/aodihis/leren/pull/27), [#28](https://github.com/aodihis/leren/pull/28).
 
 - [x] Add the Anvia agent with read tools and confirmed write tools for rules and knowledge (ADR 0032).
 - [x] Add the `structure-knowledge` skill and the assistant prompt, tried in Anvia Studio (`pnpm studio:assistant`).
@@ -128,7 +128,7 @@ Status: Dropped. Playbooks cover it (ADR 0037).
 
 ### F12a Channel accounts
 
-Status: In progress. Branch: `feat/12a-channel-accounts`.
+Status: Done. Branch: `feat/12a-channel-accounts`. PR: [#29](https://github.com/aodihis/leren/pull/29).
 
 - [x] Add an ADR for the first OAuth provider, its scopes and the token encryption key (ADR 0038).
 - [x] Add the `channel_accounts` table and a nullable `channel_account_id` on `reply_conditions` (ADRs 0021, 0033 and 0038).
@@ -148,7 +148,7 @@ Status: Done. Branch: `feat/12-email-gate`.
 
 ### F12b Email listener
 
-Status: In progress. Branch: `feat/12b-email-listener`.
+Status: Done. Branch: `feat/12b-email-listener`. PRs: [#31](https://github.com/aodihis/leren/pull/31), [#32](https://github.com/aodihis/leren/pull/32).
 
 - [x] Decide the listener: poll Gmail from the worker, ingest only new mail, and move the provider and token code into `@leren/channels` (ADR 0040, superseded by ADR 0041).
 - [x] Move the channel provider, encryption and token code out of `apps/api` into `@leren/channels`, add it to `docs/rules/packages.md`, and add `sync_cursor` to `channel_accounts`. Connecting an account sets the cursor to the position of the mailbox at that moment (ADR 0041).
@@ -157,7 +157,7 @@ Status: In progress. Branch: `feat/12b-email-listener`.
 
 ### F13 Reply Agent and pipeline
 
-Status: In progress. Branch: `feat/13-reply-agent`.
+Status: Done. Branch: `feat/13-reply-agent`. PR: [#33](https://github.com/aodihis/leren/pull/33).
 
 - [x] Decide the pipeline: fixed stages with an evaluator-optimizer loop and guardrails (ADR 0042).
 - [x] Build the pipeline with `@anvia/core/pipeline` in `packages/reply-agent`: input guardrail, triage, retrieve through an injected `retrieve` function, route, draft, evaluate and revise, output guardrail. The caller persists the result.
@@ -178,7 +178,7 @@ Status: In progress. Branch: `feat/13-reply-agent`.
 
 ### F14 Reply delivery
 
-Status: In progress. Branch: `feat/14-approval-send`. Decisions: 0045 and 0046, and product decision 0002.
+Status: Done. Branch: `feat/14-approval-send`. PRs: [#34](https://github.com/aodihis/leren/pull/34), [#35](https://github.com/aodihis/leren/pull/35), [#36](https://github.com/aodihis/leren/pull/36), [#37](https://github.com/aodihis/leren/pull/37). Decisions: 0045 and 0046, and product decision 0002.
 
 - [x] Add worker roles (`WORKER_ROLES`: `listener`, `processor`, `indexer`) so that reading mail, processing and indexing can run in separate processes (ADR 0045).
 - [x] Add the delivery record to the decision (state, the stored request and response, attempts, times, ids and error), and let `drafted` move to `sent` and `failed` (ADR 0046).
@@ -192,7 +192,7 @@ Status: In progress. Branch: `feat/14-approval-send`. Decisions: 0045 and 0046, 
 
 ### F15 Dashboard and report
 
-Status: In progress. Branch: `feat/15-dashboard`. Decision: 0048.
+Status: Done. Branch: `feat/15-dashboard`. PR: [#38](https://github.com/aodihis/leren/pull/38). Decision: 0048.
 
 - [x] Add the overview, counts by outcome, the communication log with filters and failures.
 - [x] Add a summary report for a rule whose window has ended, computed when it is read.
@@ -211,11 +211,11 @@ Status: Done. Branches: `feat/16-evals`, `feat/16-shared-eval-runner`, `feat/16-
 
 ### F17 Hardening and documentation
 
-Status: Todo. Branch: `feat/17-hardening-docs`.
+Status: Done. Branch: `feat/17-hardening-docs`.
 
-- [ ] Add one test per row of the PRD risk table.
-- [ ] Write the user-facing docs in `docs/overview/` and the product decisions in `docs/product/`.
-- [ ] Add a demo script for the success criteria.
+- [x] Add one test per row of the PRD risk table. [`docs/overview/risks.md`](../overview/risks.md) maps each row to its test.
+- [x] Write the user-facing docs in `docs/overview/` and the product decisions in `docs/product/`. The user guide is `docs/overview/guide.md`.
+- [x] Add a demo script for the success criteria (`pnpm demo`).
 
 ## Order
 
@@ -225,28 +225,28 @@ F02 and F03 can swap if Anvia access is delayed.
 
 ## Status
 
-| Feature | Name                         | Status      | PR                                                                                                                                                |
-| ------- | ---------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F00     | HLD and roadmap              | Done        | [#2](https://github.com/aodihis/leren/pull/2)                                                                                                     |
-| F01     | Test foundation              | Done        | [#3](https://github.com/aodihis/leren/pull/3)                                                                                                     |
-| F02     | Anvia foundation             | Done        | [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5)                                                      |
-| F03     | RabbitMQ queue               | Done        | [#6](https://github.com/aodihis/leren/pull/6)                                                                                                     |
-| F04     | Authentication and isolation | Done        | [#7](https://github.com/aodihis/leren/pull/7)                                                                                                     |
-| F05     | Auto-reply rules             | Done        | [#10](https://github.com/aodihis/leren/pull/10)                                                                                                   |
-| F06     | Knowledge management         | Todo        |                                                                                                                                                   |
-| F07     | Indexing pipeline            | Todo        |                                                                                                                                                   |
-| F08     | Retrieval                    | In progress |                                                                                                                                                   |
-| F09     | MCP server and sessions      | In progress |                                                                                                                                                   |
-| F10     | Assistant Agent              | Todo        |                                                                                                                                                   |
-| F11     | Routing rules                | Dropped     |                                                                                                                                                   |
-| F12a    | Channel accounts             | In progress | [#29](https://github.com/aodihis/leren/pull/29)                                                                                                   |
-| F12     | Email ingestion and gate     | Done        | [#30](https://github.com/aodihis/leren/pull/30)                                                                                                   |
-| F12b    | Email listener               | In progress |                                                                                                                                                   |
-| F13     | Reply Agent and pipeline     | Todo        |                                                                                                                                                   |
-| F14     | Approval and sending         | Todo        |                                                                                                                                                   |
-| F15     | Dashboard and report         | In progress |                                                                                                                                                   |
-| F16     | Evaluation suite             | Done        | [#39](https://github.com/aodihis/leren/pull/39), [#41](https://github.com/aodihis/leren/pull/41), [#42](https://github.com/aodihis/leren/pull/42) |
-| F17     | Hardening and documentation  | Todo        |                                                                                                                                                   |
+| Feature | Name                         | Status  | PR                                                                                                                                                                                                                                                  |
+| ------- | ---------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F00     | HLD and roadmap              | Done    | [#2](https://github.com/aodihis/leren/pull/2)                                                                                                                                                                                                       |
+| F01     | Test foundation              | Done    | [#3](https://github.com/aodihis/leren/pull/3)                                                                                                                                                                                                       |
+| F02     | Anvia foundation             | Done    | [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5)                                                                                                                                                        |
+| F03     | RabbitMQ queue               | Done    | [#6](https://github.com/aodihis/leren/pull/6)                                                                                                                                                                                                       |
+| F04     | Authentication and isolation | Done    | [#7](https://github.com/aodihis/leren/pull/7)                                                                                                                                                                                                       |
+| F05     | Auto-reply rules             | Done    | [#10](https://github.com/aodihis/leren/pull/10)                                                                                                                                                                                                     |
+| F06     | Knowledge management         | Done    | [#13](https://github.com/aodihis/leren/pull/13), [#14](https://github.com/aodihis/leren/pull/14)                                                                                                                                                    |
+| F07     | Indexing pipeline            | Done    | [#18](https://github.com/aodihis/leren/pull/18)                                                                                                                                                                                                     |
+| F08     | Retrieval                    | Done    | [#19](https://github.com/aodihis/leren/pull/19), [#20](https://github.com/aodihis/leren/pull/20), [#21](https://github.com/aodihis/leren/pull/21)                                                                                                   |
+| F09     | MCP server and sessions      | Done    | [#22](https://github.com/aodihis/leren/pull/22)                                                                                                                                                                                                     |
+| F10     | Assistant Agent              | Done    | [#24](https://github.com/aodihis/leren/pull/24), [#25](https://github.com/aodihis/leren/pull/25), [#26](https://github.com/aodihis/leren/pull/26), [#27](https://github.com/aodihis/leren/pull/27), [#28](https://github.com/aodihis/leren/pull/28) |
+| F11     | Routing rules                | Dropped |                                                                                                                                                                                                                                                     |
+| F12a    | Channel accounts             | Done    | [#29](https://github.com/aodihis/leren/pull/29)                                                                                                                                                                                                     |
+| F12     | Email ingestion and gate     | Done    | [#30](https://github.com/aodihis/leren/pull/30)                                                                                                                                                                                                     |
+| F12b    | Email listener               | Done    | [#31](https://github.com/aodihis/leren/pull/31), [#32](https://github.com/aodihis/leren/pull/32)                                                                                                                                                    |
+| F13     | Reply Agent and pipeline     | Done    | [#33](https://github.com/aodihis/leren/pull/33)                                                                                                                                                                                                     |
+| F14     | Approval and sending         | Done    | [#34](https://github.com/aodihis/leren/pull/34), [#35](https://github.com/aodihis/leren/pull/35), [#36](https://github.com/aodihis/leren/pull/36), [#37](https://github.com/aodihis/leren/pull/37)                                                  |
+| F15     | Dashboard and report         | Done    | [#38](https://github.com/aodihis/leren/pull/38)                                                                                                                                                                                                     |
+| F16     | Evaluation suite             | Done    | [#39](https://github.com/aodihis/leren/pull/39), [#41](https://github.com/aodihis/leren/pull/41), [#42](https://github.com/aodihis/leren/pull/42)                                                                                                   |
+| F17     | Hardening and documentation  | Done    |                                                                                                                                                                                                                                                     |
 
 ## Changes from the PRD
 

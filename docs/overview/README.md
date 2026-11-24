@@ -122,6 +122,7 @@ input guardrail ─▶ triage ─▶ retrieve ─▶ route ─▶ draft ─▶ e
 ```
 
 - **Guardrails** are code. They treat the email as untrusted data and block credentials, answers without citations and a repeated system prompt.
+- **Triage** also reports its confidence. An email below 0.6 is escalated before anything is searched (product decision 0003).
 - **Retrieve** calls the `search_playbooks` MCP tool for each question in the email. When nothing reliable is found for any of them, the pipeline escalates and does not call the drafting agent.
 - **Draft** is the Reply Agent. It cites the playbooks it used and follows the user's reply instructions, such as a persona or a tone.
 - **Evaluate** checks the draft against the retrieved playbooks, their restrictions, and the reply instructions, and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.

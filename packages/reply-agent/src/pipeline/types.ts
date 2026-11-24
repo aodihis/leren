@@ -13,6 +13,13 @@ export const MAX_BODY_LENGTH = 5000;
 /** The longest reply instructions, in characters, that the pipeline passes to the drafter. */
 export const MAX_INSTRUCTIONS_LENGTH = 2000;
 
+/**
+ * The lowest confidence in its own classification at which triage lets an email continue. An email
+ * that triage is less sure about is escalated to the user and not answered. A triage answer
+ * must carry a confidence, so a missing value is an invalid answer and the message is retried.
+ */
+export const MIN_TRIAGE_CONFIDENCE = 0.6;
+
 /** What a received email is about, as triage decides it. */
 export const CATEGORIES = [
   "project_question",
@@ -54,6 +61,7 @@ export const triageSchema = z.object({
   questions: z.array(z.string().min(1)),
   injectionSuspected: z.boolean(),
   addressesUser: z.boolean(),
+  confidence: z.number().min(0).max(1),
 });
 
 export type Triage = z.infer<typeof triageSchema>;

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { PlaybookView } from "./service";
+
 const MAX_LIST_ITEMS = 100;
 const MAX_EXAMPLES = 50;
 const SENDER_ENTRY_PATTERN = /^(@[^@\s]+\.[^@\s]+|[^@\s]+@[^@\s]+\.[^@\s]+)$/;
@@ -108,3 +110,16 @@ export const playbookListQuerySchema = z.object({
 export type PlaybookInput = z.infer<typeof playbookSchema>;
 
 export type PlaybookListQuery = z.infer<typeof playbookListQuerySchema>;
+
+/**
+ * The body of an answer that carries one playbook. The playbook is typed from the service, so the
+ * platform infers it through Hono RPC, and it is described in the OpenAPI document as an object.
+ */
+export const playbookResponseSchema = z.object({
+  playbook: z.custom<PlaybookView>().meta({ type: "object", description: "The playbook." }),
+});
+
+/** The body of an answer that lists playbooks. */
+export const playbookListResponseSchema = z.object({
+  playbooks: z.array(z.custom<PlaybookView>().meta({ type: "object" })),
+});

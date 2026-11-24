@@ -1,14 +1,17 @@
 import type { Db } from "@leren/db";
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
+import type { z } from "@hono/zod-openapi";
 
-import { validate } from "../../validation";
+import { errorSchema, fieldErrorsSchema, validationHook } from "../../validation";
 import { requireUser } from "../auth/middleware";
 import type { AuthVariables } from "../auth/middleware";
 import type { Auth } from "../auth/service";
 import {
-  playbookListQuerySchema,
   playbookEnabledSchema,
+  playbookListQuerySchema,
+  playbookListResponseSchema,
   playbookParamsSchema,
+  playbookResponseSchema,
   playbookSchema,
 } from "./schema";
 import {
@@ -62,27 +65,138 @@ async function attempt<Value>(write: Promise<Value>): Promise<Attempt<Value>> {
   }
 }
 
+const tags = ["Playbooks"];
+const security = [{ cookieAuth: [] }];
+
+function json<Schema extends z.ZodType>(schema: Schema, description: string) {
+  return { description, content: { "application/json": { schema } } };
+}
+
+const unauthorized = json(errorSchema, "There is no valid session.");
+const notFound = json(errorSchema, "The playbook does not exist or belongs to another user.");
+const invalid = json(fieldErrorsSchema, "The request is invalid. Each field lists its messages.");
+
+const listRoute = createRoute({
+  method: "get",
+  path: "/api/playbooks",
+  tags,
+  security,
+  summary: "List playbooks",
+  request: { query: playbookListQuerySchema },
+  responses: {
+    200: json(playbookListResponseSchema, "The playbooks of the signed-in user."),
+    400: invalid,
+    401: unauthorized,
+  },
+});
+
+const createPlaybookRoute = createRoute({
+  method: "post",
+  path: "/api/playbooks",
+  tags,
+  security,
+  summary: "Create a playbook",
+  request: {
+    body: { required: true, content: { "application/json": { schema: playbookSchema } } },
+  },
+  responses: {
+    201: json(playbookResponseSchema, "The created playbook."),
+    400: invalid,
+    401: unauthorized,
+  },
+});
+
+const getRoute = createRoute({
+  method: "get",
+  path: "/api/playbooks/{id}",
+  tags,
+  security,
+  summary: "Get a playbook",
+  request: { params: playbookParamsSchema },
+  responses: {
+    200: json(playbookResponseSchema, "The playbook."),
+    400: invalid,
+    401: unauthorized,
+    404: notFound,
+  },
+});
+
+const replaceRoute = createRoute({
+  method: "put",
+  path: "/api/playbooks/{id}",
+  tags,
+  security,
+  summary: "Replace a playbook",
+  request: {
+    params: playbookParamsSchema,
+    body: { required: true, content: { "application/json": { schema: playbookSchema } } },
+  },
+  responses: {
+    200: json(playbookResponseSchema, "The saved playbook."),
+    400: invalid,
+    401: unauthorized,
+    404: notFound,
+  },
+});
+
+const toggleRoute = createRoute({
+  method: "patch",
+  path: "/api/playbooks/{id}",
+  tags,
+  security,
+  summary: "Turn a playbook on or off",
+  request: {
+    params: playbookParamsSchema,
+    body: { required: true, content: { "application/json": { schema: playbookEnabledSchema } } },
+  },
+  responses: {
+    200: json(playbookResponseSchema, "The saved playbook."),
+    400: invalid,
+    401: unauthorized,
+    404: notFound,
+  },
+});
+
+const deleteRoute = createRoute({
+  method: "delete",
+  path: "/api/playbooks/{id}",
+  tags,
+  security,
+  summary: "Delete a playbook",
+  request: { params: playbookParamsSchema },
+  responses: {
+    204: { description: "The playbook was deleted." },
+    400: invalid,
+    401: unauthorized,
+    404: notFound,
+  },
+});
+
 /**
  * Mounts the routes of the signed-in user's playbooks under `/api/playbooks`. Every route requires
  * a session and every query is scoped by the session's user, so a playbook of another user is
  * reported as not found. `PATCH /api/playbooks/:id` turns a playbook on or off. After every change
- * that was written, `requestIndex` asks for the vector index of the playbook to be updated. The routes are chained so that the platform
- * can infer their types through Hono RPC.
+ * that was written, `requestIndex` asks for the vector index of the playbook to be updated. The
+ * routes are documented in the OpenAPI document and chained so that the platform can infer their
+ * types through Hono RPC.
  */
 export function createPlaybooksRouter(
   auth: Auth,
   db: Db,
   requestIndex: (playbookId: string) => Promise<void>,
 ) {
-  return new Hono<{ Variables: AuthVariables }>()
-    .use("/api/playbooks/*", requireUser(auth))
-    .use("/api/playbooks", requireUser(auth))
-    .get("/api/playbooks", validate("query", playbookListQuerySchema), async (c) => {
+  const router = new OpenAPIHono<{ Variables: AuthVariables }>({ defaultHook: validationHook });
+
+  router.use("/api/playbooks/*", requireUser(auth));
+  router.use("/api/playbooks", requireUser(auth));
+
+  return router
+    .openapi(listRoute, async (c) => {
       const playbooks = await listPlaybooks(db, c.get("userId"), c.req.valid("query"));
 
       return c.json({ playbooks }, 200);
     })
-    .post("/api/playbooks", validate("json", playbookSchema), async (c) => {
+    .openapi(createPlaybookRoute, async (c) => {
       const created = await attempt(createPlaybook(db, c.get("userId"), c.req.valid("json")));
 
       if (!created.ok) {
@@ -93,61 +207,51 @@ export function createPlaybooksRouter(
 
       return c.json({ playbook: created.value }, 201);
     })
-    .get("/api/playbooks/:id", validate("param", playbookParamsSchema), async (c) => {
+    .openapi(getRoute, async (c) => {
       const playbook = await getPlaybook(db, c.get("userId"), c.req.valid("param").id);
 
       return playbook ? c.json({ playbook }, 200) : c.json({ error: "Not found" }, 404);
     })
-    .put(
-      "/api/playbooks/:id",
-      validate("param", playbookParamsSchema),
-      validate("json", playbookSchema),
-      async (c) => {
-        const updated = await attempt(
-          updatePlaybook(db, c.get("userId"), c.req.valid("param").id, c.req.valid("json")),
-        );
+    .openapi(replaceRoute, async (c) => {
+      const updated = await attempt(
+        updatePlaybook(db, c.get("userId"), c.req.valid("param").id, c.req.valid("json")),
+      );
 
-        if (!updated.ok) {
-          return c.json(accountFieldErrors(updated.message), 400);
-        }
+      if (!updated.ok) {
+        return c.json(accountFieldErrors(updated.message), 400);
+      }
 
-        if (updated.value.status !== "saved") {
-          return c.json({ error: "Not found" }, 404);
-        }
+      if (updated.value.status !== "saved") {
+        return c.json({ error: "Not found" }, 404);
+      }
 
-        await requestIndex(updated.value.playbook.id);
+      await requestIndex(updated.value.playbook.id);
 
-        return c.json({ playbook: updated.value.playbook }, 200);
-      },
-    )
-    .patch(
-      "/api/playbooks/:id",
-      validate("param", playbookParamsSchema),
-      validate("json", playbookEnabledSchema),
-      async (c) => {
-        const toggled = await attempt(
-          setPlaybookEnabled(
-            db,
-            c.get("userId"),
-            c.req.valid("param").id,
-            c.req.valid("json").enabled,
-          ),
-        );
+      return c.json({ playbook: updated.value.playbook }, 200);
+    })
+    .openapi(toggleRoute, async (c) => {
+      const toggled = await attempt(
+        setPlaybookEnabled(
+          db,
+          c.get("userId"),
+          c.req.valid("param").id,
+          c.req.valid("json").enabled,
+        ),
+      );
 
-        if (!toggled.ok) {
-          return c.json(accountFieldErrors(toggled.message), 400);
-        }
+      if (!toggled.ok) {
+        return c.json(accountFieldErrors(toggled.message), 400);
+      }
 
-        if (toggled.value.status !== "saved") {
-          return c.json({ error: "Not found" }, 404);
-        }
+      if (toggled.value.status !== "saved") {
+        return c.json({ error: "Not found" }, 404);
+      }
 
-        await requestIndex(toggled.value.playbook.id);
+      await requestIndex(toggled.value.playbook.id);
 
-        return c.json({ playbook: toggled.value.playbook }, 200);
-      },
-    )
-    .delete("/api/playbooks/:id", validate("param", playbookParamsSchema), async (c) => {
+      return c.json({ playbook: toggled.value.playbook }, 200);
+    })
+    .openapi(deleteRoute, async (c) => {
       const { id } = c.req.valid("param");
       const deleted = await deletePlaybook(db, c.get("userId"), id);
 

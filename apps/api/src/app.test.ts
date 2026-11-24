@@ -79,6 +79,27 @@ describe("createApp", () => {
     expect(response.status).toBe(400);
   });
 
+  it("serves an OpenAPI document that describes the playbook routes", async () => {
+    const { app } = createTestApp();
+
+    const response = await app.request("/openapi.json");
+    const document = (await response.json()) as { paths: Record<string, unknown> };
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(document.paths)).toEqual(
+      expect.arrayContaining(["/health", "/api/playbooks", "/api/playbooks/{id}"]),
+    );
+  });
+
+  it("serves the Scalar API reference", async () => {
+    const { app } = createTestApp();
+
+    const response = await app.request("/scalar");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+  });
+
   it("logs each completed request with the request id, method, path and status", async () => {
     const { app, logger, requestLogger } = createTestApp();
 
