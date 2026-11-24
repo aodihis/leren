@@ -50,9 +50,15 @@ describe("MCP API", () => {
   };
 
   const mint = async (cookie: string) => {
-    const response = await app.request(SESSIONS, { method: "POST", headers: { cookie } });
+    const response = await app.request("/api/mcp/tokens", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json", origin: ORIGIN },
+      body: JSON.stringify({ name: "Test", access: "write", expiresInDays: 30 }),
+    });
 
-    return { status: response.status, body: await response.json() };
+    const body = await response.json();
+
+    return { status: response.status, body: { ...body, sessionId: body.accessToken?.id } };
   };
 
   const listTools = (token?: string) => {
@@ -101,7 +107,7 @@ describe("MCP API", () => {
   });
 
   it("rejects the session routes without a browser session", async () => {
-    expect((await app.request(SESSIONS, { method: "POST" })).status).toBe(401);
+    expect((await app.request("/api/mcp/tokens", { method: "POST" })).status).toBe(401);
     expect((await app.request(`${SESSIONS}/${MISSING_ID}`, { method: "DELETE" })).status).toBe(401);
   });
 
@@ -120,22 +126,10 @@ describe("MCP API", () => {
     ).toBe(401);
   });
 
-  it("mints a token that the MCP endpoint accepts", async () => {
-    const cookie = await signIn("minter@example.com");
-    const { status, body } = await mint(cookie);
+  it("has no route that mints a session without a name", async () => {
+    const cookie = await signIn("no-route@example.com");
 
-    expect(status).toBe(201);
-    expect(body).toEqual({
-      token: expect.any(String),
-      sessionId: expect.any(String),
-      expiresAt: expect.any(String),
-    });
-
-    const response = await listTools(body.token);
-    const text = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(text).toContain("create_playbook");
+    expect((await app.request(SESSIONS, { method: "POST", headers: { cookie } })).status).toBe(404);
   });
 
   it("revokes a session, and the token stops working", async () => {
@@ -221,14 +215,6 @@ describe("MCP API", () => {
 
       expect(listed.tokens).toHaveLength(1);
       expect(JSON.stringify(listed)).not.toContain(body.token);
-    });
-
-    it("does not list the short-lived sessions of the built-in agents", async () => {
-      const cookie = await signIn("internal-session@example.com");
-
-      await mint(cookie);
-
-      expect((await list(cookie)).tokens).toEqual([]);
     });
 
     it("gives a read token no write tool", async () => {

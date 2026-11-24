@@ -15,6 +15,7 @@
 - The dashboard page Agent access creates a token with a name, an access level and a lifetime of 30 days, 90 days or one year. `Read only` grants `playbooks:read`, and `Read and write` grants `playbooks:write` too. The role is the ceiling, so a token never holds more than the assistant role.
 - `GET /api/mcp/tokens` lists the user's active named sessions, `POST /api/mcp/tokens` creates one and returns the signed token once, and `DELETE /api/mcp/sessions/:id` revokes it. All three use `requireUser`. The token is not stored, so it cannot be shown again.
 - A user holds at most 10 active tokens. A further request is refused with `409` and `{ "error": "limit" }`.
+- `POST /api/mcp/sessions`, which minted an unnamed session for the signed-in user, is removed. Access tokens replace it, and no route mints an unnamed session, so only the API and the worker can open the sessions of the built-in agents.
 - `/mcp` keeps accepting only a bearer token. A browser cookie is not accepted there.
 
 ## Consequences

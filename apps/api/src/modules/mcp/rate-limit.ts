@@ -18,8 +18,9 @@ const WRITE_TOOL_NAMES: readonly string[] = Object.values(WRITE_TOOLS);
  * Builds the rate limit of the MCP endpoint. It limits each user and not each token or address, so
  * creating more tokens does not raise the limit and users behind one address do not share it. Only
  * access tokens that a user created are limited: the sessions of the built-in agents have no name
- * and pass, because the reply pipeline makes many calls for one user by design. A write is counted
- * against both the request limit and the write limit.
+ * and pass, because the reply pipeline makes many calls for one user by design. This relies on no
+ * HTTP route minting a session without a name, so only code inside the API and the worker can hold
+ * an exempt session. A write is counted against both the request limit and the write limit.
  *
  * When the limiter fails, the call is refused as unavailable and an error is logged. The limit
  * protects the service from abuse, so it fails closed. The sessions of the built-in agents do not
