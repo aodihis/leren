@@ -199,7 +199,7 @@ Status: In progress. Branch: `feat/15-dashboard`. Decision: 0048.
 
 ### F16 Evaluation suite
 
-Status: In progress. Branch: `feat/16-evals`.
+Status: Done. Branches: `feat/16-evals`, `feat/16-shared-eval-runner`, `feat/16-eval-structure`. PRs: [#39](https://github.com/aodihis/leren/pull/39), [#41](https://github.com/aodihis/leren/pull/41), [#42](https://github.com/aodihis/leren/pull/42).
 
 - [x] Reply Agent suite in `packages/reply-agent/src/evals`: 50 cases: 15 project questions, 10 task assignments, 8 informational, 7 urgent, 5 without knowledge, 5 prompt injections.
 - [x] Assistant Agent suite in `packages/assistant-agent/src/evals`: cases for lookups of saved data, suggested questions, edit proposals that match the source, and requests to approve or send, which must be refused. Score tool choice, faithfulness to saved data and proposal-only behavior. The suite has 8 metrics and 46 cases, and each metric must pass all of its cases (`pnpm run evals`).
@@ -225,28 +225,28 @@ F02 and F03 can swap if Anvia access is delayed.
 
 ## Status
 
-| Feature | Name                         | Status      | PR                                                                                           |
-| ------- | ---------------------------- | ----------- | -------------------------------------------------------------------------------------------- |
-| F00     | HLD and roadmap              | Done        | [#2](https://github.com/aodihis/leren/pull/2)                                                |
-| F01     | Test foundation              | Done        | [#3](https://github.com/aodihis/leren/pull/3)                                                |
-| F02     | Anvia foundation             | Done        | [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5) |
-| F03     | RabbitMQ queue               | Done        | [#6](https://github.com/aodihis/leren/pull/6)                                                |
-| F04     | Authentication and isolation | Done        | [#7](https://github.com/aodihis/leren/pull/7)                                                |
-| F05     | Auto-reply rules             | Done        | [#10](https://github.com/aodihis/leren/pull/10)                                              |
-| F06     | Knowledge management         | Todo        |                                                                                              |
-| F07     | Indexing pipeline            | Todo        |                                                                                              |
-| F08     | Retrieval                    | In progress |                                                                                              |
-| F09     | MCP server and sessions      | In progress |                                                                                              |
-| F10     | Assistant Agent              | Todo        |                                                                                              |
-| F11     | Routing rules                | Dropped     |                                                                                              |
-| F12a    | Channel accounts             | In progress | [#29](https://github.com/aodihis/leren/pull/29)                                              |
-| F12     | Email ingestion and gate     | Done        | [#30](https://github.com/aodihis/leren/pull/30)                                              |
-| F12b    | Email listener               | In progress |                                                                                              |
-| F13     | Reply Agent and pipeline     | Todo        |                                                                                              |
-| F14     | Approval and sending         | Todo        |                                                                                              |
-| F15     | Dashboard and report         | In progress |                                                                                              |
-| F16     | Evaluation suite             | Todo        |                                                                                              |
-| F17     | Hardening and documentation  | Todo        |                                                                                              |
+| Feature | Name                         | Status      | PR                                                                                                                                                |
+| ------- | ---------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F00     | HLD and roadmap              | Done        | [#2](https://github.com/aodihis/leren/pull/2)                                                                                                     |
+| F01     | Test foundation              | Done        | [#3](https://github.com/aodihis/leren/pull/3)                                                                                                     |
+| F02     | Anvia foundation             | Done        | [#4](https://github.com/aodihis/leren/pull/4), [#5](https://github.com/aodihis/leren/pull/5)                                                      |
+| F03     | RabbitMQ queue               | Done        | [#6](https://github.com/aodihis/leren/pull/6)                                                                                                     |
+| F04     | Authentication and isolation | Done        | [#7](https://github.com/aodihis/leren/pull/7)                                                                                                     |
+| F05     | Auto-reply rules             | Done        | [#10](https://github.com/aodihis/leren/pull/10)                                                                                                   |
+| F06     | Knowledge management         | Todo        |                                                                                                                                                   |
+| F07     | Indexing pipeline            | Todo        |                                                                                                                                                   |
+| F08     | Retrieval                    | In progress |                                                                                                                                                   |
+| F09     | MCP server and sessions      | In progress |                                                                                                                                                   |
+| F10     | Assistant Agent              | Todo        |                                                                                                                                                   |
+| F11     | Routing rules                | Dropped     |                                                                                                                                                   |
+| F12a    | Channel accounts             | In progress | [#29](https://github.com/aodihis/leren/pull/29)                                                                                                   |
+| F12     | Email ingestion and gate     | Done        | [#30](https://github.com/aodihis/leren/pull/30)                                                                                                   |
+| F12b    | Email listener               | In progress |                                                                                                                                                   |
+| F13     | Reply Agent and pipeline     | Todo        |                                                                                                                                                   |
+| F14     | Approval and sending         | Todo        |                                                                                                                                                   |
+| F15     | Dashboard and report         | In progress |                                                                                                                                                   |
+| F16     | Evaluation suite             | Done        | [#39](https://github.com/aodihis/leren/pull/39), [#41](https://github.com/aodihis/leren/pull/41), [#42](https://github.com/aodihis/leren/pull/42) |
+| F17     | Hardening and documentation  | Todo        |                                                                                                                                                   |
 
 ## Changes from the PRD
 
