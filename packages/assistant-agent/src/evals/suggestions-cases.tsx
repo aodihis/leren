@@ -55,7 +55,7 @@ export const suggestionsCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent suggests several realistic messages from a client about refunds, phrased in different ways, and at least one is a statement or a request such as asking for money back. It says which of them the Refund policy playbook covers. It does not invent refund terms that the playbook does not state, such as a different number of days.",
+        "The agent suggests several realistic messages from a client about refunds, phrased in different ways, and at least one is a statement or a request such as asking for money back. It says which of them the Refund policy playbook covers. The Refund policy playbook says only that refunds are possible within 30 days of purchase if the item is unused, so a message may mention the 30 days, and the answer does not invent other refund terms such as a different number of days or a fee.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 4: suggestions are phrased naturally and stay inside the facts of the playbook.",
