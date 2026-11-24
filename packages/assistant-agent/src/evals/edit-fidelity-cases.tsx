@@ -96,14 +96,14 @@ export const editFidelityCases = defineEvalCases([
       conversation: [
         {
           role: "user",
-          content: "Add to my Office hours playbook that we are also open on Saturdays.",
+          content: "Add the shipping fee to my Refund policy playbook.",
         },
       ],
-      playbooks: [OFFICE_HOURS],
+      playbooks: [REFUND],
     },
     expected: {
       criteria:
-        "The agent notices that the Saturday opening hours are missing and asks for them. It does not invent hours such as 09:00 to 13:00, and it calls no tool that changes data.",
+        "The agent notices that the amount of the shipping fee is missing and asks for it. It does not invent an amount, and it calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: { note: "Workflow step 3: if a fact is missing, ask for it." },
   },
