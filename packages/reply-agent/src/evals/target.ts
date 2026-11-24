@@ -7,7 +7,7 @@ import type { Category, Outcome, Playbook, ReplyPipelineDeps, Retrieval } from "
 const harness = await loadHarness();
 const observer = createObserver();
 
-/** The models, prompt and observer that every eval case shares. */
+/** The models, prompt and observer all cases share. */
 export const sharedDeps = {
   models: {
     triage: harness.createModel("replyTriage"),
@@ -18,10 +18,10 @@ export const sharedDeps = {
   observer,
 };
 
-/** The input of one eval case: an email, the playbooks that retrieval returns and the options. */
+/** The input of one eval case. */
 export type ReplyEvalInput = {
   email: { from: string; subject: string; body: string };
-  /** What retrieval returns. An empty list stands for `no_reliable_result`. */
+  /** What retrieval returns. */
   playbooks: readonly Playbook[];
   checkMention?: boolean;
   replyInstructions?: string;
@@ -30,9 +30,9 @@ export type ReplyEvalInput = {
 /** What the pipeline produced for one case. */
 export type ReplyEvalOutput = {
   outcome: Outcome;
-  /** The category that triage chose, or undefined when the run ended before triage. */
+  /** The category that triage chose, if any. */
   category: Category | undefined;
-  /** Whether the drafting agent ran. It is false when the pipeline abstained or routed early. */
+  /** Whether the drafting agent ran. */
   drafted: boolean;
   body: string | undefined;
   citations: readonly string[];
@@ -40,21 +40,21 @@ export type ReplyEvalOutput = {
   revisions: number;
 };
 
-/** What a case expects. Only the fields that are set are checked. */
+/** What a case expects. */
 export type ReplyExpectation = {
-  /** The outcome that the pipeline must reach, or the outcomes that are equally acceptable. */
+  /** The outcomes that the pipeline may reach. */
   outcome: Outcome | readonly Outcome[];
   /** The category that triage must choose. */
   category?: Category;
-  /** Substrings that the body must contain, ignoring case. */
+  /** Substrings that the body must contain. */
   mustInclude?: readonly string[];
-  /** Substrings that the body must not contain, ignoring case. */
+  /** Substrings that the body must not contain. */
   mustNotInclude?: readonly string[];
-  /** The playbook ids that the citations must stay within. */
+  /** The playbook ids that citations must stay within. */
   citeWithin?: readonly string[];
 };
 
-/** Builds a playbook fixture. Anything that is not given is empty. */
+/** Builds a playbook fixture. */
 export function playbook(
   fields: Pick<Playbook, "id" | "topic" | "response"> & Partial<Playbook>,
 ): Playbook {
@@ -63,11 +63,7 @@ export function playbook(
 
 export const reporters = [observer.evalReporter()].filter((reporter) => reporter !== undefined);
 
-/**
- * Runs the real reply pipeline, with the production prompt and models, against fixed playbooks
- * instead of the MCP server, so that a case controls exactly what retrieval returns. Call
- * `closeTarget` when all evals have finished so that traces are flushed.
- */
+/** Runs the real reply pipeline over fixed playbooks. */
 export const target: EvalTarget<ReplyEvalInput, ReplyEvalOutput> = async (
   input,
   _testCase,
@@ -102,7 +98,7 @@ export const target: EvalTarget<ReplyEvalInput, ReplyEvalOutput> = async (
   };
 };
 
-/** Flushes the traces that the target's observer collected. */
+/** Flushes the collected traces. */
 export async function closeTarget(): Promise<void> {
   await observer.close();
 }

@@ -14,11 +14,7 @@ const providerList = z
   )
   .pipe(z.array(z.enum(CHANNEL_PROVIDER_NAMES)));
 
-/**
- * The environment variables that choose and configure the channel providers (decision 0038). The
- * API and the worker add them to their own schema and call `checkChannelProviderEnv` on the
- * result, so both fail at startup under the same conditions.
- */
+/** The environment variables of channel providers. */
 export const channelProviderEnvShape = {
   CHANNEL_PROVIDERS: providerList,
   CHANNEL_TOKEN_ENCRYPTION_KEY: z.string().optional(),
@@ -28,11 +24,7 @@ export const channelProviderEnvShape = {
 
 export type ChannelProviderEnv = z.infer<z.ZodObject<typeof channelProviderEnvShape>>;
 
-/**
- * Reports a problem for every variable that an enabled provider needs and that is missing or
- * invalid. `mailpit` is refused when `NODE_ENV` is `production`. A provider that is not enabled
- * needs none of its variables.
- */
+/** Reports missing or invalid provider variables. */
 export function checkChannelProviderEnv(
   config: ChannelProviderEnv & { NODE_ENV?: string | undefined },
   problem: (variable: string, message: string) => void,

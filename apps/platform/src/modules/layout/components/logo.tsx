@@ -4,11 +4,7 @@ interface LogoProps {
   className?: string;
 }
 
-/**
- * The placeholder brand mark from the design system: a sun disc over a wave on a brand square.
- * It is decorative, so it is hidden from assistive technology, and the product name is rendered
- * next to it by the caller.
- */
+/** The brand mark of the product. */
 export function Logo({ className }: LogoProps) {
   return (
     <span

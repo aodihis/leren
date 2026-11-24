@@ -4,9 +4,7 @@ const MAX_LIST_ITEMS = 100;
 const MAX_EXAMPLES = 50;
 const SENDER_ENTRY_PATTERN = /^(@[^@\s]+\.[^@\s]+|[^@\s]+@[^@\s]+\.[^@\s]+)$/;
 
-/**
- * Reports whether `timezone` is an IANA zone name that the runtime knows.
- */
+/** Reports whether a timezone is a known IANA zone. */
 function isTimezone(timezone: string): boolean {
   try {
     return (
@@ -17,17 +15,7 @@ function isTimezone(timezone: string): boolean {
   }
 }
 
-/**
- * The conditions of the `email` channel. A sender allowlist holds full addresses and `@domain`
- * entries. `channelAccountId` names the channel account that the playbook listens on, and null or
- * absent means none. A playbook that is enabled must name one, and a new or newly enabled playbook
- * must name an active one (decision 0044). The schema cannot check this, because it depends on the
- * stored state of the playbook and of the account, so the service enforces it for the web routes and
- * the assistant tools alike. The service also rejects an account that does not belong to the
- * playbook's owner or is on another channel (decision 0038). `replyMode` says what happens to a reply: `draft` saves
- * it for the user to approve and `send` sends it without approval. A request that leaves it out
- * gets `draft` (decision 0039).
- */
+/** The conditions of the email channel. */
 export const emailConditionsSchema = z.object({
   channel: z.literal("email"),
   channelAccountId: z.uuid().nullable().optional(),
@@ -49,23 +37,14 @@ export const emailConditionsSchema = z.object({
   skipBulkMail: z.boolean(),
 });
 
-/**
- * The reply conditions of one channel. Only the channels in this union are accepted, so a request
- * for any other channel is rejected. A channel added later is a new member of this union, with its
- * own settings, and needs no change to the tables.
- */
+/** The reply conditions of one channel. */
 export const replyConditionsSchema = z.discriminatedUnion("channel", [emailConditionsSchema], {
   error: "Only the email channel is supported",
 });
 
 export type ReplyConditionsInput = z.infer<typeof replyConditionsSchema>;
 
-/**
- * The body of a request that creates or replaces a playbook. The bounds are ISO 8601 instants with
- * an offset, and a null bound is open. A playbook that ends before it starts is rejected.
- * `conditions` holds one entry for each channel that the playbook listens on. A disabled playbook
- * is never used.
- */
+/** The body that creates or replaces a playbook. */
 export const playbookSchema = z
   .object({
     enabled: z.boolean(),
@@ -96,10 +75,7 @@ export const playbookParamsSchema = z.object({ id: z.uuid() });
 
 export const playbookEnabledSchema = z.object({ enabled: z.boolean() });
 
-/**
- * The filters of the list route. `enabled` keeps only the enabled or only the disabled playbooks,
- * and `usable=true` keeps only the playbooks that the assistant may use now.
- */
+/** The filters of the playbook list route. */
 export const playbookListQuerySchema = z.object({
   enabled: z.enum(["true", "false"]).optional(),
   usable: z.enum(["true"]).optional(),

@@ -19,21 +19,14 @@ export interface RunAgentOptions extends Pick<
   readonly abortSignal?: AbortSignal | undefined;
 }
 
-/** What one Reply Agent run produced: its text answer and the messages of the run. */
+/** What one Reply Agent run produced. */
 export interface ReplyRun {
   readonly output: string;
-  /** The messages of the run, including the results of the tools that the agent called. */
+  /** The messages of the run. */
   readonly messages: readonly Message[];
 }
 
-/**
- * Runs the Reply Agent once and returns its text answer together with the messages of the run.
- *
- * The agent runs as one step of the email pipeline, so the caller needs the final answer, and the
- * tool results that the pipeline checks the answer against, and not the events. When `mcp` is
- * given, the MCP connection is opened for this run only and is always closed. The agent is limited
- * to 5 turns, as decided in ADR 0006.
- */
+/** Runs the Reply Agent once with run messages. */
 export async function generateReply(options: RunAgentOptions): Promise<ReplyRun> {
   const connection = options.mcp
     ? await connectReplyMcp(options.mcp, options.abortSignal)
@@ -67,7 +60,7 @@ export async function generateReply(options: RunAgentOptions): Promise<ReplyRun>
   }
 }
 
-/** Runs the Reply Agent once and returns its text answer. See `generateReply`. */
+/** Runs the Reply Agent once. */
 export async function runAgent(options: RunAgentOptions): Promise<string> {
   return (await generateReply(options)).output;
 }

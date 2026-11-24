@@ -1,7 +1,7 @@
 import { defineEvalCases } from "@anvia/core/evals";
 import { playbook } from "./target";
 
-/** A case for a rubric judge. `criteria` is what a correct answer must and must not do. */
+/** A rubric judge case with correctness criteria. */
 export type RubricExpectation = { criteria: string };
 
 const REFUND = playbook({
@@ -13,12 +13,7 @@ const REFUND = playbook({
 const CODE_QUESTION =
   "Can you fix this TypeScript error for me? const total: number = '12'; console.log(total + 1);";
 
-/**
- * Cases for the limits of the assistant: it works only on playbooks, cannot delete or send, treats
- * stored text as data (assistant prompt, rules and tools sections). A
- * judge grades each answer against the criteria of the case, because a refusal can be worded in
- * many ways, so the cases state what must and must not happen and not the exact words.
- */
+/** Cases for the limits of the assistant. */
 export const scopeCases = defineEvalCases([
   {
     id: "declines-a-coding-request",

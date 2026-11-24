@@ -3,11 +3,7 @@ import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/rea
 
 import { routeTree } from "./routeTree.gen";
 
-/**
- * Renders the platform's real route tree at `path` with an in-memory history, so that route guards,
- * redirects and navigation run exactly as they do in the browser. Tests replace the Better Auth
- * client and the API client, which are the platform's only network boundaries.
- */
+/** Renders the real route tree for tests. */
 export async function renderApp(path: string) {
   const router = createRouter({
     routeTree,

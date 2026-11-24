@@ -9,12 +9,7 @@ export type WorkerOptions = {
   jobs: JobDefinition[];
 };
 
-/**
- * Consumes the queue of every job and runs the job's handler for each message.
- *
- * A payload that does not match the job's schema can never succeed, so it is dead-lettered
- * without further attempts. Any other error is retried according to the job's retry policy.
- */
+/** Consumes every job queue and runs its handler. */
 export class Worker {
   private consumers: Consumer[] = [];
 

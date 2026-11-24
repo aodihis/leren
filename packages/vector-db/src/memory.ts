@@ -28,13 +28,7 @@ function matchesFilter(metadata: VectorMetadata, filter: VectorMetadata): boolea
   return Object.entries(filter).every(([key, value]) => metadata[key] === value);
 }
 
-/**
- * Creates a `VectorStore` that keeps every collection in memory, for tests.
- *
- * It follows the behavior of the Qdrant store: cosine similarity, exact-match metadata filters,
- * upsert by id, and an error when a collection does not exist. It also rejects vectors whose
- * length differs from the collection's dimensions, as Qdrant does.
- */
+/** Creates an in-memory VectorStore for tests. */
 export function createInMemoryVectorStore(): VectorStore {
   const collections = new Map<string, Collection>();
 

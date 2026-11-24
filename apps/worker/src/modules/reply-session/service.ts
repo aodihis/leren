@@ -6,30 +6,17 @@ import type { MintedSession } from "@leren/mcp-server";
 import { NonRetryableError } from "@leren/queue";
 import { eq, inArray } from "drizzle-orm";
 
-/**
- * How long the session of one reply run lasts, in seconds. It covers the longest run: three drafts
- * of at most five turns each, the judge calls and the searches. A retry of the job opens a new
- * session and never reuses an earlier one.
- */
+/** How long a reply run session lasts, in seconds. */
 export const REPLY_SESSION_TTL_SECONDS = 10 * 60;
 
 export type ReplySessionDependencies = {
   db: Db;
-  /** The HMAC secret that signs MCP session tokens. It is the one the API uses. */
+  /** The secret that signs MCP session tokens. */
   secret: string;
   now?: () => Date;
 };
 
-/**
- * Opens the MCP session for the reply run of one message (decision 0042). The user comes from the
- * message record and never from the job: the token is bound to the owner of the record, to the
- * message id and to the read-only scopes of the reply role.
- *
- * Throws when the record does not exist, or when a playbook of the job belongs to another user, because
- * such a job was not produced by the gate and must not run. The error is not retried. A playbook
- * that no longer exists is not an error: the user may have deleted it after the gate queued the
- * message, and the pipeline escalates when no playbook is left to use.
- */
+/** Opens the MCP session for a reply run. */
 export async function openReplySession(
   { db, secret, now }: ReplySessionDependencies,
   message: EmailProcessMessage,
@@ -67,7 +54,7 @@ export async function openReplySession(
   );
 }
 
-/** Ends a reply session when its run is over, so that its token stops working at once. */
+/** Ends a reply session when its run is over. */
 export async function closeReplySession(
   { db, now }: Pick<ReplySessionDependencies, "db" | "now">,
   userId: string,

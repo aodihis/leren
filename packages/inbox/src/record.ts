@@ -3,32 +3,25 @@ import type { Db } from "@leren/db";
 import type { QueueClient } from "@leren/queue";
 import { and, eq } from "drizzle-orm";
 
-/** The name of the queue that carries a recorded message to the gate. */
+/** The queue that carries a record to the gate. */
 export const EMAIL_RECEIVED_QUEUE = "email.received";
 
-/** The name of the queue that carries a message that passed the gate to the pipeline. */
+/** The queue that carries a gated message. */
 export const EMAIL_PROCESS_QUEUE = "email.process";
 
-/** The name of the queue that carries a reply that is ready to the deliverer (decision 0046). */
+/** The queue that carries a reply to the deliverer. */
 export const EMAIL_DELIVER_QUEUE = "email.deliver";
 
-/** The most characters of a body that the record keeps. */
+/** The most body characters the record keeps. */
 export const MESSAGE_BODY_LIMIT = 20_000;
 
-/** The most characters of a subject that the record keeps. */
+/** The most subject characters the record keeps. */
 export const MESSAGE_SUBJECT_LIMIT = 500;
 
-/**
- * The message of `email.received`. It names the record and nothing else, so the gate reads the
- * current row.
- */
+/** The message of email.received. */
 export type EmailReceivedMessage = { messageId: string };
 
-/**
- * An email as a provider delivers it, before it is recorded. `providerMessageId` is the provider's
- * own identifier and is what makes recording idempotent. Addresses are plain addresses without
- * display names.
- */
+/** An email as a provider delivers it. */
 export type InboundEmail = {
   userId: string;
   channelAccountId: string;
@@ -48,10 +41,7 @@ export type InboundEmail = {
 
 export type RecordResult = { messageId: string; created: boolean };
 
-/**
- * Cuts `text` to at most `limit` characters without splitting a surrogate pair. Reports whether
- * anything was removed.
- */
+/** Cuts text to a limit of characters. */
 export function truncate(text: string, limit: number): { text: string; truncated: boolean } {
   if (text.length <= limit) {
     return { text, truncated: false };
@@ -63,14 +53,7 @@ export function truncate(text: string, limit: number): { text: string; truncated
   return { text: text.slice(0, end), truncated: true };
 }
 
-/**
- * Records an email and publishes it to `email.received`. The record is unique on the user, the
- * channel, the provider and the provider's message id, so a message that is delivered twice is
- * recorded once. The message is published when the record is new, and again while the stored status
- * is still `received`, which repairs a publish that was lost after the row was written. The id of
- * the record is the idempotency key of the queue message. A failed publish throws, and recording
- * the same email again publishes it.
- */
+/** Records an email and publishes email.received. */
 export async function recordInboundEmail(
   { db, queue }: { db: Db; queue: Pick<QueueClient, "publish"> },
   email: InboundEmail,

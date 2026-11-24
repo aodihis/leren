@@ -13,16 +13,11 @@ export type McpRouterDependencies = {
   auth: Auth;
   db: Db;
   sessions: SessionDependencies;
-  /** Serves one MCP request. It authenticates the request itself with a session token. */
+  /** Serves one MCP request. */
   endpoint: { fetch: (request: Request) => Promise<Response> };
 };
 
-/**
- * Mounts the MCP endpoint at `/mcp` and the routes that manage the signed-in user's MCP sessions.
- * `POST /api/mcp/sessions` mints an assistant session for the signed-in user, and the user can
- * never choose another user, role or scope. `DELETE /api/mcp/sessions/:id` revokes one of the
- * user's own sessions. `/mcp` does not use the browser session: it accepts only a bearer token.
- */
+/** Mounts the MCP endpoint and session routes. */
 export function createMcpRouter({ auth, db, sessions, endpoint }: McpRouterDependencies) {
   return new Hono<{ Variables: AuthVariables }>()
     .all("/mcp", (c) => endpoint.fetch(c.req.raw))

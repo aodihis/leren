@@ -19,7 +19,7 @@ const email = (subject: string, body: string) => ({ from: "sam@example.com", sub
 
 type Options = Pick<ReplyEvalInput, "checkMention" | "replyInstructions">;
 
-/** Builds one case. Each case fixes what retrieval returns, so the metrics measure the stages after it. */
+/** Builds one pipeline case. */
 function scenario(
   id: string,
   mail: { subject: string; body: string },
@@ -36,12 +36,7 @@ function scenario(
 
 const mail = (subject: string, body: string) => ({ subject, body });
 
-/**
- * The reply suite of 50 cases (roadmap F16): 15 project questions, 10 task assignments, 8
- * informational emails, 7 urgent emails, 5 questions without knowledge and 5 prompt injections.
- * The id of a case says what it tests. A case without a `category` leaves the classification to
- * the other metrics, because two careful people could name its category differently.
- */
+/** The reply suite of 50 cases. */
 export const pipelineCases = defineEvalCases([
   scenario(
     "project-deadline-is-answered-and-cited",

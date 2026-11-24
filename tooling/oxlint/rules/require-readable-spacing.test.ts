@@ -100,7 +100,7 @@ tester.run("rules/require-readable-spacing", requireReadableSpacingRule, {
   ],
 });
 
-// Exercise upstream options that the opinionated public rule does not enable.
+// Exercises upstream options that the rule disables.
 tester.run(
   "vendored padding removal",
   createPaddingLineRule([{ blankLine: "never", prev: "*", next: "*" }]),

@@ -6,7 +6,7 @@ import { and, count, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 const RECENT_FAILURES = 5;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
-/** The number of rows for each value of a column, keyed by the value. A value without rows is absent. */
+/** The row count for each value of a column. */
 type Counts<Key extends string> = Partial<Record<Key, number>>;
 
 type Status = typeof messages.$inferSelect.status;
@@ -15,7 +15,7 @@ type Outcome = typeof replyDecisions.$inferSelect.outcome;
 
 type DeliveryState = NonNullable<typeof replyDecisions.$inferSelect.deliveryState>;
 
-/** Turns grouped rows into counts and skips the group of rows whose value is null. */
+/** Turns grouped rows into counts. */
 function toCounts<Key extends string>(rows: { key: Key | null; total: number }[]): Counts<Key> {
   const counts: Counts<Key> = {};
 
@@ -38,10 +38,7 @@ function sum(counts: Counts<string>): number {
   return total;
 }
 
-/**
- * Counts the decisions of the messages that match `where`, grouped by outcome and by delivery
- * state. A decision that has no delivery state is not counted in `byDeliveryState`.
- */
+/** Counts decisions by outcome and delivery state. */
 async function countDecisions(db: Db, where: SQL | undefined) {
   const [byOutcome, byDeliveryState] = await Promise.all([
     db
@@ -64,12 +61,7 @@ async function countDecisions(db: Db, where: SQL | undefined) {
   };
 }
 
-/**
- * The counts of the messages that a user received inside a window (decision 0048). `total` counts
- * every message, `byStatus` groups them by their status, and `byOutcome` and `byDeliveryState`
- * group the messages that have a decision, so a value that no message has is absent. `failures` are
- * the newest messages whose status is `failed` or whose delivery failed.
- */
+/** The message counts of a user in a window. */
 export async function getOverview(db: Db, userId: string, days: number, now = new Date()) {
   const since = new Date(now.getTime() - days * DAY_IN_MILLISECONDS);
   const inWindow = and(eq(messages.userId, userId), gte(messages.receivedAt, since));
@@ -116,14 +108,7 @@ export async function getOverview(db: Db, userId: string, days: number, now = ne
   };
 }
 
-/**
- * The report of one playbook for its period (decision 0048). The status is `not_found` when the
- * user has no such playbook and `period_not_ended` when the playbook has no end or its end is after
- * `now`. Otherwise the report counts the decisions that used the playbook for messages received
- * between the start and the end of the period, grouped by outcome and by delivery state, and the
- * decisions whose reply cites the playbook. A playbook without a start is counted from the
- * beginning.
- */
+/** The report of one playbook for its period. */
 export async function getPlaybookReport(db: Db, userId: string, id: string, now = new Date()) {
   const [playbook] = await db
     .select()

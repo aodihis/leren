@@ -24,7 +24,7 @@ import { reporters } from "./target";
 const QDRANT_URL = process.env.VECTOR_STORE_URL ?? "http://localhost:16333";
 const COLLECTION = `knowledge_eval_${crypto.randomUUID().replaceAll("-", "")}`;
 
-/** The output of one retrieval case: the corpus keys that the search returned, best first. */
+/** The output of one retrieval case. */
 type RecallOutput = { status: "found" | "no_reliable_result"; retrieved: readonly string[] };
 
 const { defineMetric } = createEvalTypes<RecallInput, RecallOutput, RecallExpectation>();
@@ -32,10 +32,7 @@ const { defineMetric } = createEvalTypes<RecallInput, RecallOutput, RecallExpect
 const rename = (collection: string) =>
   collection === KNOWLEDGE_COLLECTION ? COLLECTION : collection;
 
-/**
- * Redirects the knowledge collection of a real store to a collection that only this run uses, so
- * the run never reads or changes the development index.
- */
+/** Redirects the knowledge collection for this run. */
 function isolateCollection(store: VectorStore): VectorStore {
   return {
     ensureCollection: (config) => store.ensureCollection({ ...config, name: rename(config.name) }),
@@ -60,10 +57,7 @@ const store = isolateCollection(createVectorStore({ url: QDRANT_URL }));
 const database = await createTestDatabase();
 const keyById = new Map<string, string>();
 
-/**
- * Inserts the corpus for one new user and indexes it with the real embedder, in the way the worker
- * indexes a playbook. It returns the id of the user, whose playbooks the searches are limited to.
- */
+/** Inserts and indexes the corpus for a new user. */
 async function indexCorpus(): Promise<string> {
   const [user] = await database.db
     .insert(users)
@@ -98,7 +92,7 @@ async function indexCorpus(): Promise<string> {
   return user.id;
 }
 
-/** Builds the eval target, which searches the corpus of `userId` with the real embedder and index. */
+/** Builds the eval target over the corpus. */
 function createTarget(userId: string): EvalTarget<RecallInput, RecallOutput> {
   return async (input, _testCase, context) => {
     const result = await searchKnowledge(
@@ -118,10 +112,7 @@ function createTarget(userId: string): EvalTarget<RecallInput, RecallOutput> {
   };
 }
 
-/**
- * Passes when every relevant playbook is among the first five results, which is a Recall@5 of 1 for
- * the case. It applies to the cases that have a relevant playbook.
- */
+/** Passes when relevant playbooks rank top five. */
 const recall = defineMetric({
   name: "recall-at-5",
   dataType: "BOOLEAN",
@@ -142,10 +133,7 @@ const recall = defineMetric({
   },
 });
 
-/**
- * Passes when a query that nothing in the corpus answers finds no reliable result, so the pipeline
- * can abstain. It applies to the cases without a relevant playbook.
- */
+/** Passes when an unanswerable query finds nothing. */
 const abstains = defineMetric({
   name: "abstains-without-knowledge",
   dataType: "BOOLEAN",
@@ -162,7 +150,7 @@ const abstains = defineMetric({
   },
 });
 
-/** The quality gate of the retrieval suite. It depends on the embedding model and the minimum score. */
+/** The quality gate of the retrieval suite. */
 const thresholds: Thresholds = {
   "recall-at-5": 0.9,
   "abstains-without-knowledge": 0.75,

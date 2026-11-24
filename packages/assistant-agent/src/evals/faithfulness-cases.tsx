@@ -23,16 +23,13 @@ const OLD_PROMO = playbook({
 
 const THREE_PLAYBOOKS = [OFFICE_HOURS, HOLIDAY_SALE, OLD_PROMO];
 
-/**
- * What the agent may know besides the playbooks: the definition of a usable playbook from the
- * assistant prompt, and the fields that every playbook above has in the tool results.
- */
+/** Background facts the agent may use. */
 const COMMON_FACTS = [
   "Leren can use a playbook in a reply only when it is enabled and its period includes the current time.",
   "Every playbook has the timezone Asia/Jakarta and the reply conditions of the email channel, which accept any sender.",
 ];
 
-/** What the playbook tools return for the playbooks above. It is the fixed truth for the judge. */
+/** Fixed playbook tool results used by the judge. */
 const THREE_PLAYBOOKS_CONTEXT = [
   "The user has exactly three playbooks.",
   "Playbook 'Office hours': enabled, no start and no end, period active, usable now. Response: We are open Monday to Friday from 09:00 to 17:00.",
@@ -41,12 +38,7 @@ const THREE_PLAYBOOKS_CONTEXT = [
   ...COMMON_FACTS,
 ];
 
-/**
- * Cases for whether what the agent says about the user's data is supported by the tool results.
- * The prompt forbids inventing facts, prices, dates or policies, and requires that disabled and
- * expired playbooks are named as such. Faithfulness checks support and not truth, so each case
- * carries the tool results as `retrievalContext`.
- */
+/** Cases for support by the tool results. */
 export const faithfulnessCases = defineEvalCases([
   {
     id: "overview-matches-the-saved-playbooks",

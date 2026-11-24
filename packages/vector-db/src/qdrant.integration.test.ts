@@ -7,11 +7,7 @@ import type { VectorStore } from "./types";
 
 const QDRANT_URL = process.env.VECTOR_STORE_URL ?? "http://localhost:16333";
 
-/**
- * Runs the `VectorStore` contract against a real Qdrant server from `pnpm services:up`. The unit
- * tests of the adapter replace the Qdrant client, so only this suite proves that the filters, the
- * paging and the id handling work against the real API. Each test uses its own collection.
- */
+/** Runs the VectorStore contract against Qdrant. */
 describe("Qdrant vector store", () => {
   let store: VectorStore;
   let collection: string;

@@ -8,12 +8,7 @@ import type { Auth } from "../auth/service";
 import { overviewQuerySchema, reportParamsSchema } from "./schema";
 import { getOverview, getPlaybookReport } from "./service";
 
-/**
- * Mounts the read-only dashboard routes under `/api/dashboard` (decision 0048). Every route
- * requires a session and every query is scoped by the session's user. The numbers are computed
- * from the message records and the reply decisions when they are read. The routes are chained so
- * that the platform can infer their types through Hono RPC.
- */
+/** Mounts the read-only dashboard routes. */
 export function createDashboardRouter(auth: Auth, db: Db) {
   return new Hono<{ Variables: AuthVariables }>()
     .use("/api/dashboard/*", requireUser(auth))

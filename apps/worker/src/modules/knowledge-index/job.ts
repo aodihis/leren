@@ -6,13 +6,10 @@ import { knowledgeDriftPayloadSchema, knowledgeIndexPayloadSchema } from "./sche
 import { repairKnowledgeDrift, syncPlaybook } from "./service";
 import type { KnowledgeIndexDependencies } from "./service";
 
-/** The name of the queue that triggers a drift check and repair. */
+/** The queue name of the drift check and repair. */
 export const KNOWLEDGE_DRIFT_QUEUE = "knowledge.drift";
 
-/**
- * Brings the vector index of one playbook up to date. Every failure is retried, because the
- * database and the vector store may be briefly unavailable and a retry reads the current row.
- */
+/** Brings the index of one playbook up to date. */
 export function createKnowledgeIndexJob(dependencies: KnowledgeIndexDependencies) {
   return defineJob({
     name: KNOWLEDGE_INDEX_QUEUE,
@@ -31,10 +28,7 @@ export function createKnowledgeIndexJob(dependencies: KnowledgeIndexDependencies
   });
 }
 
-/**
- * Compares PostgreSQL with the vector index and repairs the differences. It also removes the
- * vectors of playbooks whose period has ended, because nothing else reacts to time passing.
- */
+/** Compares PostgreSQL with the index and repairs it. */
 export function createKnowledgeDriftJob(dependencies: KnowledgeIndexDependencies) {
   return defineJob({
     name: KNOWLEDGE_DRIFT_QUEUE,

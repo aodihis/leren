@@ -8,7 +8,7 @@ const validEnv = {
   RABBITMQ_URL: "amqp://leren:leren@localhost:56720",
 };
 
-/** The valid environment without the address of the vector store, which only the indexer needs. */
+/** The valid environment without the vector store. */
 const { VECTOR_STORE_URL: _unused, ...withoutStore } = validEnv;
 
 const loadWithTypo = () => loadConfig({ ...withoutStore, WORKER_ROLES: "listner" });

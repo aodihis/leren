@@ -13,14 +13,7 @@ interface PlaybookStatusBadgeProps {
   status: PlaybookStatus;
 }
 
-/**
- * A status badge for a playbook. Following the design system, status colours only carry status, and
- * every badge also has a dot so that the status never depends on colour alone.
- *
- * The design system defines status colours for messages, not for playbooks. Playbooks follow the
- * closest pattern: success for a playbook that is replying, info for one that will reply later, and
- * the subtle neutral colour for one that is not in effect.
- */
+/** A status badge for a playbook. */
 export function PlaybookStatusBadge({ status }: PlaybookStatusBadgeProps) {
   const { label, className } = STATUS_BADGES[status];
 

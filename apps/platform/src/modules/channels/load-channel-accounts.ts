@@ -1,10 +1,7 @@
 import { api } from "../api/api-client";
 import type { ChannelAccountsOverview } from "./types";
 
-/**
- * Loads the enabled channel providers and the signed-in user's channel accounts. Throws when the
- * API cannot be reached or refuses, so that a route can show its error or fall back.
- */
+/** Loads channel providers and the user's accounts. */
 export async function loadChannelAccounts(): Promise<ChannelAccountsOverview> {
   const response = await api.api["channel-accounts"].$get();
 
@@ -15,10 +12,7 @@ export async function loadChannelAccounts(): Promise<ChannelAccountsOverview> {
   return response.json();
 }
 
-/**
- * Loads the user's channel accounts for a screen that works without them. The playbook form uses
- * it, so a playbook can still be edited when the accounts cannot be loaded.
- */
+/** Loads channel accounts, tolerating load failure. */
 export async function loadAccountsOrNone(): Promise<ChannelAccountsOverview["accounts"]> {
   try {
     return (await loadChannelAccounts()).accounts;

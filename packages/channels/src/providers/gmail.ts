@@ -11,7 +11,7 @@ import type {
 
 const API_URL = "https://gmail.googleapis.com/gmail/v1/users/me";
 
-/** Labels of mail that the account itself wrote, which the listener never ingests. */
+/** Labels of mail that the account wrote itself. */
 const OWN_MAIL_LABELS = ["SENT", "DRAFT"];
 
 const AUTOMATIC_PRECEDENCE = new Set(["bulk", "list", "junk"]);
@@ -61,7 +61,7 @@ const messageSchema = z.object({
 
 type GmailMessage = z.infer<typeof messageSchema>;
 
-/** Thrown when Gmail answers a request with a status that is not a success. */
+/** Thrown when Gmail answers with an error status. */
 class GmailRequestError extends Error {
   constructor(
     readonly status: number,
@@ -80,7 +80,7 @@ function decodeBase64Url(data: string): string {
   return Buffer.from(data, "base64url").toString("utf8");
 }
 
-/** Converts HTML to plain text by dropping scripts and styles, breaking lines and removing tags. */
+/** Converts HTML to plain text. */
 function htmlToText(html: string): string {
   return html
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
@@ -112,7 +112,7 @@ function findPart(part: Part, mimeType: string): string | undefined {
   return undefined;
 }
 
-/** Returns the `text/plain` body, or the text of the `text/html` body when there is none. */
+/** Returns the plain or HTML body text. */
 function extractBody(payload: Part): string {
   const plain = findPart(payload, "text/plain");
 
@@ -125,13 +125,7 @@ function extractBody(payload: Part): string {
   return html === undefined ? "" : htmlToText(html);
 }
 
-/**
- * Returns one address for each mailbox in a header such as `Ana <ana@example.com>, bo@example.com`.
- * A mailbox is split from the next at a comma that is outside a quoted display name. Its address is
- * the one in angle brackets when it has one, and the bare address otherwise. Quoted strings are
- * removed first, so an address written inside a display name, with or without angle brackets, is
- * never taken for the address of the mailbox.
- */
+/** Returns one address for each mailbox in a header. */
 function parseAddresses(value: string | undefined): string[] {
   if (!value) {
     return [];
@@ -147,10 +141,7 @@ function parseAddresses(value: string | undefined): string[] {
   });
 }
 
-/**
- * Converts a Gmail message to an email. A message is a reply when it names the message it answers,
- * and it is bulk when its headers say it was sent to a list or by a program.
- */
+/** Converts a Gmail message to an email. */
 export function parseGmailMessage(message: GmailMessage): FetchedEmail {
   const headers = new Map(
     (message.payload.headers ?? []).map((header) => [header.name.toLowerCase(), header.value]),
@@ -191,18 +182,12 @@ async function requestGmail(
   return response.json();
 }
 
-/** Returns the current position of the mailbox, which is the `historyId` of its profile. */
+/** Returns the current position of the mailbox. */
 export async function readGmailPosition(send: typeof fetch, accessToken: string): Promise<string> {
   return profileSchema.parse(await requestGmail(send, accessToken, "/profile")).historyId;
 }
 
-/**
- * Reads new mail from a Gmail mailbox with the history API (decision 0041). The cursor is a
- * `historyId`. Without one, or when Gmail no longer holds the history from it, the result is the
- * current `historyId` and no emails. Every page of the history is read, mail that the account
- * itself wrote is left out, a message that was deleted after it arrived is skipped, and a message
- * that does not have the expected shape is reported in `unreadable`.
- */
+/** Reads new mail with the Gmail history API. */
 export async function fetchNewGmail(
   send: typeof fetch,
   accessToken: string,
@@ -298,23 +283,19 @@ const NOT_REACHED_CODES = new Set(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"]);
 
 const HEADER_VALUE = /^[ -~]*$/;
 
-/** Removes line breaks, so a value can never end a header or start another one. */
+/** Removes line breaks from a header value. */
 function singleLine(value: string): string {
   return value.replaceAll(/[\r\n]+/g, " ").trim();
 }
 
-/** Encodes a header value that has characters outside ASCII as an RFC 2047 encoded word. */
+/** Encodes a non-ASCII header value. */
 function encodeHeader(value: string): string {
   const line = singleLine(value);
 
   return HEADER_VALUE.test(line) ? line : `=?UTF-8?B?${Buffer.from(line).toString("base64")}?=`;
 }
 
-/**
- * Builds the plain text message of a reply as RFC 2822 text, encoded as base64url, which is the
- * form that Gmail takes. The body is sent as base64 so that no line of it can be mistaken for a
- * header.
- */
+/** Builds the base64url RFC 2822 text of a reply. */
 export function buildRawReply(reply: OutboundReply): string {
   const headers = [
     `To: ${singleLine(reply.to)}`,
@@ -336,10 +317,7 @@ export function buildRawReply(reply: OutboundReply): string {
   return Buffer.from(`${headers.join("\r\n")}\r\n\r\n${body}\r\n`).toString("base64url");
 }
 
-/**
- * Reads the headers of an original message that a reply needs, which are its `Message-ID`, its
- * `References` and its `Reply-To`.
- */
+/** Reads the headers a reply needs. */
 export async function readGmailReplyContext(
   send: typeof fetch,
   accessToken: string,
@@ -373,7 +351,7 @@ export async function readGmailReplyContext(
   };
 }
 
-/** Reads the error code that the network layer attached to a failed request, if any. */
+/** Reads the network error code of a failed request. */
 function networkCode(error: unknown): unknown {
   return error instanceof Error && error.cause instanceof Error
     ? (error.cause as { code?: unknown }).code
@@ -389,7 +367,7 @@ const rateLimitErrorSchema = z.object({
 
 const RATE_LIMIT_REASONS = new Set(["rateLimitExceeded", "userRateLimitExceeded"]);
 
-/** Whether a Gmail error body says that a rate limit was reached, which a later retry may pass. */
+/** Whether a Gmail error reports a rate limit. */
 function isRateLimit(body: unknown): boolean {
   const parsed = rateLimitErrorSchema.safeParse(body);
 
@@ -449,7 +427,7 @@ async function postGmail(
   throw new Error(message);
 }
 
-/** Creates a draft in the mailbox and returns its id with the whole answer of Gmail. */
+/** Creates a draft and returns its id. */
 export async function createGmailDraft(
   send: typeof fetch,
   accessToken: string,
@@ -462,7 +440,7 @@ export async function createGmailDraft(
   return { id: draftSchema.parse(response).id, response };
 }
 
-/** Sends the reply and returns the id of the sent message with the whole answer of Gmail. */
+/** Sends the reply and returns its id. */
 export async function sendGmailReply(
   send: typeof fetch,
   accessToken: string,

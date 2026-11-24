@@ -12,11 +12,7 @@ function hashToken(token: string): number {
   return hash;
 }
 
-/**
- * Creates an `Embedder` that needs no network. A text becomes a normalised bag of hashed words, so
- * the same text always gives the same vector and texts that share words are more similar than
- * texts that do not. Tests use it to exercise indexing and retrieval deterministically.
- */
+/** Creates an Embedder that needs no network. */
 export function createFakeEmbedder(dimensions = DEFAULT_DIMENSIONS): Embedder {
   function embedText(text: string): number[] {
     const vector = Array.from({ length: dimensions }, () => 0);

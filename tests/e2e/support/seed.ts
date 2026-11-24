@@ -6,10 +6,7 @@ import { getE2eDatabaseUrl } from "./database";
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/**
- * Connects to the end-to-end database, runs `work` with the user whose address is `email` and closes
- * the connection. Throws when no user has the address.
- */
+/** Runs work with the user of an address. */
 async function withUser<T>(
   email: string,
   work: (db: Db, user: typeof users.$inferSelect) => Promise<T>,
@@ -44,11 +41,7 @@ async function insertAccount(db: Db, userId: string, email: string) {
   return account;
 }
 
-/**
- * Connects an email account, labelled with `email`, to the user with that address. A playbook that
- * is enabled has to name an account (decision 0044), so a test that creates one connects an account
- * first.
- */
+/** Connects an email account to a user. */
 export async function seedChannelAccount(email: string): Promise<void> {
   await withUser(email, (db, user) => insertAccount(db, user.id, email));
 }
@@ -60,12 +53,7 @@ type SeededMessage = {
   decision?: Omit<typeof replyDecisions.$inferInsert, "messageId" | "userId">;
 };
 
-/**
- * Writes the records of a finished playbook period for the user `email`: a playbook that ended a
- * day ago, and the messages that it handled while it was running, with their decisions, and two
- * messages that failed. The overview of the user then has six messages and two failures, and the
- * report of the playbook has four decisions. Returns the topic of the playbook.
- */
+/** Writes the records of a finished playbook period. */
 export async function seedFinishedPlaybook(email: string): Promise<string> {
   return withUser(email, async (db, user) => {
     const now = Date.now();

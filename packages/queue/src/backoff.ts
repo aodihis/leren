@@ -8,10 +8,7 @@ export const DEFAULT_BACKOFF: BackoffPolicy = {
   maxDelayMs: 60_000,
 };
 
-/**
- * Returns the delay to wait after `failedAttempt` failed, where the first attempt is 1.
- * The result is a whole number of milliseconds, so it can name a retry queue.
- */
+/** Returns the delay after a failed attempt. */
 export function getBackoffDelayMs(policy: BackoffPolicy, failedAttempt: number): number {
   const delay = policy.initialDelayMs * policy.factor ** (failedAttempt - 1);
 
@@ -20,7 +17,7 @@ export function getBackoffDelayMs(policy: BackoffPolicy, failedAttempt: number):
 
 export type ResolvedConsumeOptions = Required<ConsumeOptions>;
 
-/** Fills the defaults of `ConsumeOptions` and rejects values that could never work. */
+/** Fills the defaults of ConsumeOptions. */
 export function resolveConsumeOptions(options: ConsumeOptions = {}): ResolvedConsumeOptions {
   const resolved = {
     maxAttempts: options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,

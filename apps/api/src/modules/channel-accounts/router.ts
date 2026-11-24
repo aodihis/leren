@@ -32,21 +32,14 @@ const pendingConnectionSchema = z.object({
   provider: z.string(),
 });
 
-/**
- * What the router needs beyond the account functions. `cookieSecret` signs the cookie that holds
- * a pending connection. `apiUrl` is the origin that providers redirect back to and `platformUrl`
- * is where the callback sends the browser afterwards.
- */
+/** What the router needs beyond account functions. */
 export type ChannelAccountsRouterDependencies = ChannelAccountsDependencies & {
   cookieSecret: string;
   apiUrl: string;
   platformUrl: string;
 };
 
-/**
- * The dependencies of an API without any enabled provider. Every provider route answers with not
- * found, so the other values are never used.
- */
+/** The dependencies of an API with no providers. */
 export const NO_CHANNEL_PROVIDERS: ChannelAccountsRouterDependencies = {
   providers: new Map(),
   encryptionKey: undefined,
@@ -67,18 +60,7 @@ function parseJson(text: string): unknown {
   }
 }
 
-/**
- * Mounts the routes of channel accounts under `/api/channel-accounts`. Every route, including the
- * provider callback, requires a session and is scoped to the signed-in user. A provider that is
- * unknown or not enabled is reported as not found.
- *
- * A connection is kept between the connect request and the callback in a signed, `httpOnly`
- * cookie that expires after ten minutes. It holds the random `state` value, the PKCE code verifier,
- * the user and the provider. The callback accepts a request only when the cookie is present, its
- * `state` equals the query's and the session's user is the cookie's user. The cookie is cleared on
- * every callback, so a `state` value is used once. The cookie is `SameSite=Lax` because the
- * provider's redirect is a cross-site navigation. Tokens are never logged.
- */
+/** Mounts the channel account routes. */
 export function createChannelAccountsRouter({
   auth,
   db,

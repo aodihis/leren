@@ -10,12 +10,7 @@ import {
 } from "./support/config";
 import { getE2eDatabaseUrl } from "./support/database";
 
-/**
- * Settings that the API reads from the development `.env` file through `--env-file-if-exists`. The
- * file can hold encrypted values, and Node does not override a variable that is already set, so
- * each one is set here to a value that turns its feature off or satisfies the validation. The tests
- * then behave the same with or without that file, and never reach a real Lens server or provider.
- */
+/** Settings that the API reads from the .env file. */
 const NEUTRAL_ENVIRONMENT = {
   EMAIL_FROM: "Leren <noreply@example.com>",
   GOOGLE_CLIENT_ID: "unused",
@@ -45,11 +40,7 @@ const NEUTRAL_ENVIRONMENT = {
   MCP_TOKEN: "",
 };
 
-/**
- * Playwright configuration. The tests start their own API and platform on ports that differ from
- * the development ports, against a dedicated database, so they can run next to `pnpm dev`.
- * PostgreSQL and Mailpit must be running: start them with `pnpm services:up`.
- */
+/** The Playwright configuration. */
 export default defineConfig({
   testDir: "./specs",
   fullyParallel: true,

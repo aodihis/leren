@@ -6,16 +6,12 @@ import type { WorkerRole } from "./roles";
 
 const DEFAULT_MCP_URL = "http://localhost:3000/mcp";
 
-/** Reads an empty variable, such as `NAME=` in an env file, as a variable that is not set. */
+/** Reads an empty variable as unset. */
 function emptyAsUnset<Schema extends z.ZodType>(schema: Schema) {
   return z.preprocess((value) => (value === "" ? undefined : value), schema);
 }
 
-/**
- * Builds the schema of the configuration for a set of roles. A variable that only a role uses is
- * required only when the role is in the set (decision 0045), and it is checked together with every
- * other variable, so that one error lists everything that is missing.
- */
+/** Builds the configuration schema for roles. */
 function createConfigSchema(roles: ReadonlySet<WorkerRole>) {
   return z
     .object({
@@ -58,12 +54,7 @@ function createConfigSchema(roles: ReadonlySet<WorkerRole>) {
 
 export type Config = z.infer<ReturnType<typeof createConfigSchema>>;
 
-/**
- * Reads and validates the worker's configuration from environment variables. Throws one error that
- * lists every missing or invalid variable, so a misconfigured process fails at startup. When
- * `WORKER_ROLES` itself is invalid, the variables that depend on the roles are not checked, so that
- * the error names the real problem and not settings of roles that the operator never asked for.
- */
+/** Reads and validates the worker configuration. */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsedRoles = parseWorkerRoles(env.WORKER_ROLES);
   const roles = new Set<WorkerRole>("roles" in parsedRoles ? parsedRoles.roles : []);

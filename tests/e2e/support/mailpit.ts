@@ -4,20 +4,14 @@ import { MAILPIT_URL } from "./config";
 
 type MailpitMessage = { ID: string; Subject: string };
 
-/**
- * Deletes every email sent to `address`, so the next `readSignInCode` cannot return the code from an
- * earlier request for the same address.
- */
+/** Deletes every email sent to an address. */
 export async function clearInbox(address: string): Promise<void> {
   const query = encodeURIComponent(`to:${address}`);
 
   await fetch(`${MAILPIT_URL}/api/v1/search?query=${query}`, { method: "DELETE" });
 }
 
-/**
- * Waits for the sign-in email sent to `address` and returns its six-digit code. The inbox is
- * Mailpit, which receives every email the API sends during the tests.
- */
+/** Waits for the sign-in code sent to an address. */
 export async function readSignInCode(address: string): Promise<string> {
   let subject = "";
 

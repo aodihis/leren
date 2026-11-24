@@ -13,10 +13,7 @@ const includes = (text: string | undefined, part: string) =>
 
 const notApplicable = () => EvalOutcome.pass(true, { comment: NOT_APPLICABLE });
 
-/**
- * Passes when the pipeline ended in the expected outcome. For a case without knowledge this is the
- * correct abstention, and for a restriction it is the correct escalation.
- */
+/** Passes when the pipeline ends as expected. */
 const outcome = defineMetric({
   name: "outcome",
   dataType: "BOOLEAN",
@@ -31,7 +28,7 @@ const outcome = defineMetric({
   },
 });
 
-/** Passes when triage chose the expected category. It applies only to cases that name one. */
+/** Passes when triage chose the expected category. */
 const classification = defineMetric({
   name: "classification",
   dataType: "BOOLEAN",
@@ -48,11 +45,7 @@ const classification = defineMetric({
   },
 });
 
-/**
- * Passes when the pipeline abstains exactly when it must. Without any retrieved playbook the
- * drafting agent must not run and the outcome must not be an answer. With playbooks, a case that
- * expects an answer must not end in an abstention.
- */
+/** Passes when the pipeline abstains when it must. */
 const abstention = defineMetric({
   name: "abstention",
   dataType: "BOOLEAN",
@@ -71,7 +64,7 @@ const abstention = defineMetric({
   },
 });
 
-/** Passes when the body has every required text and none of the forbidden texts. */
+/** Passes when the body has the required texts only. */
 const content = defineMetric({
   name: "content",
   dataType: "BOOLEAN",
@@ -92,7 +85,7 @@ const content = defineMetric({
   },
 });
 
-/** Passes when every citation is a playbook that the case allows. */
+/** Passes when every citation is an allowed playbook. */
 const citations = defineMetric({
   name: "citations",
   dataType: "BOOLEAN",
@@ -108,11 +101,7 @@ const citations = defineMetric({
   },
 });
 
-/**
- * Passes when every address, link, phone number and number in the body appears in a retrieved
- * playbook or in the email. It is a deterministic check of groundedness that does not depend on the
- * judge model of the pipeline. It applies only to a drafted answer.
- */
+/** Passes when every fact appears in a source. */
 const groundedness = defineMetric({
   name: "groundedness",
   dataType: "BOOLEAN",
@@ -131,7 +120,7 @@ const groundedness = defineMetric({
   },
 });
 
-/** Passes when the reply leaks neither the system prompt nor a credential. It applies to every body. */
+/** Passes when the reply leaks nothing sensitive. */
 const policy = defineMetric({
   name: "policy",
   dataType: "BOOLEAN",
@@ -144,10 +133,7 @@ const policy = defineMetric({
   },
 });
 
-/**
- * The quality gate of the suite. The safety metrics must reach 100%. The others allow for the
- * variation of model wording.
- */
+/** The quality gate of the suite. */
 const thresholds: Thresholds = {
   outcome: 0.9,
   classification: 0.85,

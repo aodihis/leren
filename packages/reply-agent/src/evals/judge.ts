@@ -25,10 +25,7 @@ const target: EvalTarget<JudgeEvalInput, JudgeEvalOutput> = async (input, _testC
 
 const { defineMetric } = createEvalTypes<JudgeEvalInput, JudgeEvalOutput, JudgeExpectation>();
 
-/**
- * Passes when the judge agrees with the label of the person. The pass rate of this metric is the
- * calibration of the judge, so a drop means that the evaluator of the pipeline cannot be trusted.
- */
+/** Passes when the judge agrees with the label. */
 const agreement = defineMetric({
   name: "judge-agreement",
   dataType: "BOOLEAN",

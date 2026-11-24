@@ -2,38 +2,23 @@ import type { EvalReporter } from "@anvia/core/evals";
 import type { AgentObservabilityOptions } from "@anvia/core/observability";
 import type { PipelineObservabilityOptions } from "@anvia/core/pipeline";
 
-/**
- * The vendor-neutral surface that applications and packages use for tracing.
- *
- * Callers never see which backend records the traces. A backend is one implementation of this
- * interface, so replacing it changes only the factory in `index.ts`.
- */
+/** The vendor-neutral surface for tracing. */
 export interface Observer {
   readonly enabled: boolean;
 
-  /**
-   * Returns the options to pass as `observability` when constructing an agent, or `undefined`
-   * when tracing is disabled.
-   */
+  /** Returns the agent observability options. */
   forAgent(): AgentObservabilityOptions | undefined;
 
-  /**
-   * Returns the options to pass as `observability` when constructing a pipeline, or `undefined`
-   * when tracing is disabled. Each run of the pipeline is one trace, and each stage is a span in it.
-   */
+  /** Returns the pipeline observability options. */
   forPipeline(): PipelineObservabilityOptions | undefined;
 
-  /**
-   * Returns a reporter that records eval results next to the traces of the agent runs they grade,
-   * or `undefined` when tracing is disabled. The reporter includes the inputs and outputs of the
-   * cases, so use it only for evals whose cases hold invented data.
-   */
+  /** Returns a reporter that records eval results. */
   evalReporter(): EvalReporter | undefined;
 
-  /** Delivers buffered telemetry. Short-lived processes call it before exiting. */
+  /** Delivers buffered telemetry. */
   flush(): Promise<void>;
 
-  /** Delivers buffered telemetry and releases resources. Call it once during shutdown. */
+  /** Delivers telemetry and releases resources. */
   close(): Promise<void>;
 }
 

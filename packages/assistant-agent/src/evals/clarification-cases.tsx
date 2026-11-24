@@ -1,7 +1,7 @@
 import { defineEvalCases } from "@anvia/core/evals";
 import { playbook } from "./target";
 
-/** A case for a rubric judge. `criteria` is what a correct answer must and must not do. */
+/** A rubric judge case with correctness criteria. */
 export type RubricExpectation = { criteria: string };
 
 const COMPLETE_REQUEST =
@@ -29,11 +29,7 @@ const ANSWER_ONLY_ENABLED_STATE =
 const LIST_IN_INDONESIAN =
   "The answer is written in Indonesian, the language of the user, and names the topics Office hours and Refund policy.";
 
-/**
- * Cases for how the agent asks. The prompt says to ask when something is unclear or required and
- * missing, never to ask about optional settings that the user did not mention, and to answer in
- * the user's language. A judge grades each answer against the criteria of the case.
- */
+/** Cases for how the agent asks clarifying questions. */
 export const clarificationCases = defineEvalCases([
   {
     id: "asks-for-the-missing-timezone",

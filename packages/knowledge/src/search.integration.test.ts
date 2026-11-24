@@ -20,10 +20,7 @@ const QDRANT_URL = process.env.VECTOR_STORE_URL ?? "http://localhost:16333";
 const embeddingModel = harness.embeddingModels[harness.defaultEmbeddingModel];
 const embeddingApiKey = embeddingModel ? process.env[embeddingModel.apiKeyEnv] : undefined;
 
-/**
- * Redirects the knowledge collection of a real store to a collection that only this test run
- * uses, so the tests never read or change the development index.
- */
+/** Redirects the knowledge collection for this run. */
 function isolateCollection(store: VectorStore, name: string): VectorStore {
   const rename = (collection: string) => (collection === KNOWLEDGE_COLLECTION ? name : collection);
 
@@ -37,11 +34,7 @@ function isolateCollection(store: VectorStore, name: string): VectorStore {
   };
 }
 
-/**
- * Runs the retrieval scenarios against a real Qdrant server and a real PostgreSQL database. The
- * embedder is injected, so the same scenarios cover a deterministic embedder and the real
- * embedding endpoint. The server and the database come from `pnpm services:up`.
- */
+/** Runs retrieval scenarios against real services. */
 function describeRetrieval(name: string, createEmbedderForSuite: () => Embedder, skip = false) {
   describe.skipIf(skip)(name, () => {
     let database: TestDatabase;

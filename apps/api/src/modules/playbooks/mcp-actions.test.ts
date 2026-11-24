@@ -10,7 +10,7 @@ const MISSING_ID = "00000000-0000-4000-8000-000000000000";
 
 type Saved = { status: "saved"; id: string; data: Record<string, unknown> };
 
-/** Runs an action with arguments that the MCP layer has already validated against its schema. */
+/** Runs an action with already validated arguments. */
 function run(
   action: { run: (userId: string, input: never) => Promise<unknown> },
   userId: string,

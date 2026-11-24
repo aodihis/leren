@@ -1,11 +1,6 @@
 import { defineHarnessConfig } from "@leren/agents";
 
-/**
- * The configuration of the agent harness.
- *
- * Each agent's system prompt is a markdown file, the models list what an agent can run on, and
- * every directory in `pluginsDir` that has a `manifest.json` registers additional tools.
- */
+/** The configuration of the agent harness. */
 export default defineHarnessConfig({
   prompts: {
     assistant: "prompts/assistant.md",

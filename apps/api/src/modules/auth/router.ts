@@ -8,11 +8,7 @@ import { updateProfileSchema } from "./schema";
 import { getProfile, updateProfile } from "./service";
 import type { Auth } from "./service";
 
-/**
- * Mounts Better Auth's endpoints under `/api/auth` and adds `GET /api/me` and `PATCH /api/me`,
- * which read and update the signed-in user's profile. The routes are chained so that the platform
- * can infer their types through Hono RPC.
- */
+/** Mounts the auth routes and the profile routes. */
 export function createAuthRouter(auth: Auth, db: Db) {
   return new Hono<{ Variables: AuthVariables }>()
     .on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))

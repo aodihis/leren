@@ -20,7 +20,7 @@ Lint and formatting must pass before committing. `pnpm check` runs lint, format 
 
 Custom rules live in `tooling/oxlint/` and are enabled in `tooling/oxlint/base.json`.
 
-- **Comments:** only JSDoc blocks and tool directives are allowed. Use JSDoc for a function, class or file, and keep it concise. State invariants the code upholds or relies on. Do not comment what the code already makes obvious. Write complete sentences as statements of current truth, never narrating what changed.
+- **Comments:** only JSDoc blocks and tool directives are allowed. Use JSDoc for a function, class or file. A comment is at most 50 characters and gives general information about the code, never the details of a bug. Do not comment what the code already makes obvious. Write complete sentences as statements of current truth, never narrating what changed.
 - **Ternaries:** do not nest them.
 - **State:** no module-level `let` or `var`. Hold state explicitly.
 - **Spacing:** keep blank lines between logical groups. `pnpm lint:fix` fixes this.

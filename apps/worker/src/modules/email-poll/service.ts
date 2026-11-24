@@ -8,28 +8,17 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 export type EmailPollDependencies = {
   db: Db;
   channels: ChannelAccountsDependencies;
-  /** Records an email and publishes it to `email.received`. */
+  /** Records an email and publishes email.received. */
   recordEmail: (email: InboundEmail) => Promise<unknown>;
 };
 
-/**
- * What a poll did. `ingested` means that the mailbox was read and `count` emails were recorded.
- * `unreadable` lists the ids of messages that the provider could not convert and that were left
- * out. `baseline` means that the poll stored the current position of the mailbox and recorded
- * nothing. `gap` is true when the poll had a cursor that the provider could no longer resume from,
- * so mail that arrived since then was not ingested. `skipped` means that the account cannot be
- * polled: it is gone, revoked, has a provider that is disabled or cannot read a mailbox, or has no
- * usable credentials.
- */
+/** The outcome of a poll. */
 export type PollOutcome =
   | { kind: "ingested"; count: number; unreadable: string[] }
   | { kind: "baseline"; gap: boolean }
   | { kind: "skipped" };
 
-/**
- * Returns the ids of the accounts that the listener polls: the active accounts whose provider is
- * enabled and can read a mailbox.
- */
+/** Returns the ids of the accounts to poll. */
 export async function listPollableAccountIds(
   db: Db,
   providers: ChannelAccountsDependencies["providers"],
@@ -50,12 +39,7 @@ export async function listPollableAccountIds(
   return rows.map((row) => row.id);
 }
 
-/**
- * Reads the new mail of one account and records it (decision 0041). The cursor is stored after
- * every email is recorded, so a failure repeats emails that are already recorded and loses none,
- * because recording is idempotent. The cursor is written only while it is still the one that was
- * read, so overlapping polls and a reconnection, which replaces it, never move it backwards.
- */
+/** Reads the new mail of one account. */
 export async function pollAccount(
   { db, channels, recordEmail }: EmailPollDependencies,
   accountId: string,

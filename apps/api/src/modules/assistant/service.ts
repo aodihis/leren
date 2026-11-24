@@ -8,10 +8,7 @@ const AGENT = "assistant";
 const LIST_LIMIT = 100;
 const DEFAULT_TITLE = "New chat";
 
-/**
- * Creates the store that holds the Assistant Agent's conversations. A conversation is addressed by
- * its session id and its user, so the session id of another user reaches no history.
- */
+/** Creates the store of assistant conversations. */
 export function createMemoryStore(db: Db): DrizzleMemoryStore {
   return new DrizzleMemoryStore({ db, scopeKey: { includeUserId: true } });
 }
@@ -25,7 +22,7 @@ export function scopeFor(userId: string, sessionId: string, title?: string): Mem
   };
 }
 
-/** The user's most recent assistant conversations, newest first. */
+/** The user's most recent assistant conversations. */
 export async function listConversations(store: DrizzleMemoryStore, userId: string) {
   const summaries = await store.inspector.listConversations({ limit: LIST_LIMIT, userId });
 
@@ -42,7 +39,7 @@ export async function listConversations(store: DrizzleMemoryStore, userId: strin
   );
 }
 
-/** The stored messages of a conversation. A conversation of another user has none. */
+/** The stored messages of a conversation. */
 export function loadMessages(
   store: DrizzleMemoryStore,
   userId: string,

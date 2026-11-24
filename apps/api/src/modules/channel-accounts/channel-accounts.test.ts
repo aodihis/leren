@@ -46,10 +46,7 @@ const TOKENS: ProviderTokens = {
   expiresAt: "2999-01-01T00:00:00.000Z",
 };
 
-/**
- * A provider that behaves like Google without the network. `finish` returns whichever account the
- * test sets in `next`.
- */
+/** A fake Google-like provider without the network. */
 function createFakeProvider() {
   const state: { next: AuthorisedAccount } = {
     next: { providerAccountId: "sub-1", label: "one@example.com", tokens: TOKENS },
@@ -123,10 +120,7 @@ describe("channel accounts API", () => {
   const call = (cookie: string, method: string, path: string) =>
     app.request(path, { method, headers: { cookie } });
 
-  /**
-   * Starts a connection and returns the pending-connection cookie and the `state` value, as a
-   * browser would hold them when the provider redirects back.
-   */
+  /** Starts a connection and returns cookie and state. */
   const startConnection = async (cookie: string, provider = "google") => {
     const response = await call(cookie, "POST", `${PATH}/${provider}/connect`);
     const { url } = await response.json();

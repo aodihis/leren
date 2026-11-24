@@ -14,10 +14,7 @@ const AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 
-/**
- * The scopes of the Google provider. The first two identify the account. The Gmail scopes let the
- * product read mail, send replies and create drafts (decisions 0038 and 0046).
- */
+/** The scopes of the Google provider. */
 export const GOOGLE_SCOPES = [
   "openid",
   "email",
@@ -38,19 +35,16 @@ const idTokenClaimsSchema = z.object({ sub: z.string().min(1), email: z.string()
 export type GoogleProviderOptions = {
   clientId: string;
   clientSecret: string;
-  /** Replaces the global `fetch`, so tests can run without the network. */
+  /** Replaces the global fetch for tests. */
   fetch?: typeof fetch;
 };
 
-/** Converts the lifetime of an access token in seconds to the instant it expires. */
+/** Converts a token lifetime to an expiry instant. */
 function expiry(seconds: number | undefined): string | null {
   return seconds === undefined ? null : new Date(Date.now() + seconds * 1000).toISOString();
 }
 
-/**
- * Reads the claims of an ID token that was received directly from Google's token endpoint over
- * TLS. The OpenID Connect specification allows skipping the signature check for such a token.
- */
+/** Reads the claims of an ID token. */
 function readIdToken(idToken: string | undefined) {
   const payload = idToken?.split(".")[1];
 
@@ -61,11 +55,7 @@ function readIdToken(idToken: string | undefined) {
   return idTokenClaimsSchema.parse(JSON.parse(Buffer.from(payload, "base64url").toString("utf8")));
 }
 
-/**
- * The Google provider for the `email` channel. It connects a Gmail or Google Workspace mailbox with
- * the authorization code flow, PKCE and offline access. The account is identified by the `sub`
- * claim and labelled with the address. It reads new mail with the Gmail history API.
- */
+/** The Google provider for the email channel. */
 export function createGoogleProvider(options: GoogleProviderOptions): EmailProvider & EmailSender {
   const send = options.fetch ?? fetch;
 

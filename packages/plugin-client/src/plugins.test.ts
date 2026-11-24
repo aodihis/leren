@@ -6,10 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { loadPlugins } from "./plugins";
 
-/**
- * Plugins are loaded from real directories because discovery, manifest parsing and dynamic import
- * together are the behavior under test. Each test gets a fresh temporary directory.
- */
+/** Plugins are loaded from temporary directories. */
 describe("loadPlugins", () => {
   let pluginsDir: string;
 

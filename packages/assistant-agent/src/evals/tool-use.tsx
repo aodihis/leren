@@ -10,10 +10,7 @@ const { defineMetric } = createEvalTypes<
   ToolExpectation
 >();
 
-/**
- * Passes when every required tool was called at least once and no forbidden tool was called. Each
- * name in the expectation is a regular expression that must match a whole tool name.
- */
+/** Passes when required and forbidden tools match. */
 const toolUse = defineMetric({
   name: "tool-use",
   dataType: "BOOLEAN",

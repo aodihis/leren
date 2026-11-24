@@ -22,26 +22,13 @@ const LAST_ERROR_HEADER = "x-last-error";
 
 export type RabbitMqQueueOptions = {
   url: string;
-  /** Called when a delivery cannot be settled. The delivery is requeued. Defaults to logging. */
+  /** Called when a delivery cannot be settled. */
   onError?: (error: Error) => void;
-  /**
-   * Called when the connection is lost without `close` being called. The client does not
-   * reconnect, so the process should exit and let its supervisor restart it. Defaults to
-   * `onError`.
-   */
+  /** Called when the connection is lost. */
   onConnectionLost?: (error: Error) => void;
 };
 
-/**
- * Connects to RabbitMQ and returns a `QueueClient` backed by durable queues.
- *
- * Each queue `q` has a dead-letter queue `q.dlq` and one retry queue per backoff delay, named
- * `q.retry.<delay>`. A retry queue holds a failed message until its time to live expires and then
- * routes it back to `q`. Messages are persistent and publishes wait for the broker to confirm
- * them. A delivery is acknowledged only after its retry or dead-letter copy is confirmed, so a
- * crash redelivers the message instead of losing it. Changing the backoff of an existing queue
- * creates new retry queues and leaves the old ones to drain.
- */
+/** Connects to RabbitMQ and returns a QueueClient. */
 export async function createRabbitMqQueue(options: RabbitMqQueueOptions): Promise<QueueClient> {
   const reportError = options.onError ?? ((error: Error) => console.error(error));
   const reportConnectionLost = options.onConnectionLost ?? reportError;
@@ -118,10 +105,7 @@ export async function createRabbitMqQueue(options: RabbitMqQueueOptions): Promis
 
       await channel.prefetch(resolved.concurrency);
 
-      /**
-       * Settles a delivery whose handler threw. The retry or dead-letter copy is confirmed by
-       * the broker before the original is acknowledged.
-       */
+      /** Settles a delivery whose handler threw. */
       async function settleFailure(
         delivery: ConsumeMessage,
         message: QueueMessage<T>,
@@ -173,11 +157,7 @@ export async function createRabbitMqQueue(options: RabbitMqQueueOptions): Promis
         channel.ack(delivery);
       }
 
-      /**
-       * Runs the delivery to completion in the background. When it cannot be settled, for example
-       * because the broker did not confirm the retry copy, it is requeued so that it is delivered
-       * again.
-       */
+      /** Runs the delivery to completion in the background. */
       function track(delivery: ConsumeMessage): void {
         const task: Promise<void> = handleDelivery(delivery)
           .catch((error: unknown) => {

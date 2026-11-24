@@ -3,7 +3,7 @@ import { defineRule } from "@oxlint/plugins";
 const DIRECTIVE =
   /^\s*(oxlint|eslint|oxfmt|prettier|istanbul|c8|v8)[-\s]|^\s*@ts-|^\s*#(end)?region\b|^\/\s*<reference|^!/;
 
-/** Allow only JSDoc blocks and tool directives; reject line-by-line explanatory comments. */
+/** Allows only JSDoc blocks and tool directives. */
 export const noInlineCommentsRule = defineRule({
   meta: {
     type: "suggestion",

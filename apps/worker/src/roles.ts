@@ -1,21 +1,16 @@
-/** The roles that a worker process can run (decision 0045). */
+/** The roles that a worker process can run. */
 export const WORKER_ROLES = ["listener", "processor", "indexer"] as const;
 
 export type WorkerRole = (typeof WORKER_ROLES)[number];
 
-/** The result of reading the roles of a process: the roles, or what is wrong with the value. */
+/** The result of reading the roles of a process. */
 export type ParsedRoles = { roles: WorkerRole[] } | { error: string };
 
 function isWorkerRole(name: string): name is WorkerRole {
   return (WORKER_ROLES as readonly string[]).includes(name);
 }
 
-/**
- * Reads the value of `WORKER_ROLES`: role names separated by commas. An empty or unset value
- * selects every role, so a development setup with one process needs no setting. A name that is not
- * a role is an error that lists the valid names, so that a typo stops the process at startup and
- * does not silently run fewer jobs. A repeated name counts once.
- */
+/** Reads the WORKER_ROLES value. */
 export function parseWorkerRoles(value: string | undefined): ParsedRoles {
   const names = (value ?? "")
     .split(",")

@@ -35,7 +35,7 @@ import type {
   Verdict,
 } from "./types";
 
-/** Everything the stages need from the outside: models, retrieval and the system prompt. */
+/** Everything the stages need from the outside. */
 export interface ReplyPipelineDeps {
   readonly models: {
     readonly triage: CompletionModel;
@@ -44,20 +44,17 @@ export interface ReplyPipelineDeps {
   };
   /** The fixed system prompt of the Reply Agent. */
   readonly rules: string;
-  /** Searches the knowledge of the user for an email, through the MCP server. */
+  /** Searches the user's knowledge for an email. */
   readonly retrieve: (query: string, abortSignal?: AbortSignal) => Promise<Retrieval>;
   readonly observer: Observer;
-  /**
-   * The ids of the only playbooks that may be used. Playbooks that retrieval or the drafting agent
-   * return outside this set are dropped. Without it, every playbook that is found may be used.
-   */
+  /** The ids of the only playbooks that may be used. */
   readonly allowedPlaybookIds?: ReadonlySet<string> | undefined;
-  /** The MCP connection that the drafting agent may use for read-only lookups. */
+  /** The MCP connection for read-only lookups. */
   readonly mcp?: McpOptions | undefined;
   readonly abortSignal?: AbortSignal | undefined;
 }
 
-/** Asks one of the completion stages its question and reads the answer as `schema`. */
+/** Asks a completion stage and reads a schema answer. */
 function ask<Value>(
   deps: ReplyPipelineDeps,
   stage: Pick<Parameters<typeof generateJson<Value>>[0], "model" | "instructions" | "schema">,
@@ -75,7 +72,7 @@ export function triage(deps: ReplyPipelineDeps, email: string): Promise<Triage> 
   );
 }
 
-/** Decides whether to answer or escalate, from the retrieved playbooks. */
+/** Decides whether to answer or escalate. */
 export function route(
   deps: ReplyPipelineDeps,
   options: {
@@ -91,11 +88,7 @@ export function route(
   );
 }
 
-/**
- * Asks the judge model whether a draft reply is grounded in the playbooks, follows their rules and
- * the reply instructions, and does not obey the email. Throws when the judge does not answer in the
- * expected format.
- */
+/** Asks the judge whether a draft is grounded. */
 export function judge(
   deps: ReplyPipelineDeps,
   options: {
@@ -113,7 +106,7 @@ export function judge(
   );
 }
 
-/** What the draft and evaluate loop needs for one email. */
+/** What the draft and evaluate loop needs. */
 export interface DraftContext {
   readonly email: string;
   readonly category: Category;
@@ -125,44 +118,34 @@ export interface DraftContext {
   readonly replyInstructions: string | undefined;
 }
 
-/** What the draft and evaluate loop returns. `draft` is set only when the evaluator passed it. */
+/** What the draft and evaluate loop returns. */
 export interface DraftOutcome {
   readonly draft?: Draft | undefined;
-  /** The playbooks of the context and every playbook that the agent found with its own searches. */
+  /** The context playbooks and those the agent found. */
   readonly playbooks: readonly Playbook[];
   readonly evaluations: readonly Evaluation[];
   readonly revisions: number;
   readonly failure: readonly string[];
 }
 
-/**
- * What the next prompt shows in place of a draft that could not be read. The unreadable text is
- * never repeated, so that a model cannot keep repeating content that it should not have written.
- */
+/** The prompt text shown for an unreadable draft. */
 const UNREADABLE_DRAFT = "(the previous output could not be read)";
 
-/** What the evaluation records when the drafting agent uses all its turns without an answer. */
+/** The evaluation record when the turns run out. */
 const TURN_LIMIT_REACHED = "The drafting agent reached its turn limit without an answer.";
 
-/** What the next prompt tells the drafter after it used all its turns. */
+/** The prompt feedback after the turns run out. */
 const TURN_LIMIT_FEEDBACK =
   "You used all your turns without an answer. Do not search again. Answer from the playbooks you have, and say that the sender will get an answer later for any question they do not cover.";
 
-/** The problems that make a verdict fail, in words the drafter can act on. */
+/** The problems that make a verdict fail. */
 function describeVerdict(failed: readonly string[], feedback: string): string[] {
   const lines = failed.map((criterion) => `The draft fails the criterion ${criterion}.`);
 
   return feedback.trim() ? [...lines, feedback.trim()] : lines;
 }
 
-/**
- * The evaluator and optimizer loop (decision 0042). It asks the drafting agent for a reply,
- * evaluates it with the checks that need no model and then with the judge, and sends the problems
- * back to the agent for a revision. It stops at the first draft that passes, or after
- * `MAX_REVISIONS` revisions, and then reports the problems of the last draft. An answer of the judge
- * that cannot be read ends the loop with a failure, so an unchecked draft is never accepted. A
- * failure of the judge call itself is thrown, so that the queue retries the message.
- */
+/** The evaluator and optimizer loop. */
 export async function draftAndEvaluate(
   deps: ReplyPipelineDeps,
   context: DraftContext,

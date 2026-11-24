@@ -17,7 +17,7 @@ const REFUND = playbook({
   restrictions: "Never promise a refund after 30 days.",
 });
 
-/** The input of one calibration case: a draft that a person has already judged. */
+/** The input of one calibration case. */
 export type JudgeEvalInput = {
   email: string;
   playbooks: readonly Playbook[];
@@ -25,17 +25,13 @@ export type JudgeEvalInput = {
   body: string;
 };
 
-/** What the person decided: whether the draft is acceptable. */
+/** What the person decided about the draft. */
 export type JudgeExpectation = { pass: boolean };
 
 const wrap = (body: string) =>
   wrapUntrusted(prepareEmail({ from: "sam@example.com", subject: "Question", body }));
 
-/**
- * Drafts that a person has labeled, some good and some deliberately bad. The judge model is
- * correct when its verdict agrees with the label, so these cases measure the judge and not the
- * drafter (decision 0042).
- */
+/** Drafts that a person has labeled. */
 export const judgeCases = defineEvalCases([
   {
     id: "good-grounded-answer",

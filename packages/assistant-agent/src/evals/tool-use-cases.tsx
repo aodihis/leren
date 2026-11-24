@@ -1,10 +1,7 @@
 import { defineEvalCases } from "@anvia/core/evals";
 import { playbook } from "./target";
 
-/**
- * Which tools a run must and must not call. Each entry is a regular expression that is matched
- * against the whole tool name, so `"get_playbook|list_playbooks"` accepts either tool.
- */
+/** The tools a run must and must not call. */
 export type ToolExpectation = {
   mustCall?: readonly string[];
   mustNotCall?: readonly string[];
@@ -31,12 +28,7 @@ const MESSY_INPUT = [
   "remember to tell people the refund goes back to the original payment method. my phone is not for customers.",
 ].join(" ");
 
-/**
- * Cases for how the agent uses its tools. They protect the workflow of the assistant prompt: look
- * before answering, list before creating, fetch before changing, test coverage with search, and
- * load the `structure-knowledge` skill only for input that needs structuring. The metric checks
- * the tools that were called, not their order, because the prompt does not fix an order.
- */
+/** Cases for how the agent uses its tools. */
 export const toolUseCases = defineEvalCases([
   {
     id: "looks-up-playbooks-before-answering",

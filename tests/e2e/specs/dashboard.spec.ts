@@ -6,10 +6,7 @@ import { seedFinishedPlaybook } from "../support/seed";
 
 const SCREENSHOT_DIR = process.env.E2E_SCREENSHOT_DIR;
 
-/**
- * Saves a picture of `target` when `E2E_SCREENSHOT_DIR` is set, so a run can produce evidence for a
- * pull request. Without it the test only asserts.
- */
+/** Saves a screenshot when a directory is set. */
 async function capture(page: Page, target: Locator, name: string): Promise<void> {
   if (!SCREENSHOT_DIR) {
     return;

@@ -35,10 +35,9 @@ Constraints for working in this repository. Details live in `docs/`. This file d
 ## Comments and documentation
 
 - Functions, classes and files get a concise JSDoc block when they need one. The `no-inline-comments` lint rule rejects other comments, so put invariants in the JSDoc of the code they concern.
-- The best comments state an invariant, show that the code upholds an invariant, or name an invariant the code relies on.
-- Do not write duplicate comments, overly long comments, or comments about things that are obvious from reading the code.
-- Prioritize readability over brevity. Reduce comments by omitting irrelevant information, not by compressing necessary information into fewer words.
-- Use complete sentences. Do not drop words or use sentence fragments to save space.
+- A comment is at most 50 characters (`rules/max-comment-length`). It gives general information about what the code is. It never explains a bug, a scenario or a fix inside the code.
+- Do not write duplicate comments or comments about things that are obvious from reading the code.
+- Write the comment as one complete sentence or noun phrase. Do not drop words to fit the limit. Omit detail instead.
 - Use established, standard terminology. Do not coin new terms or shorthand.
 - Write comments and docs as statements of current truth. Never narrate corrections, prior framings or what changed.
 - Keep comments general. Explain what the code is, the idea behind it and how it is used. Do not describe a specific bug, scenario, input or request that motivated it. That detail belongs in the commit message or in a test.

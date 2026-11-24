@@ -73,14 +73,7 @@ export const Route = createFileRoute("/_authed")({
   component: AuthedLayout,
 });
 
-/**
- * The dashboard shell from the design system. The sidebar is expanded from 1024px, a rail of icons
- * from 768px, and a sheet behind a menu button below that. The sidebar and the content scroll
- * independently, so the page itself never scrolls. The shell is positioned so that its
- * `overflow-hidden` also clips absolutely positioned descendants, such as the hidden inputs of
- * switches, which would otherwise extend the height of the document. Labels in the rail stay in the accessibility
- * tree because they are visually hidden, not removed.
- */
+/** The dashboard shell from the design system. */
 function AuthedLayout() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
@@ -139,10 +132,7 @@ interface SidebarContentProps {
   onNavigate?: () => void;
 }
 
-/**
- * The brand, the navigation and the account row. The account row is pinned to the bottom.
- * Elements that carry a `data-label` attribute are the ones the rail hides.
- */
+/** The brand, the navigation and the account row. */
 function SidebarContent({ onNavigate }: SidebarContentProps) {
   const { user } = Route.useRouteContext();
   const { conversations } = Route.useLoaderData();

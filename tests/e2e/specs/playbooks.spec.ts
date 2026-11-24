@@ -4,10 +4,7 @@ import type { Page } from "@playwright/test";
 import { signInAsNewUser } from "../support/auth";
 import { seedChannelAccount } from "../support/seed";
 
-/**
- * Registers a new user who has an email account connected, because a playbook that is enabled has to
- * name one (decision 0044). Returns the label of the account, which is the address of the user.
- */
+/** Registers a user with a connected email account. */
 async function signInWithAccount(page: Page): Promise<string> {
   const email = await signInAsNewUser(page);
 

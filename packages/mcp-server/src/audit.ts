@@ -5,10 +5,7 @@ import type { McpSession } from "./sessions";
 
 export type AuditOutcome = "ok" | "not_found" | "invalid" | "unavailable" | "rejected";
 
-/**
- * Records one tool call. `summary` holds identifiers and counts only. It must never hold a token
- * or the text of a knowledge item.
- */
+/** Records one tool call. */
 export async function writeAudit(
   db: Db,
   session: McpSession,

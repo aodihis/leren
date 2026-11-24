@@ -6,10 +6,7 @@ export type MentionDetection = "alias" | "alias_then_llm";
 
 export type ThreadMode = "new" | "reply" | "both";
 
-/**
- * The email conditions of an auto-reply rule. A sender allowlist holds full addresses and
- * `@domain` entries. `mentionAliases` extends the user's own names when detecting a mention.
- */
+/** The email conditions of an auto-reply rule. */
 export interface EmailConditions {
   senderMode: SenderMode;
   senderAllowlist: readonly string[];
@@ -24,11 +21,7 @@ export interface EmailConditions {
   skipBulkMail: boolean;
 }
 
-/**
- * The facts about a received email that the conditions look at. `isBulk` is true for a mailing
- * list or an automatically generated message, and `isReply` is true when the message belongs to an
- * existing thread. The caller derives both from the headers.
- */
+/** The facts about a received email. */
 export interface EmailFacts {
   from: string;
   to: readonly string[];
@@ -38,9 +31,7 @@ export interface EmailFacts {
   isBulk: boolean;
 }
 
-/**
- * The mailbox owner. `names` holds the user's own names, such as the first name and the full name.
- */
+/** The mailbox owner. */
 export interface EmailRecipient {
   email: string;
   names: readonly string[];
@@ -57,27 +48,18 @@ export type SkipReason =
 
 export type HandleReason = "recipient" | "mention";
 
-/**
- * The result of evaluating the conditions. `check_mention` means that the conditions exclude the
- * message unless it addresses the user by name, that no alias matched and that the rule allows a
- * model to decide. The caller asks the model and then handles or skips the message.
- */
+/** The result of evaluating the conditions. */
 export type EmailVerdict =
   | { outcome: "handle"; reason: HandleReason }
   | { outcome: "skip"; reason: SkipReason }
   | { outcome: "check_mention"; reason: SkipReason };
 
-/**
- * Lowercases and trims an address so that comparisons ignore case and surrounding spaces.
- */
+/** Lowercases and trims an address. */
 function normalize(address: string): string {
   return address.trim().toLowerCase();
 }
 
-/**
- * Reports whether `sender` is allowed by `allowlist`. An entry that starts with `@` matches every
- * address of that domain, and any other entry matches one address.
- */
+/** Reports whether a sender is on the allowlist. */
 function isSenderAllowed(sender: string, allowlist: readonly string[]): boolean {
   const address = normalize(sender);
 
@@ -86,10 +68,7 @@ function isSenderAllowed(sender: string, allowlist: readonly string[]): boolean 
   });
 }
 
-/**
- * Finds how the email reached the user. A user who is in neither the To nor the Cc header received
- * the message as a blind copy, because blind copy recipients are never listed in the headers.
- */
+/** Finds how the email reached the user. */
 function getRecipientRole(email: EmailFacts, user: EmailRecipient): RecipientRole {
   const address = normalize(user.email);
 
@@ -104,10 +83,7 @@ function getRecipientRole(email: EmailFacts, user: EmailRecipient): RecipientRol
   return "bcc";
 }
 
-/**
- * Checks the conditions that a mention never overrides: bulk mail, the sender and the thread.
- * Returns the reason for skipping, or `null` when the message passes.
- */
+/** Checks the conditions a mention never overrides. */
 function findHardSkip(conditions: EmailConditions, email: EmailFacts): SkipReason | null {
   if (conditions.skipBulkMail && email.isBulk) {
     return "bulk_mail";
@@ -131,10 +107,7 @@ function findHardSkip(conditions: EmailConditions, email: EmailFacts): SkipReaso
   return null;
 }
 
-/**
- * Checks the recipient conditions: whether the user's role is answered and, for the To role,
- * whether the user must be the only recipient. Returns the reason for skipping, or `null`.
- */
+/** Checks the recipient conditions. */
 function findRecipientSkip(
   conditions: EmailConditions,
   email: EmailFacts,
@@ -159,12 +132,7 @@ function findRecipientSkip(
   return null;
 }
 
-/**
- * Decides whether an email is handled under one rule. The bulk mail, sender and thread conditions
- * are always enforced. The recipient conditions can be overridden by a mention of the user's name
- * when `mentionOverrides` is set. The function is pure and never calls a model, so a rule that
- * allows a model to detect mentions receives `check_mention` and the caller asks the model.
- */
+/** Decides whether an email is handled under a rule. */
 export function evaluateEmailConditions(
   conditions: EmailConditions,
   email: EmailFacts,

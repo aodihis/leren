@@ -1,8 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 
-/**
- * Drizzle Kit configuration. Reads the connection string from `DATABASE_URL`.
- */
+/** The Drizzle Kit configuration. */
 export default defineConfig({
   dialect: "postgresql",
   schema: "./src/schema.ts",

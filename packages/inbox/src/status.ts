@@ -4,11 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 export type MessageStatus = (typeof messages.$inferSelect)["status"];
 
-/**
- * The statuses that a message may move to from each status (decisions 0039 and 0046). A status that
- * maps to an empty list is final. A status only moves forward, so no path leads back to an earlier
- * one. A reply that is ready, `drafted`, is then sent or fails to be delivered.
- */
+/** The statuses a message may move to. */
 const TRANSITIONS: Record<MessageStatus, readonly MessageStatus[]> = {
   received: ["not_applicable", "queued", "failed"],
   queued: ["processing", "failed"],
@@ -20,24 +16,17 @@ const TRANSITIONS: Record<MessageStatus, readonly MessageStatus[]> = {
   failed: [],
 };
 
-/** Reports whether a message in status `from` may move to status `to`. */
+/** Reports whether a status move is allowed. */
 export function canTransition(from: MessageStatus, to: MessageStatus): boolean {
   return TRANSITIONS[from].includes(to);
 }
 
-/** Returns the statuses from which a message may move to `to`. */
+/** Returns the statuses a message may come from. */
 function statusesBefore(to: MessageStatus): MessageStatus[] {
   return (Object.keys(TRANSITIONS) as MessageStatus[]).filter((from) => canTransition(from, to));
 }
 
-/**
- * Moves a message to `to` and stores the reason, but only when its stored status allows the move.
- * The check and the write are one conditional update, so two workers that race, a repeated
- * message and a message that arrives late cannot move a record backwards. Returns whether the
- * status changed. A message that is already in `to` is left alone and reports `false`. When
- * `only` is given, the move is also limited to messages that are in one of those statuses, so a
- * stage cannot fail a message that a later stage has taken over.
- */
+/** Moves a message to a status when allowed. */
 export async function transitionMessage(
   db: Db,
   messageId: string,

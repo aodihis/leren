@@ -4,10 +4,7 @@ import * as schema from "./schema";
 
 export * from "./schema";
 
-/**
- * Creates a Drizzle client for the given PostgreSQL connection string.
- * The caller owns the connection pool through `$client`.
- */
+/** Creates a Drizzle client for a PostgreSQL URL. */
 export function createDb(connectionString: string) {
   return drizzle(connectionString, { schema });
 }

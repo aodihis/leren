@@ -20,10 +20,7 @@ import type { KnowledgeIndexDependencies } from "./service";
 const RABBITMQ_URL = process.env.RABBITMQ_URL ?? "amqp://leren:leren@localhost:56720";
 const QDRANT_URL = process.env.VECTOR_STORE_URL ?? "http://localhost:16333";
 
-/**
- * Redirects the knowledge collection of a real store to a collection that only this test run
- * uses, so the tests never read or change the development index.
- */
+/** Redirects the knowledge collection for this run. */
 function isolateCollection(store: VectorStore, name: string): VectorStore {
   const rename = (collection: string) => (collection === KNOWLEDGE_COLLECTION ? name : collection);
 
@@ -49,12 +46,7 @@ async function waitFor(condition: () => Promise<boolean>): Promise<void> {
   }
 }
 
-/**
- * Runs the indexing pipeline from the message to the search result against a real RabbitMQ
- * broker, a real Qdrant server and a real PostgreSQL database from `pnpm services:up`. The jobs
- * consume queues with unique names, so a worker running for development never takes their
- * messages, and the vectors go to a collection that only this run uses.
- */
+/** Runs the indexing pipeline against real services. */
 describe("knowledge indexing pipeline", () => {
   let database: TestDatabase;
   let store: VectorStore;

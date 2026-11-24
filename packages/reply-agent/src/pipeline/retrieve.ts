@@ -4,14 +4,10 @@ import type { Playbook, Retrieval } from "./types";
 
 const MAX_DEPTH = 8;
 
-/** The MCP tools whose results are playbooks. The results of any other tool are not read. */
+/** The MCP tools whose results are playbooks. */
 const PLAYBOOK_TOOLS = ["search_playbooks", "list_playbooks", "get_playbook"];
 
-/**
- * Collects every playbook in a value of unknown shape. A string is read as JSON when it parses, so
- * the walker accepts the text of an MCP result, the object inside it and any wrapper around it. A
- * playbook that the server marks as not usable is skipped.
- */
+/** Collects every playbook in a value. */
 function walk(value: unknown, found: Playbook[], depth: number): void {
   if (depth > MAX_DEPTH) {
     return;
@@ -52,7 +48,7 @@ function walk(value: unknown, found: Playbook[], depth: number): void {
   }
 }
 
-/** Returns the playbooks inside a tool result, in order, without repeats. */
+/** Returns the playbooks in a tool result. */
 export function readPlaybooks(value: unknown): Playbook[] {
   const found: Playbook[] = [];
 
@@ -61,11 +57,7 @@ export function readPlaybooks(value: unknown): Playbook[] {
   return mergePlaybooks([], found);
 }
 
-/**
- * Keeps the playbooks whose id is in `allowed`, or all of them when there is no allowed set. The
- * gate decides which playbooks may reply to a message, and a playbook that retrieval finds outside
- * that set must not be used.
- */
+/** Keeps the playbooks whose id is allowed. */
 export function keepAllowed(
   playbooks: readonly Playbook[],
   allowed: ReadonlySet<string> | undefined,
@@ -73,7 +65,7 @@ export function keepAllowed(
   return allowed ? playbooks.filter((playbook) => allowed.has(playbook.id)) : [...playbooks];
 }
 
-/** Joins two lists of playbooks and keeps the first one of each id. */
+/** Joins two playbook lists without repeats. */
 export function mergePlaybooks(
   first: readonly Playbook[],
   second: readonly Playbook[],
@@ -89,22 +81,14 @@ export function mergePlaybooks(
   return [...byId.values()];
 }
 
-/**
- * Reads the result of the `search_playbooks` MCP tool. Anything that holds no playbook, including a
- * malformed answer, is read as `no_reliable_result`, so a bad answer ends in an escalation and
- * never in a reply that is built on nothing.
- */
+/** Reads the result of the search tool. */
 export function parseSearchResult(data: unknown): Retrieval {
   const playbooks = readPlaybooks(data);
 
   return playbooks.length === 0 ? { status: "no_reliable_result" } : { status: "ok", playbooks };
 }
 
-/**
- * Returns the playbooks that the playbook tools of an agent run returned. The drafting agent may search
- * again for a question that the first search did not cover, and the checks of the pipeline must
- * accept what it found.
- */
+/** Returns the playbooks that an agent run returned. */
 export function collectPlaybooks(messages: readonly Message[]): Playbook[] {
   const found: Playbook[] = [];
 

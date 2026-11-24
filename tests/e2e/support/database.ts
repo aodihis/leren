@@ -8,10 +8,7 @@ import { ADMIN_DATABASE_URL, E2E_DATABASE_NAME } from "./config";
 
 const MIGRATIONS_FOLDER = fileURLToPath(new URL("../../../packages/db/drizzle", import.meta.url));
 
-/**
- * Returns the connection string of the end-to-end database, which lives on the same server as the
- * development database but has its own name so tests never touch development data.
- */
+/** Returns the end-to-end database connection string. */
 export function getE2eDatabaseUrl(): string {
   const url = new URL(ADMIN_DATABASE_URL);
 
@@ -20,10 +17,7 @@ export function getE2eDatabaseUrl(): string {
   return url.toString();
 }
 
-/**
- * Drops and recreates the end-to-end database and applies every migration, so each run starts
- * from an empty schema. The database name is a constant, so it is safe to quote as an identifier.
- */
+/** Recreates the end-to-end database and migrates it. */
 export async function resetE2eDatabase(): Promise<void> {
   const admin = new Client({ connectionString: ADMIN_DATABASE_URL });
 
