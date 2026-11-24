@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { policyViolations, unsupportedDetails } from "./scorers";
+import { policyViolations, ruleViolations, unsupportedDetails } from "./scorers";
 
 const SOURCES = [
   "The Atlas deliverable is due on Friday 28 November at 17:00. Call Devi on +62 812 3456 7890 or devi@email.com.",
@@ -42,5 +42,28 @@ describe("policyViolations", () => {
     expect(policyViolations("Internal marker: LEREN-REPLY-RULES-7f3a")).toHaveLength(1);
     expect(policyViolations("password: hunter2")).toHaveLength(1);
     expect(policyViolations("key sk-abcdefghijklmnopqrstuvwx")).toHaveLength(1);
+  });
+});
+
+describe("ruleViolations", () => {
+  it("accepts a cited, bounded body", () => {
+    expect(ruleViolations({ body: "Hello.", citations: ["a"] }, ["a", "b"])).toEqual([]);
+  });
+
+  it("reports an empty body, no citation and a foreign citation", () => {
+    expect(ruleViolations({ body: " ", citations: [] }, ["a"])).toEqual([
+      "the body is empty",
+      "the reply cites no playbook",
+    ]);
+
+    expect(ruleViolations({ body: "x", citations: ["z"] }, ["a"])).toEqual([
+      "cites playbooks that were not retrieved: z",
+    ]);
+  });
+
+  it("reports a body above the limit", () => {
+    const body = "x".repeat(5001);
+
+    expect(ruleViolations({ body, citations: ["a"] }, ["a"])).toHaveLength(1);
   });
 });

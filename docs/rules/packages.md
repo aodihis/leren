@@ -32,6 +32,7 @@ Applies to everything in `packages/`.
 | `@leren/knowledge`       | Playbook usability, retrieval |
 | `@leren/inbox`           | Message records and statuses  |
 | `@leren/channels`        | Channel providers and tokens  |
+| `@leren/evals`           | Shared eval runner and gate   |
 
 ## Observability
 

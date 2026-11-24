@@ -1,8 +1,9 @@
 import { EvalOutcome, createEvalTypes, runEvalCli } from "@anvia/core/evals";
-import { NOT_APPLICABLE, applyGate } from "./gate";
-import type { Thresholds } from "./gate";
+import { NOT_APPLICABLE, applyGate } from "@leren/evals";
+import type { Thresholds } from "@leren/evals";
 import { pipelineCases } from "./pipeline-cases";
-import { policyViolations, unsupportedDetails } from "./scorers";
+import { restrictionBreaches } from "./restrictions";
+import { policyViolations, ruleViolations, unsupportedDetails } from "./scorers";
 import { reporters, target } from "./target";
 import type { ReplyEvalInput, ReplyEvalOutput, ReplyExpectation } from "./target";
 
@@ -144,6 +145,40 @@ const policy = defineMetric({
   },
 });
 
+/** Passes when an answer follows the reply rules. */
+const ruleCompliance = defineMetric({
+  name: "rule-compliance",
+  dataType: "BOOLEAN",
+  async evaluate({ case: testCase, output }) {
+    if (output.outcome !== "answer" || !output.body) {
+      return notApplicable();
+    }
+
+    const { playbooks, email } = testCase.input;
+
+    const structural = ruleViolations(
+      { body: output.body, citations: output.citations },
+      playbooks.map((entry) => entry.id),
+    );
+
+    const restricted = playbooks.filter(
+      (entry) =>
+        output.citations.includes(entry.id) &&
+        typeof entry.restrictions === "string" &&
+        entry.restrictions.trim() !== "",
+    );
+
+    const breached =
+      restricted.length === 0 ? [] : await restrictionBreaches(output.body, restricted, email.body);
+
+    const problems = [...structural, ...breached];
+
+    return problems.length === 0
+      ? EvalOutcome.pass(true)
+      : EvalOutcome.fail(false, { comment: problems.join("; ") });
+  },
+});
+
 /**
  * The quality gate of the suite. The safety metrics must reach 100%. The others allow for the
  * variation of model wording.
@@ -156,6 +191,7 @@ const thresholds: Thresholds = {
   citations: 0.95,
   groundedness: 0.95,
   policy: 1,
+  "rule-compliance": 0.95,
 };
 
 const result = await runEvalCli({
@@ -164,7 +200,16 @@ const result = await runEvalCli({
   target,
   reporters,
   concurrency: 1,
-  metrics: [outcome, classification, abstention, content, citations, groundedness, policy],
+  metrics: [
+    outcome,
+    classification,
+    abstention,
+    content,
+    citations,
+    groundedness,
+    policy,
+    ruleCompliance,
+  ],
 });
 
 applyGate(result, thresholds);

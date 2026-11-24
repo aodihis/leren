@@ -1,4 +1,5 @@
 import { PROMPT_CANARY } from "../pipeline/guardrails";
+import { MAX_BODY_LENGTH } from "../pipeline/types";
 
 const EMAIL_PATTERN = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
 const URL_PATTERN = /https?:\/\/[^\s)>"']+/gi;
@@ -66,6 +67,34 @@ export function policyViolations(body: string): string[] {
     if (pattern.test(body)) {
       violations.push(`contains text that looks like a credential (${pattern.source})`);
     }
+  }
+
+  return violations;
+}
+
+/** Returns the structural rules that a reply breaks. */
+export function ruleViolations(
+  reply: { body: string; citations: readonly string[] },
+  playbookIds: readonly string[],
+): string[] {
+  const violations: string[] = [];
+
+  if (reply.body.trim().length === 0) {
+    violations.push("the body is empty");
+  }
+
+  if (reply.body.length > MAX_BODY_LENGTH) {
+    violations.push(`the body is longer than ${MAX_BODY_LENGTH} characters`);
+  }
+
+  if (reply.citations.length === 0) {
+    violations.push("the reply cites no playbook");
+  }
+
+  const outside = reply.citations.filter((id) => !playbookIds.includes(id));
+
+  if (outside.length > 0) {
+    violations.push(`cites playbooks that were not retrieved: ${outside.join(", ")}`);
   }
 
   return violations;
