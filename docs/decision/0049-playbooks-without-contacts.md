@@ -12,7 +12,7 @@
 
 - A playbook has no `contacts` field. A user who wants a reply to point to a person writes that in the `response`.
 - The pipeline has no `delegate` outcome. The routing model chooses `answer` or `escalate`. It chooses `answer` when a playbook covers at least one question of the email, and the drafter then answers only the questions that a playbook covers and says that the sender will get an answer to the others later.
-- The migration appends the existing contacts of each playbook to its `response`, as a final line that starts with `Contact:`, and then drops the column. It also changes the stored outcome `delegate` to `answer`. The playbooks that changed have to be indexed again, because the migration does not publish to `knowledge.index`.
+- The migration appends the existing contacts of each playbook to its `response`, as a final line that starts with `Contact:`, and then drops the column. It also changes the stored outcome `delegate` to `answer`. A playbook whose response would pass 5000 characters with its contacts appended keeps its response, and its contacts are dropped. The migration sets `updated_at` on the playbooks that it changes, so the drift check of the worker finds their vectors stale and indexes them again.
 - The database enum `reply_outcome` has the values `answer`, `escalate` and `ignore`. The migration recreates it without `delegate`, after it has changed the stored `delegate` outcomes to `answer`. A playbook whose response would pass 5000 characters with its contacts appended keeps its response, and its contacts are dropped.
 
 ## Consequences
