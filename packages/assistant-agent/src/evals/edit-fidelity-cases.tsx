@@ -86,7 +86,7 @@ export const editFidelityCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent shows the new response with 14 days instead of 30 days and keeps the rest of the text as it was: only for an unused item, the order number is needed, and the refund goes back to the original payment method. It changes nothing else, and it asks whether to save it and calls no tool that changes data.",
+        "The agent shows the new response with 14 days instead of 30 days and keeps the rest of the text as it was: only for an unused item, the order number is needed, and the refund goes back to the original payment method. It changes nothing else, and it asks the user to confirm before it saves, in any wording, and calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: { note: "Workflow step 3: change only what the user asks to change." },
   },
