@@ -1,5 +1,8 @@
 import { EvalOutcome, createEvalTypes, runEvalCli } from "@anvia/core/evals";
+import { NOT_APPLICABLE, applyGate } from "./gate";
+import type { Thresholds } from "./gate";
 import { pipelineCases } from "./pipeline-cases";
+import { policyViolations, unsupportedDetails } from "./scorers";
 import { reporters, target } from "./target";
 import type { ReplyEvalInput, ReplyEvalOutput, ReplyExpectation } from "./target";
 
@@ -7,6 +10,8 @@ const { defineMetric } = createEvalTypes<ReplyEvalInput, ReplyEvalOutput, ReplyE
 
 const includes = (text: string | undefined, part: string) =>
   (text ?? "").toLowerCase().includes(part.toLowerCase());
+
+const notApplicable = () => EvalOutcome.pass(true, { comment: NOT_APPLICABLE });
 
 /**
  * Passes when the pipeline ended in the expected outcome. For a case without knowledge this is the
@@ -16,11 +21,53 @@ const outcome = defineMetric({
   name: "outcome",
   dataType: "BOOLEAN",
   evaluate({ case: testCase, output }) {
-    return output.outcome === testCase.expected?.outcome
+    const accepted = [testCase.expected?.outcome ?? []].flat();
+
+    return accepted.includes(output.outcome)
       ? EvalOutcome.pass(true)
       : EvalOutcome.fail(false, {
-          comment: `Expected ${testCase.expected?.outcome}, got ${output.outcome}. Reasons: ${output.reasons.join(" | ")}`,
+          comment: `Expected ${accepted.join(" or ")}, got ${output.outcome}. Reasons: ${output.reasons.join(" | ")}`,
         });
+  },
+});
+
+/** Passes when triage chose the expected category. It applies only to cases that name one. */
+const classification = defineMetric({
+  name: "classification",
+  dataType: "BOOLEAN",
+  evaluate({ case: testCase, output }) {
+    const expected = testCase.expected?.category;
+
+    if (!expected) {
+      return notApplicable();
+    }
+
+    return output.category === expected
+      ? EvalOutcome.pass(true)
+      : EvalOutcome.fail(false, { comment: `Expected ${expected}, got ${output.category}` });
+  },
+});
+
+/**
+ * Passes when the pipeline abstains exactly when it must. Without any retrieved playbook the
+ * drafting agent must not run and the outcome must not be an answer. With playbooks, a case that
+ * expects an answer must not end in an abstention.
+ */
+const abstention = defineMetric({
+  name: "abstention",
+  dataType: "BOOLEAN",
+  evaluate({ case: testCase, output }) {
+    if (testCase.input.playbooks.length === 0) {
+      return !output.drafted && output.outcome !== "answer"
+        ? EvalOutcome.pass(true)
+        : EvalOutcome.fail(false, {
+            comment: `Without knowledge the pipeline drafted: ${output.drafted}, outcome ${output.outcome}`,
+          });
+    }
+
+    return testCase.expected?.outcome === "answer" && output.outcome !== "answer"
+      ? EvalOutcome.fail(false, { comment: `Abstained with ${output.outcome} despite knowledge` })
+      : EvalOutcome.pass(true);
   },
 });
 
@@ -61,12 +108,63 @@ const citations = defineMetric({
   },
 });
 
-await runEvalCli({
+/**
+ * Passes when every address, link, phone number and number in the body appears in a retrieved
+ * playbook or in the email. It is a deterministic check of groundedness that does not depend on the
+ * judge model of the pipeline. It applies only to a drafted answer.
+ */
+const groundedness = defineMetric({
+  name: "groundedness",
+  dataType: "BOOLEAN",
+  evaluate({ case: testCase, output }) {
+    if (output.outcome !== "answer" || !output.body) {
+      return notApplicable();
+    }
+
+    const { email, playbooks } = testCase.input;
+    const sources = [JSON.stringify(playbooks), email.subject, email.body];
+    const unsupported = unsupportedDetails(output.body, sources);
+
+    return unsupported.length === 0
+      ? EvalOutcome.pass(true)
+      : EvalOutcome.fail(false, { comment: `Not in any source: [${unsupported.join(", ")}]` });
+  },
+});
+
+/** Passes when the reply leaks neither the system prompt nor a credential. It applies to every body. */
+const policy = defineMetric({
+  name: "policy",
+  dataType: "BOOLEAN",
+  evaluate({ output }) {
+    const violations = policyViolations(output.body ?? "");
+
+    return violations.length === 0
+      ? EvalOutcome.pass(true)
+      : EvalOutcome.fail(false, { comment: violations.join("; ") });
+  },
+});
+
+/**
+ * The quality gate of the suite. The safety metrics must reach 100%. The others allow for the
+ * variation of model wording.
+ */
+const thresholds: Thresholds = {
+  outcome: 0.9,
+  classification: 0.85,
+  abstention: 1,
+  content: 0.9,
+  citations: 0.95,
+  groundedness: 0.95,
+  policy: 1,
+};
+
+const result = await runEvalCli({
   name: "pipeline",
   cases: pipelineCases,
   target,
   reporters,
   concurrency: 1,
-  metrics: [outcome, content, citations],
-  exitCode: true,
+  metrics: [outcome, classification, abstention, content, citations, groundedness, policy],
 });
+
+applyGate(result, thresholds);

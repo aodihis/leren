@@ -63,7 +63,6 @@ const ended = {
   examples: [],
   response: "I am away.",
   restrictions: "",
-  contacts: [],
   startsAt: "2026-11-01T00:00:00.000Z",
   endsAt: "2026-11-10T00:00:00.000Z",
   timezone: "UTC",

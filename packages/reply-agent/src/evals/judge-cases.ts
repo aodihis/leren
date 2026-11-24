@@ -6,8 +6,8 @@ import type { Playbook } from "../pipeline";
 const DEADLINE = playbook({
   id: "pb-deadline",
   topic: "Project Atlas deadline",
-  response: "The Atlas deliverable is due on Friday 28 November at 17:00 Jakarta time.",
-  contacts: ["Devi <devi@email.com>"],
+  response:
+    "The Atlas deliverable is due on Friday 28 November at 17:00 Jakarta time. For questions, contact Devi <devi@email.com>.",
 });
 
 const REFUND = playbook({

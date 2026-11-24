@@ -97,7 +97,6 @@ describe("playbook MCP actions", () => {
         enabled: true,
         usable: true,
         examples: [],
-        contacts: [],
         startsAt: null,
         endsAt: null,
         conditions: [
@@ -184,21 +183,13 @@ describe("playbook MCP actions", () => {
       });
     });
 
-    it("refuses an invalid contact and an unknown timezone without writing", async () => {
-      const contact = await run(actions.createPlaybook, userId, {
-        topic: "T",
-        response: "R",
-        timezone: "UTC",
-        contacts: ["not an address"],
-      });
-
+    it("refuses an unknown timezone without writing", async () => {
       const timezone = await run(actions.createPlaybook, userId, {
         topic: "T",
         response: "R",
         timezone: "Mars/Olympus",
       });
 
-      expect(contact).toMatchObject({ status: "invalid" });
       expect(timezone).toMatchObject({ status: "invalid" });
       expect(requestIndex).not.toHaveBeenCalled();
     });

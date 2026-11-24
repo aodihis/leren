@@ -569,9 +569,21 @@ importers:
       '@leren/agents':
         specifier: workspace:*
         version: link:../agents
+      '@leren/db':
+        specifier: workspace:*
+        version: link:../db
+      '@leren/embedder':
+        specifier: workspace:*
+        version: link:../embedder
+      '@leren/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
       '@leren/observability':
         specifier: workspace:*
         version: link:../observability
+      '@leren/vector-db':
+        specifier: workspace:*
+        version: link:../vector-db
       zod:
         specifier: ^4.6.7
         version: 4.6.7

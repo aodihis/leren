@@ -2,9 +2,7 @@ import { z } from "zod";
 
 const MAX_LIST_ITEMS = 100;
 const MAX_EXAMPLES = 50;
-const MAX_CONTACTS = 20;
 const SENDER_ENTRY_PATTERN = /^(@[^@\s]+\.[^@\s]+|[^@\s]+@[^@\s]+\.[^@\s]+)$/;
-const CONTACT_PATTERN = /^([^\s,@]+@[^\s,@]+\.[^\s,@]+|@?[\w.-]+)$/;
 
 /**
  * Reports whether `timezone` is an IANA zone name that the runtime knows.
@@ -75,9 +73,6 @@ export const playbookSchema = z
     examples: z.array(z.string().trim().min(1).max(500)).max(MAX_EXAMPLES),
     response: z.string().trim().min(1, "Enter a response").max(5000),
     restrictions: z.string().trim().max(2000),
-    contacts: z
-      .array(z.string().trim().regex(CONTACT_PATTERN, "Enter an email address or a handle"))
-      .max(MAX_CONTACTS),
     startsAt: z.iso.datetime({ offset: true }).nullable(),
     endsAt: z.iso.datetime({ offset: true }).nullable(),
     timezone: z.string().refine(isTimezone, "Choose a valid timezone"),

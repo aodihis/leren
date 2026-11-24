@@ -8,6 +8,8 @@ const evals: Record<string, () => Promise<unknown>> = {
   account: () => import("./account"),
   clarification: () => import("./clarification"),
   faithfulness: () => import("./faithfulness"),
+  suggestions: () => import("./suggestions"),
+  "edit-fidelity": () => import("./edit-fidelity"),
 };
 
 /**

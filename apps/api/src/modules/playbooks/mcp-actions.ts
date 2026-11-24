@@ -42,11 +42,14 @@ const instant = z.iso.datetime({ offset: true });
 const playbookFields = z.object({
   enabled: z.boolean().optional().describe("Whether the playbook is on. Defaults to true."),
   topic: z.string().describe("The subject of the playbook, up to 200 characters."),
-  response: z.string().describe("What may be said about the subject, up to 5000 characters."),
+  response: z
+    .string()
+    .describe(
+      "What may be said about the subject, up to 5000 characters. Include whom to contact, if anyone.",
+    ),
   timezone: z.string().describe("An IANA timezone name, such as Asia/Jakarta."),
   examples: z.array(z.string()).optional().describe("Sample incoming messages."),
   restrictions: z.string().optional().describe("What must not be said."),
-  contacts: z.array(z.string()).optional().describe("Email addresses or handles to point to."),
   startsAt: instant.nullable().optional().describe("When the playbook starts, or null for none."),
   endsAt: instant.nullable().optional().describe("When the playbook ends, or null for none."),
   conditions: z
@@ -232,7 +235,6 @@ export function createPlaybookMcpActions(
           enabled: true,
           examples: [],
           restrictions: "",
-          contacts: [],
           startsAt: null,
           endsAt: null,
           ...definedOnly(fields),
@@ -299,7 +301,6 @@ export function createPlaybookMcpActions(
           response: existing.response,
           examples: existing.examples,
           restrictions: existing.restrictions,
-          contacts: existing.contacts,
           startsAt: existing.startsAt,
           endsAt: existing.endsAt,
           timezone: existing.timezone,

@@ -8,7 +8,7 @@ const COMPLETE_REQUEST =
   "Add a playbook. Topic: Delivery times. Response: Deliveries take 2 to 3 working days. Timezone: Asia/Jakarta.";
 
 const SHOW_AND_CONFIRM =
-  "The agent shows the exact values it will save (topic, response and timezone, in the user's own words) and asks whether to go ahead. It does not ask about examples, restrictions, contacts, a period, conditions or whether the playbook is enabled.";
+  "The agent shows the exact values it will save (topic, response and timezone, in the user's own words) and asks whether to go ahead. It does not ask about examples, restrictions, a period, conditions or whether the playbook is enabled.";
 
 const ENGLISH_TOPICS = [
   playbook({
@@ -49,7 +49,7 @@ export const clarificationCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent tells the user that the timezone is missing and asks for it. It does not invent a timezone and does not call a tool that changes data. It does not ask about examples, restrictions, contacts, a period or conditions.",
+        "The agent tells the user that the timezone is missing and asks for it. It does not invent a timezone and does not call a tool that changes data. It does not ask about examples, restrictions, a period or conditions.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 2: a playbook needs a topic, a response and a timezone, and the agent says what is missing.",
@@ -161,7 +161,7 @@ export const clarificationCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent tells the user that the response is missing and asks for it. It does not invent a response and does not call a tool that changes data. It does not ask about examples, restrictions, contacts, a period or conditions.",
+        "The agent tells the user that the response is missing and asks for it. It does not invent a response and does not call a tool that changes data. It does not ask about examples, restrictions, a period or conditions.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 2: the agent never invents what the user did not give.",

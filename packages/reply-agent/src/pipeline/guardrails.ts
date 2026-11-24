@@ -1,5 +1,5 @@
 import { MAX_BODY_LENGTH } from "./types";
-import type { Draft, Email, Outcome } from "./types";
+import type { Draft, Email } from "./types";
 
 /** The most characters of an email body that reach a model. */
 export const EMAIL_BODY_LIMIT = 20_000;
@@ -101,11 +101,11 @@ export interface GuardrailResult {
 
 /**
  * The output guardrail. It blocks a reply that contains a credential pattern, repeats the drafting
- * instructions, answers without citing a playbook, or cites an id that is not in `retrievedIds`. Contact details such as email addresses, links
- * and phone numbers are normal content of a reply and are never blocked.
+ * instructions, answers without citing a playbook, or cites an id that is not in `retrievedIds`.
+ * Contact details such as email addresses, links and phone numbers are normal content of a reply
+ * and are never blocked.
  */
 export function checkOutput(
-  outcome: Outcome,
   draft: Pick<Draft, "body" | "citations">,
   retrievedIds: ReadonlySet<string>,
 ): GuardrailResult {
@@ -119,7 +119,7 @@ export function checkOutput(
     reasons.push("The reply repeats the drafting instructions.");
   }
 
-  if (outcome === "answer" && draft.citations.length === 0) {
+  if (draft.citations.length === 0) {
     reasons.push("The reply answers without citing a playbook.");
   }
 

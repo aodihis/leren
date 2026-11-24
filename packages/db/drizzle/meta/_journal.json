@@ -120,6 +120,13 @@
       "when": 1795423836156,
       "tag": "0016_reply_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795470950483,
+      "tag": "0017_remove_playbook_contacts_and_delegate",
+      "breakpoints": true
     }
   ]
 }

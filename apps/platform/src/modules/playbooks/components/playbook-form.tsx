@@ -64,7 +64,6 @@ const ERROR_FIELDS = {
   examples: { field: "examples", tab: "knowledge" },
   response: { field: "response", tab: "knowledge" },
   restrictions: { field: "restrictions", tab: "knowledge" },
-  contacts: { field: "contacts", tab: "knowledge" },
   timezone: { field: "timezone", tab: null },
   startsAt: { field: "startsAt", tab: null },
   endsAt: { field: "endsAt", tab: null },
@@ -273,6 +272,10 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                         <FormControl>
                           <Textarea className="min-h-32" {...field} />
                         </FormControl>
+                        <FormDescription>
+                          What the assistant may say about this topic. Include whom a sender can
+                          contact, if anyone.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -288,23 +291,6 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                         </FormControl>
                         <FormDescription>
                           What the assistant must not say about this topic.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="contacts"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contacts</FormLabel>
-                        <FormControl>
-                          <Input placeholder="dewi@example.com, @Don" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Who a reply may point to for this topic. Separate email addresses or
-                          handles with commas.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

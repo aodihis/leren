@@ -11,7 +11,7 @@ const MESSAGE_STATUSES = [
   "failed",
 ] as const;
 
-const MESSAGE_OUTCOMES = ["answer", "delegate", "escalate", "ignore"] as const;
+const MESSAGE_OUTCOMES = ["answer", "escalate", "ignore"] as const;
 
 const MAX_PAGE_SIZE = 100;
 const MAX_RECIPIENTS = 50;

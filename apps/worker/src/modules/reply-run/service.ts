@@ -45,14 +45,13 @@ const STATUS_REASON_LENGTH = 200;
 type Destination = { status: MessageStatus; reason: string | null };
 
 /**
- * The status that a result moves the message to. A reply, for an answer or a delegation, waits as a
- * draft. A message that the pipeline hands back is escalated, and one that is not for the user is
- * not applicable (decision 0043).
+ * The status that a result moves the message to. A reply, for an answer, waits as a draft. A
+ * message that the pipeline hands back is escalated, and one that is not for the user is not
+ * applicable (decision 0043).
  */
 function destinationOf(outcome: ReplyResult["outcome"], reasons: readonly string[]): Destination {
   switch (outcome) {
     case "answer":
-    case "delegate":
       return { status: "drafted", reason: null };
     case "escalate":
       return { status: "escalated", reason: reasons[0]?.slice(0, STATUS_REASON_LENGTH) ?? null };
@@ -63,7 +62,7 @@ function destinationOf(outcome: ReplyResult["outcome"], reasons: readonly string
 
 /** Whether a result is a reply that has to be delivered, as opposed to a message that has none. */
 function isReply(outcome: ReplyResult["outcome"]): boolean {
-  return outcome === "answer" || outcome === "delegate";
+  return outcome === "answer";
 }
 
 /**

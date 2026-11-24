@@ -33,7 +33,6 @@ export function getNewPlaybookValues(timezone: string): PlaybookFormValues {
     examples: "",
     response: "",
     restrictions: "",
-    contacts: "",
     timezone,
     startsAt: "",
     endsAt: "",
@@ -67,7 +66,6 @@ export function toFormValues(playbook: Playbook): PlaybookFormValues {
     examples: playbook.examples.join("\n"),
     response: playbook.response,
     restrictions: playbook.restrictions,
-    contacts: playbook.contacts.join(", "),
     timezone: playbook.timezone,
     startsAt: isoToZonedLocal(playbook.startsAt, playbook.timezone),
     endsAt: isoToZonedLocal(playbook.endsAt, playbook.timezone),
@@ -81,7 +79,7 @@ export function toFormValues(playbook: Playbook): PlaybookFormValues {
 
 /**
  * Converts form values to the request body. The bounds are read as wall clock time in the chosen
- * timezone, and an empty bound is open. Blank examples and contacts are dropped.
+ * timezone, and an empty bound is open. Blank examples are dropped.
  */
 export function toRequestBody(values: PlaybookFormValues): PlaybookInput {
   return {
@@ -90,7 +88,6 @@ export function toRequestBody(values: PlaybookFormValues): PlaybookInput {
     examples: values.examples.split("\n").flatMap((example) => example.trim() || []),
     response: values.response,
     restrictions: values.restrictions,
-    contacts: splitList(values.contacts),
     timezone: values.timezone,
     startsAt: zonedLocalToIso(values.startsAt, values.timezone),
     endsAt: zonedLocalToIso(values.endsAt, values.timezone),

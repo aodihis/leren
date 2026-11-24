@@ -9,7 +9,6 @@ const playbook: Playbook = {
   examples: ["When are you back?", "Are you open?"],
   response: "We are closed until 2 January.",
   restrictions: "Do not promise a delivery date.",
-  contacts: ["dewi@example.com", "@Don"],
   startsAt: "2026-12-01T02:00:00.000Z",
   endsAt: null,
   timezone: "Asia/Jakarta",
@@ -42,12 +41,11 @@ describe("toRequestBody", () => {
     expect(toRequestBody(toFormValues(playbook))).toEqual(body);
   });
 
-  it("splits the allowlist, aliases and contacts on new lines and commas and drops blanks", () => {
+  it("splits the allowlist and aliases on new lines and commas and drops blanks", () => {
     const values = getNewPlaybookValues("UTC");
 
     const body = toRequestBody({
       ...values,
-      contacts: "a@x.com,\n\n @Don ,",
       email: {
         ...values.email,
         senderAllowlist: "a@x.com,\n\n @y.org ,",
@@ -55,7 +53,6 @@ describe("toRequestBody", () => {
       },
     });
 
-    expect(body.contacts).toEqual(["a@x.com", "@Don"]);
     expect(body.conditions[0]?.senderAllowlist).toEqual(["a@x.com", "@y.org"]);
     expect(body.conditions[0]?.mentionAliases).toEqual(["Bal", "Iqbal", "Ik"]);
   });

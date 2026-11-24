@@ -70,7 +70,6 @@ const playbook = {
   examples: [],
   response: "On track.",
   restrictions: "",
-  contacts: [],
   startsAt: null,
   endsAt: null,
   timezone: "Asia/Jakarta",
