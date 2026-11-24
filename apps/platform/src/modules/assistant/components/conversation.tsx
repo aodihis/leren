@@ -157,8 +157,7 @@ export function Conversation({
         onKeyDown={handleKeyDown}
         className="min-h-0 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
       />
-      <div className="flex items-center justify-between gap-2 px-1 pt-1">
-        <p className="text-label text-ink-muted">Nothing is saved without your confirmation</p>
+      <div className="flex items-center justify-end gap-2 px-1 pt-1">
         <Button
           type="submit"
           size="icon"

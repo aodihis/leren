@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -26,7 +26,7 @@ describe("authenticated layout", () => {
   it("redirects a visitor without a session to the login page", async () => {
     authClient.getSession.mockResolvedValue({ data: null, error: { status: 401 } });
 
-    const router = await renderApp("/about");
+    const router = await renderApp("/profile");
 
     expect(router.state.location.pathname).toBe("/login");
   });
@@ -34,9 +34,9 @@ describe("authenticated layout", () => {
   it("reports an unreachable server instead of redirecting to the login page", async () => {
     authClient.getSession.mockResolvedValue({ data: null, error: { status: 500 } });
 
-    const router = await renderApp("/about");
+    const router = await renderApp("/profile");
 
-    expect(router.state.location.pathname).toBe("/about");
+    expect(router.state.location.pathname).toBe("/profile");
     expect(await screen.findByText(/Could not reach the server/)).toBeTruthy();
   });
 
@@ -46,10 +46,11 @@ describe("authenticated layout", () => {
   ])("shows the user's %s next to the navigation", async (_, name, label) => {
     authClient.getSession.mockResolvedValue(sessionFor({ name, email: "ada@example.com" }));
 
-    await renderApp("/about");
+    await renderApp("/profile");
 
-    expect(await screen.findByText(label)).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "About" })).toBeTruthy();
+    const sidebar = await screen.findByRole("complementary", { name: "Sidebar" });
+
+    expect(within(sidebar).getByText(label)).toBeTruthy();
   });
 
   it("signs the user out and opens the login page", async () => {
@@ -60,7 +61,7 @@ describe("authenticated layout", () => {
       authClient.getSession.mockResolvedValue({ data: null, error: { status: 401 } });
     });
     const user = userEvent.setup();
-    const router = await renderApp("/about");
+    const router = await renderApp("/profile");
 
     await user.click(await screen.findByRole("button", { name: "Sign out" }));
 

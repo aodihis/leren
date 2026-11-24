@@ -5,23 +5,27 @@ interface LogoProps {
 }
 
 /**
- * The placeholder brand mark from the design system: a sun disc over a wave on a brand square.
- * It is decorative, so it is hidden from assistive technology, and the product name is rendered
- * next to it by the caller.
+ * The Leren brand mark: a single line that rises into a peak and sweeps into a speech bubble. It is
+ * drawn with the brand color and cropped to the artwork, so its size follows the height that the
+ * caller sets. It is decorative, so it is hidden from assistive technology, and the product name
+ * is rendered next to it by the caller.
  */
 export function Logo({ className }: LogoProps) {
   return (
-    <span
-      className={cn("grid size-7 flex-none place-items-center rounded-md bg-brand", className)}
+    <svg
+      viewBox="29 22 198 179"
+      className={cn("h-7 w-auto flex-none stroke-brand", className)}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
-      <svg width="20" height="20" viewBox="0 0 20 20">
-        <circle className="fill-sun" cx="10" cy="8" r="4" />
-        <path
-          className="fill-none stroke-on-brand stroke-2 [stroke-linecap:round]"
-          d="M3 15c1.75-1.6 3.5-1.6 5.25 0s3.5 1.6 5.25 0 2.75-1.2 3.5-.6"
-        />
-      </svg>
-    </span>
+      <path
+        strokeWidth="11"
+        d="M122 65 106 37C101 28 91 28 86 37L46 112C35 133 48 158 72 162 92 165 107 151 116 131L124 114C134 92 156 80 180 84 206 88 224 111 221 137 219 151 211 163 200 171L208 187C210 191 206 195 202 194L182 186C175 188 168 189 161 189L114 189"
+      />
+      <path strokeWidth="9.5" d="M142 128C146 116 156 108 168 106" />
+      <path strokeWidth="9.5" d="M184 109C193 114 199 123 200 133" />
+    </svg>
   );
 }

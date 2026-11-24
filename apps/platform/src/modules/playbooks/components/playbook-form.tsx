@@ -25,6 +25,7 @@ import { useForm, useWatch } from "react-hook-form";
 import type { Control } from "react-hook-form";
 
 import { api } from "../../api/api-client";
+import { StickyPageHeader } from "../../layout/components/sticky-page-header";
 import { getNewPlaybookValues, toFormValues, toRequestBody } from "../form-values";
 import type { ChannelAccount } from "../../channels/types";
 import type { Playbook, PlaybookFormValues } from "../types";
@@ -184,7 +185,7 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)}>
         <Tabs value={tab} onValueChange={(value) => setTab(value as TabName)} className="gap-0">
-          <header className="sticky top-0 z-10 -mx-6 -mt-6 mb-6 space-y-3 bg-background px-6 pt-4 shadow-[0_0_0_100vmax_var(--color-background)] [clip-path:inset(0_-100vmax)] after:absolute after:inset-x-[-100vmax] after:bottom-0 after:h-px after:bg-border">
+          <StickyPageHeader className="space-y-3 pt-4">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <Link
@@ -220,7 +221,7 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                 </TabsTrigger>
               ))}
             </TabsList>
-          </header>
+          </StickyPageHeader>
           {form.formState.errors.root && (
             <Alert variant="destructive" className="mb-6">
               <AlertDescription>{form.formState.errors.root.message}</AlertDescription>

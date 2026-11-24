@@ -1,4 +1,4 @@
-import type { EmailSummary } from "./types";
+import type { EmailDetail, EmailSummary } from "./types";
 
 type Status = EmailSummary["status"];
 
@@ -44,6 +44,51 @@ export const DELIVERY_LABELS: Record<DeliveryState, string> = {
 
 /** The delivery states, in the order of the flow. */
 export const DELIVERY_STATES = Object.keys(DELIVERY_LABELS) as DeliveryState[];
+
+/** What a received email is about, as triage decides it. */
+export const CATEGORY_LABELS = {
+  project_question: "Project question",
+  task_assignment: "Task assignment",
+  informational: "Informational",
+  urgent: "Urgent",
+  other: "Other",
+} as const;
+
+type DeliveryMode = NonNullable<NonNullable<EmailDetail["decision"]>["delivery"]["mode"]>;
+
+/** Whether a reply is saved as a draft or sent without approval. */
+export const DELIVERY_MODE_LABELS: Record<DeliveryMode, string> = {
+  draft: "Saved as a draft",
+  send: "Sent without approval",
+};
+
+/**
+ * Why an email has its status, for the reasons that are stored as a code. Any other reason is
+ * already a sentence and is shown as it is.
+ */
+export const STATUS_REASON_LABELS = {
+  bulk_mail: "A mailing list or automatic message",
+  sender_not_allowed: "The sender is not on the allowed list",
+  thread_mode: "The thread does not match the reply conditions",
+  recipient_role: "You were not a direct recipient",
+  not_sole_recipient: "Other people were also addressed",
+  no_active_playbook: "No playbook is active for this account",
+  account_unavailable: "The email account is not available",
+  pipeline_error: "The assistant could not process the email",
+  not_addressed: "The email does not address you",
+} as const;
+
+/**
+ * Looks up the label of a stored code. A value that has no label, such as free text or a code from a
+ * newer version, is returned unchanged, and an empty value is shown as a dash.
+ */
+export function labelFor(labels: Readonly<Record<string, string>>, value: string | null): string {
+  if (!value) {
+    return "—";
+  }
+
+  return labels[value] ?? value;
+}
 
 /** The statuses that the list can be filtered by, in the order of the flow. */
 export const STATUS_FILTERS = Object.keys(STATUS_LABELS) as Status[];

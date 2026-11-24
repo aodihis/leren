@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -44,9 +44,9 @@ describe("profile route", () => {
   it("shows the user's email and current name", async () => {
     await renderApp("/profile");
 
-    expect(
-      await screen.findByText("ada@example.com", { selector: "[data-slot=card-description]" }),
-    ).toBeTruthy();
+    const main = within(await screen.findByRole("main"));
+
+    expect(main.getByText("ada@example.com")).toBeTruthy();
     expect((screen.getByLabelText("First name") as HTMLInputElement).value).toBe("Ada");
     expect((screen.getByLabelText("Last name") as HTMLInputElement).value).toBe("");
   });
