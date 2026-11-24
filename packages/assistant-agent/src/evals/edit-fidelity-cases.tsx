@@ -67,7 +67,7 @@ export const editFidelityCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent shows an Indonesian version of the response that keeps the days, the hours 9 to 5 (09:00 to 17:00), the closure on public holidays and the phone number 021-555-0100 exactly. It adds no fact. It asks whether to save it and calls no tool that changes data.",
+        "The agent shows an Indonesian version of the response that keeps the days, the hours 9 to 5 (09:00 to 17:00), the closure on public holidays and the phone number 021-555-0100 exactly. The stored text says to call that number for urgent matters, so saying so is not an added fact. It adds no other fact. It asks whether to save it and calls no tool that changes data.",
     } satisfies RubricExpectation,
     metadata: {
       note: "Workflow step 3: a translation is an edit, so numbers and contact details stay exact.",
