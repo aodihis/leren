@@ -33,23 +33,14 @@ const GOOGLE_OAUTH = {
 
 const NOTION_MCP_URL = "https://mcp.notion.com/mcp";
 
-/** The hosted Google Sheets MCP server, which a deployment can replace with `GOOGLE_SHEETS_MCP_URL`. */
 const GOOGLE_SHEETS_MCP_URL = "https://sheetsmcp.googleapis.com/mcp/v1";
-
-/** The settings that the definitions need from the environment. */
-export type DefinitionSettings = {
-  GOOGLE_DOCS_MCP_URL?: string | undefined;
-  GOOGLE_SHEETS_MCP_URL?: string | undefined;
-};
+const GOOGLE_DOCS_MCP_URL = "https://docsmcp.googleapis.com/mcp/v1";
 
 /**
- * Builds the definition of a connector. Every tool in `allowedTools` only reads. The Google MCP
- * addresses come from the environment, because they belong to the deployment's Google project.
+ * Builds the definition of a connector. Every tool in `allowedTools` only reads. The MCP addresses
+ * are fixed, because they are the hosted servers of the providers.
  */
-export function defineConnector(
-  id: ConnectorId,
-  settings: DefinitionSettings,
-): ConnectorDefinition {
+export function defineConnector(id: ConnectorId): ConnectorDefinition {
   switch (id) {
     case "notion":
       return {
@@ -76,8 +67,8 @@ export function defineConnector(
       return {
         id,
         displayName: "Google Docs",
-        mcpUrl: settings.GOOGLE_DOCS_MCP_URL ?? "",
-        allowedTools: ["search_documents", "get_document"],
+        mcpUrl: GOOGLE_DOCS_MCP_URL,
+        allowedTools: ["read_doc"],
         oauth: {
           ...GOOGLE_OAUTH,
           scopes: ["openid", "email", "https://www.googleapis.com/auth/documents.readonly"],
@@ -88,7 +79,7 @@ export function defineConnector(
       return {
         id,
         displayName: "Google Sheets",
-        mcpUrl: settings.GOOGLE_SHEETS_MCP_URL ?? GOOGLE_SHEETS_MCP_URL,
+        mcpUrl: GOOGLE_SHEETS_MCP_URL,
         allowedTools: ["get_spreadsheet", "get_values"],
         oauth: {
           ...GOOGLE_OAUTH,

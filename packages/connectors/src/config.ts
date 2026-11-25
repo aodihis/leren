@@ -21,8 +21,6 @@ const connectorList = z
  */
 export const connectorEnvShape = {
   CONNECTORS: connectorList,
-  GOOGLE_DOCS_MCP_URL: z.url().optional(),
-  GOOGLE_SHEETS_MCP_URL: z.url().optional(),
 };
 
 export type ConnectorEnv = z.infer<z.ZodObject<typeof connectorEnvShape>> & {
@@ -35,7 +33,7 @@ export type ConnectorEnv = z.infer<z.ZodObject<typeof connectorEnvShape>> & {
 const REQUIRED: Readonly<Record<(typeof CONNECTOR_IDS)[number], readonly (keyof ConnectorEnv)[]>> =
   {
     notion: [],
-    google_docs: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_DOCS_MCP_URL"],
+    google_docs: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
     google_sheets: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
   };
 
