@@ -1,0 +1,70 @@
+# Production stack, routed by the existing Traefik instance. The deploy workflow copies this file and
+# a generated `.env` to the VPS. PostgreSQL, RabbitMQ and Redis are shared services on the
+# `shared-network`, and so is Qdrant.
+#
+# One host serves everything. Traefik sends `/api` and `/mcp` to the API, because that rule is
+# longer than the catch-all rule of the platform and so has the higher priority.
+
+name: leren
+
+networks:
+  traefik:
+    external: true
+  shared-network:
+    external: true
+
+x-app: &app
+  image: ghcr.io/aodihis/leren-app:${IMAGE_TAG:-latest}
+  env_file: .env
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *app
+    container_name: leren-api
+    command: ["pnpm", "--filter", "@leren/api", "start"]
+    networks:
+      - traefik
+      - shared-network
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.leren-api.rule=Host(`${APP_DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/mcp`))"
+      - "traefik.http.routers.leren-api.entrypoints=websecure"
+      - "traefik.http.routers.leren-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.leren-api.loadbalancer.server.port=3000"
+
+  worker:
+    <<: *app
+    container_name: leren-worker
+    command: ["pnpm", "--filter", "@leren/worker", "start"]
+    networks:
+      - shared-network
+
+  platform:
+    image: ghcr.io/aodihis/leren-platform:${IMAGE_TAG:-latest}
+    container_name: leren-platform
+    restart: unless-stopped
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.leren-platform.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.leren-platform.entrypoints=websecure"
+      - "traefik.http.routers.leren-platform.tls.certresolver=letsencrypt"
+      - "traefik.http.services.leren-platform.loadbalancer.server.port=80"
+      - "traefik.http.routers.leren-http.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.leren-http.entrypoints=web"
+      - "traefik.http.routers.leren-http.middlewares=leren-https"
+      - "traefik.http.middlewares.leren-https.redirectscheme.scheme=https"

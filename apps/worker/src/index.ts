@@ -92,7 +92,7 @@ function createIndexer() {
   const embeddingModel = resolveEmbeddingModel(harness);
 
   return {
-    store: createVectorStore({ url: config.VECTOR_STORE_URL }),
+    store: createVectorStore({ url: config.VECTOR_STORE_URL, apiKey: config.VECTOR_STORE_API_KEY }),
     embedder: createEmbedder({
       baseUrl: embeddingModel.definition.baseUrl,
       apiKey: embeddingModel.apiKey,

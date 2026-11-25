@@ -36,8 +36,8 @@ function isNotReadyYet(error: unknown): boolean {
  * every status except `red` accepts writes: `yellow` means the collection is optimizing and `grey`
  * means optimizations are pending after a restart, and only a write restarts them.
  */
-export function createQdrantStore(url: string): VectorStore {
-  const client = new QdrantClient({ url });
+export function createQdrantStore(url: string, apiKey?: string): VectorStore {
+  const client = new QdrantClient({ url, apiKey });
 
   async function waitUntilReady(name: string): Promise<void> {
     const deadline = Date.now() + READY_TIMEOUT_MS;

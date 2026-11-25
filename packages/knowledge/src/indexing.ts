@@ -4,7 +4,7 @@ import type { KnowledgeUsability } from "./usable";
 export const KNOWLEDGE_INDEX_QUEUE = "knowledge.index";
 
 /** The vector collection that holds one vector per indexable playbook. */
-export const KNOWLEDGE_COLLECTION = "knowledge";
+export const KNOWLEDGE_COLLECTION = "leren_knowledge";
 
 /**
  * The message on `KNOWLEDGE_INDEX_QUEUE`. It names the playbook and nothing else. The consumer reads
