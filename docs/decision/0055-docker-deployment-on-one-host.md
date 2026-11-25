@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-25
-- Affects: docker/, docker-compose.prod.yml, .github/workflows/deploy.yml, .env.example
+- Affects: docker/, docker-compose.prod.yml, .github/workflows/deploy.yml, .env.example, packages/knowledge, packages/vector-db, apps/api, apps/worker, docs/overview/README.md
 
 ## Context
 
@@ -14,6 +14,9 @@ The platform calls the API with relative URLs, and the session cookie, the OAuth
 - The API and the worker are separate containers started from one image, `docker/app.Dockerfile`, and the container command selects the process. The platform has its own image, `docker/platform.Dockerfile`.
 - PostgreSQL, RabbitMQ, Redis and Qdrant are shared services outside the stack, reached on the shared network.
 - A push to `main` builds and pushes the images to GHCR, writes the `.env` file of the stack from the repository's variables and secrets, runs `pnpm --filter @leren/db db:migrate` in the API image, and then starts the stack.
+
+- The vector collection is named `leren_knowledge`, so that it does not collide with other applications on a shared Qdrant. `VECTOR_STORE_API_KEY` is an optional API key or JWT that the vector store sends to Qdrant.
+- A variable without a value is left out of the generated `.env`, so the default of its schema applies.
 
 ## Consequences
 

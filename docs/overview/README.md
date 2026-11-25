@@ -190,7 +190,7 @@ The queues are `email.poll`, `email.received`, `email.process`, `email.deliver`,
 
 ## Knowledge indexing
 
-Only an enabled playbook whose period has not ended is searchable. Each such playbook has one vector in the Qdrant collection `knowledge`, and the vector id is the playbook id. The text that is embedded is the topic and the information. The payload holds the playbook and user ids, the type, the period and the `updatedAt` of the row that the vector was built from.
+Only an enabled playbook whose period has not ended is searchable. Each such playbook has one vector in the Qdrant collection `leren_knowledge`, and the vector id is the playbook id. The text that is embedded is the topic and the information. The payload holds the playbook and user ids, the type, the period and the `updatedAt` of the row that the vector was built from.
 
 When the API creates, edits, enables, disables or deletes a playbook, it publishes the playbook id to `knowledge.index`. The worker reads the current row and makes the index match it, so a repeated or reordered message does no harm. A periodic `knowledge.drift` job compares PostgreSQL with Qdrant, repairs any difference and removes the vectors of expired playbooks. Embeddings come from an OpenAI-compatible endpoint, which is OpenRouter by default (decision 0024).
 
