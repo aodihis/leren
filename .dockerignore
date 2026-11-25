@@ -12,3 +12,8 @@ playwright-report
 !.env.example
 *.xlsx
 *.log
+out
+docs
+README.md
+AGENTS.md
+**/README.md

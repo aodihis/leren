@@ -22,7 +22,7 @@ services:
   api:
     <<: *app
     container_name: leren-api
-    command: ["pnpm", "--filter", "@leren/api", "start"]
+    command: ["node", "dist/api.js"]
     networks:
       - traefik
       - shared-network
@@ -47,7 +47,7 @@ services:
   worker:
     <<: *app
     container_name: leren-worker
-    command: ["pnpm", "--filter", "@leren/worker", "start"]
+    command: ["node", "dist/worker.js"]
     networks:
       - shared-network
 
