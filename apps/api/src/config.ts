@@ -1,4 +1,5 @@
 import { channelProviderEnvShape, checkChannelProviderEnv } from "@leren/channels";
+import { checkConnectorEnv, connectorEnvShape } from "@leren/connectors";
 import { z } from "zod";
 
 const configSchema = z
@@ -17,9 +18,14 @@ const configSchema = z
     PORT: z.coerce.number().int().positive().default(3000),
     NODE_ENV: z.string().optional(),
     ...channelProviderEnvShape,
+    ...connectorEnvShape,
   })
   .superRefine((config, context) => {
     checkChannelProviderEnv(config, (variable, message) =>
+      context.addIssue({ code: "custom", path: [variable], message }),
+    );
+
+    checkConnectorEnv(config, (variable, message) =>
       context.addIssue({ code: "custom", path: [variable], message }),
     );
   });

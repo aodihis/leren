@@ -169,6 +169,31 @@ export const channelAccounts = pgTable(
   ],
 );
 
+export const connectorStatusEnum = pgEnum("connector_status", ["active", "revoked"]);
+
+/**
+ * A user's authorisation of an external MCP server, such as one Notion workspace (decision 0054).
+ * `connector` names a definition in `@leren/connectors`. `credentials` is encrypted text with the
+ * same format as `channel_accounts.credentials`. A user has at most one row for each connector.
+ */
+export const connectors = pgTable(
+  "connectors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    connector: text("connector").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    label: text("label").notNull(),
+    credentials: text("credentials"),
+    status: connectorStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [unique("connectors_user_connector_unique").on(table.userId, table.connector)],
+);
+
 /**
  * The reply conditions of a playbook for one channel, such as `email` or `slack`. A playbook
  * listens on a channel when it has a row for that channel, and it has at most one row for each.

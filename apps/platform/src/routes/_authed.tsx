@@ -25,6 +25,7 @@ import {
   MailIcon,
   MenuIcon,
   PlugIcon,
+  PuzzleIcon,
   SquarePenIcon,
   UserIcon,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { to: "/playbooks", label: "Playbooks", icon: BookOpenIcon },
   { to: "/emails", label: "Processed emails", icon: MailIcon },
   { to: "/channels", label: "Channels", icon: PlugIcon },
+  { to: "/connectors", label: "Connectors", icon: PuzzleIcon },
   { to: "/agent-access", label: "Agent access", icon: KeyRoundIcon },
   { to: "/profile", label: "Profile", icon: UserIcon },
 ] as const;

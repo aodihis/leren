@@ -9,6 +9,8 @@ import { createMcpEndpoint } from "@leren/mcp-server";
 import type { McpToolDependencies } from "@leren/mcp-server";
 
 import { fieldErrorsSchema, validationHook } from "./validation";
+import { NO_CONNECTORS, createConnectorsRouter } from "./modules/connectors/router";
+import type { ConnectorsRouterDependencies } from "./modules/connectors/router";
 import { createAssistantRouter } from "./modules/assistant/router";
 import type { Agent } from "./modules/assistant/agent";
 import { createAuthRouter } from "./modules/auth/router";
@@ -82,6 +84,7 @@ export type AppDependencies = {
   assistant?: Agent | undefined;
   /** The enabled channel providers and their settings. Without it, no provider is enabled. */
   channelAccounts?: ChannelAccountsRouterDependencies | undefined;
+  connectors?: ConnectorsRouterDependencies | undefined;
   /** Records received emails for the gate. Without it, no email can be simulated. */
   inbox?: MessagesRouterDependencies | undefined;
   mcp: {
@@ -105,6 +108,7 @@ export function createApp({
   requestKnowledgeIndex,
   assistant,
   channelAccounts = NO_CHANNEL_PROVIDERS,
+  connectors = NO_CONNECTORS,
   inbox = NO_INBOX,
   mcp,
 }: AppDependencies) {
@@ -165,6 +169,7 @@ export function createApp({
     .route("/", createAuthRouter(auth, db))
     .route("/", createPlaybooksRouter(auth, db, requestKnowledgeIndex))
     .route("/", createChannelAccountsRouter({ auth, db, logger, dependencies: channelAccounts }))
+    .route("/", createConnectorsRouter({ auth, db, logger, dependencies: connectors }))
     .route("/", createMessagesRouter({ auth, db, dependencies: inbox }))
     .route("/", createDashboardRouter(auth, db))
     .route("/", createMcpRouter({ auth, db, sessions, endpoint }))
