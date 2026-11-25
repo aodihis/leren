@@ -1,0 +1,137 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the API and worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/app.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/aodihis/leren-app:latest
+            ghcr.io/aodihis/leren-app:${{ github.sha }}
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,scope=app,mode=max
+
+      - name: Build and push the platform image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/platform.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/aodihis/leren-platform:latest
+            ghcr.io/aodihis/leren-platform:${{ github.sha }}
+          cache-from: type=gha,scope=platform
+          cache-to: type=gha,scope=platform,mode=max
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: publish
+    permissions:
+      contents: read
+
+    env:
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      API_URL: ${{ vars.API_URL }}
+      PLATFORM_URL: ${{ vars.PLATFORM_URL }}
+      MCP_URL: ${{ vars.MCP_URL }}
+      VECTOR_STORE_URL: ${{ vars.VECTOR_STORE_URL }}
+      CHANNEL_PROVIDERS: ${{ vars.CHANNEL_PROVIDERS }}
+      CONNECTORS: ${{ vars.CONNECTORS }}
+      EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL }}
+      ASSISTANT_MODEL: ${{ vars.ASSISTANT_MODEL }}
+      REPLY_MODEL: ${{ vars.REPLY_MODEL }}
+      KNOWLEDGE_DRIFT_INTERVAL_MINUTES: ${{ vars.KNOWLEDGE_DRIFT_INTERVAL_MINUTES }}
+      EMAIL_POLL_INTERVAL_SECONDS: ${{ vars.EMAIL_POLL_INTERVAL_SECONDS }}
+      EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+      ANVIA_LENS_SERVICE_NAME: ${{ vars.ANVIA_LENS_SERVICE_NAME }}
+      ANVIA_LENS_ENVIRONMENT: ${{ vars.ANVIA_LENS_ENVIRONMENT }}
+      ANVIA_LENS_MEDIA_UPLOAD_ENABLED: ${{ vars.ANVIA_LENS_MEDIA_UPLOAD_ENABLED }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      SMTP_URL: ${{ secrets.SMTP_URL }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      MCP_SESSION_SECRET: ${{ secrets.MCP_SESSION_SECRET }}
+      CHANNEL_TOKEN_ENCRYPTION_KEY: ${{ secrets.CHANNEL_TOKEN_ENCRYPTION_KEY }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      DEVSCALE_GATEWAY_API_KEY: ${{ secrets.DEVSCALE_GATEWAY_API_KEY }}
+      VECTOR_STORE_API_KEY: ${{ secrets.VECTOR_STORE_API_KEY }}
+      ANVIA_LENS_BASE_URL: ${{ secrets.ANVIA_LENS_BASE_URL }}
+      ANVIA_LENS_PUBLIC_KEY: ${{ secrets.ANVIA_LENS_PUBLIC_KEY }}
+      ANVIA_LENS_SECRET_KEY: ${{ secrets.ANVIA_LENS_SECRET_KEY }}
+      IMAGE_TAG: ${{ github.sha }}
+      SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SSH_TARGET: ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}
+      APP_DIR: ${{ vars.APP_DIR }}
+      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GHCR_USER: ${{ github.actor }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${SSH_TARGET#*@}" >> ~/.ssh/known_hosts
+
+      - name: Write the environment file
+        run: |
+          for name in APP_DOMAIN API_URL PLATFORM_URL MCP_URL VECTOR_STORE_URL CHANNEL_PROVIDERS \
+            CONNECTORS EMBEDDING_MODEL ASSISTANT_MODEL REPLY_MODEL KNOWLEDGE_DRIFT_INTERVAL_MINUTES \
+            EMAIL_POLL_INTERVAL_SECONDS EMAIL_FROM ANVIA_LENS_SERVICE_NAME ANVIA_LENS_ENVIRONMENT \
+            ANVIA_LENS_MEDIA_UPLOAD_ENABLED DATABASE_URL RABBITMQ_URL REDIS_URL SMTP_URL \
+            BETTER_AUTH_SECRET MCP_SESSION_SECRET CHANNEL_TOKEN_ENCRYPTION_KEY GOOGLE_CLIENT_ID \
+            GOOGLE_CLIENT_SECRET EMBEDDING_API_KEY DEEPSEEK_API_KEY DEVSCALE_GATEWAY_API_KEY \
+            VECTOR_STORE_API_KEY ANVIA_LENS_BASE_URL ANVIA_LENS_PUBLIC_KEY ANVIA_LENS_SECRET_KEY IMAGE_TAG; do
+            printf "%s='%s'\n" "$name" "${!name}"
+          done > deploy.env
+
+      - name: Copy the files and restart the stack
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_TARGET" "mkdir -p '$APP_DIR'"
+          scp -i ~/.ssh/deploy_key docker-compose.prod.yml "$SSH_TARGET:$APP_DIR/docker-compose.prod.yml"
+          scp -i ~/.ssh/deploy_key deploy.env "$SSH_TARGET:$APP_DIR/.env"
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/deploy_key "$SSH_TARGET" \
+            "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
+          ssh -i ~/.ssh/deploy_key "$SSH_TARGET" bash -s "$APP_DIR" <<'ENDSSH'
+            set -e
+            cd "$1"
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml run --rm --no-deps api \
+              pnpm --filter @leren/db db:migrate
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
+          ENDSSH

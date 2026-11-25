@@ -21,6 +21,7 @@ function createConfigSchema(roles: ReadonlySet<WorkerRole>) {
     .object({
       DATABASE_URL: z.string().min(1),
       VECTOR_STORE_URL: roles.has("indexer") ? z.string().min(1) : z.string().min(1).optional(),
+      VECTOR_STORE_API_KEY: emptyAsUnset(z.string().min(1).optional()),
       RABBITMQ_URL: z.string().min(1),
       WORKER_ROLES: z
         .string()

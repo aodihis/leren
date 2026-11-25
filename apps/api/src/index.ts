@@ -64,7 +64,10 @@ function createSearchDependencies() {
     const model = resolveEmbeddingModel(harness);
 
     return {
-      store: createVectorStore({ url: config.VECTOR_STORE_URL }),
+      store: createVectorStore({
+        url: config.VECTOR_STORE_URL,
+        apiKey: config.VECTOR_STORE_API_KEY || undefined,
+      }),
       embedder: createEmbedder({
         baseUrl: model.definition.baseUrl,
         apiKey: model.apiKey,
