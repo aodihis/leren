@@ -48,7 +48,7 @@ A missing bound is open, and both bounds are inclusive. The interface shows one 
 
 A **connector** links a tool that holds the user's data, such as Notion, Google Docs or Google Sheets, so that the assistant can read it. A user connects one on the Connectors page with OAuth and disconnects it there. The assistant has the read-only tools of the connectors the user has connected and no others, and it cannot change anything in them. Reading a connected tool, the assistant can draft playbooks from what it finds. A single date becomes a one-day period, and the assistant asks for the fields it still lacks, such as the timezone or the senders. Nothing is saved until the user confirms (decisions 0032 and 0054).
 
-The connectors that users can connect are chosen by the `CONNECTORS` environment variable, a comma-separated list of `notion`, `google_docs` and `google_sheets`. It is empty by default. An enabled connector needs `CHANNEL_TOKEN_ENCRYPTION_KEY`. Notion needs nothing else, because it registers its own OAuth client. The Google connectors need `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and Google Docs also needs `GOOGLE_DOCS_MCP_URL`.
+The connectors that users can connect are chosen by the `CONNECTORS` environment variable, a comma-separated list of `notion`, `google_docs` and `google_sheets`. It is empty by default. An enabled connector needs `CHANNEL_TOKEN_ENCRYPTION_KEY`. Notion needs nothing else, because it registers its own OAuth client. The Google connectors need `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 
 ## Channels and accounts
 

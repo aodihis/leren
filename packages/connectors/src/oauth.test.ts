@@ -45,7 +45,7 @@ function lastRequestBody(send: ReturnType<typeof createNotionServer>) {
 }
 
 describe("the Notion connector", () => {
-  const definition = defineConnector("notion", {});
+  const definition = defineConnector("notion");
 
   it("registers a public client and builds an authorization URL bound to the resource", async () => {
     const connector = createConnector(definition, { fetch: createNotionServer() });
@@ -139,7 +139,7 @@ describe("the Google Sheets connector", () => {
       Response.json({ access_token: "a", id_token: `x.${claims.toString("base64url")}.y` }),
     );
 
-    const connector = createConnector(defineConnector("google_sheets", {}), {
+    const connector = createConnector(defineConnector("google_sheets"), {
       clientId: "google-id",
       clientSecret: "google-secret",
       fetch: send,
@@ -173,7 +173,7 @@ describe("the read-only allow-lists", () => {
     const writes = /create|update|delete|append|write|move|comment|insert|duplicate|restore/;
 
     for (const id of ["notion", "google_docs", "google_sheets"] as const) {
-      for (const tool of defineConnector(id, {}).allowedTools) {
+      for (const tool of defineConnector(id).allowedTools) {
         expect(tool).not.toMatch(writes);
       }
     }

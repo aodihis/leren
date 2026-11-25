@@ -1,11 +1,10 @@
 import { defineConnector } from "./definitions";
-import type { DefinitionSettings } from "./definitions";
 import { createConnector } from "./oauth";
 import { CONNECTOR_IDS } from "./types";
 import type { Connector, ConnectorId } from "./types";
 
 /** The settings that the connectors need, as read from the environment. */
-export type ConnectorSettings = DefinitionSettings & {
+export type ConnectorSettings = {
   CONNECTORS: readonly ConnectorId[];
   GOOGLE_CLIENT_ID?: string | undefined;
   GOOGLE_CLIENT_SECRET?: string | undefined;
@@ -26,7 +25,7 @@ export function createConnectors(settings: ConnectorSettings): ReadonlyMap<strin
 
     connectors.set(
       id,
-      createConnector(defineConnector(id, settings), {
+      createConnector(defineConnector(id), {
         clientId: settings.GOOGLE_CLIENT_ID,
         clientSecret: settings.GOOGLE_CLIENT_SECRET,
       }),
