@@ -25,6 +25,7 @@ Applies to everything in `packages/`.
 | `@leren/vector-db`       | Vector store abstraction      |
 | `@leren/embedder`        | Text embedding provider       |
 | `@leren/queue`           | RabbitMQ queues and retries   |
+| `@leren/rate-limit`      | Per-key rate limits on Redis  |
 | `@leren/mcp-server`      | MCP server and sessions       |
 | `@leren/logger`          | Library-agnostic logging      |
 | `@leren/email`           | Email sending over SMTP       |

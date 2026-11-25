@@ -28,6 +28,8 @@ export type McpSession = {
   role: ClientRole;
   scopes: readonly Scope[];
   messageId: string | null;
+  /** The label of an access token that a user created, and null for a session of a built-in agent. */
+  name: string | null;
 };
 
 export type MintSessionInput = {
@@ -37,6 +39,8 @@ export type MintSessionInput = {
   scopes?: readonly Scope[];
   /** The message a reply session is for. Required for the reply role and rejected for others. */
   messageId?: string;
+  /** A label that marks the session as an access token that the user created and can list. */
+  name?: string;
   ttlSeconds?: number;
 };
 
@@ -87,6 +91,7 @@ export async function mintSession(
       role: input.role,
       scopes: [...scopes],
       messageId: input.messageId ?? null,
+      name: input.name ?? null,
       expiresAt,
     })
     .returning({ id: mcpSessions.id });
@@ -150,6 +155,7 @@ export async function verifySession(
     role: row.role,
     scopes: granted,
     messageId: row.messageId,
+    name: row.name,
   };
 }
 

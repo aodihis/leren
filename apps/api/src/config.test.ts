@@ -6,6 +6,7 @@ const validEnv = {
   DATABASE_URL: "postgres://leren:leren@localhost:54329/leren",
   BETTER_AUTH_SECRET: "x".repeat(32),
   RABBITMQ_URL: "amqp://leren:leren@localhost:56720",
+  REDIS_URL: "redis://localhost:56379",
   SMTP_URL: "smtp://localhost:51025",
   MCP_SESSION_SECRET: "m".repeat(32),
   VECTOR_STORE_URL: "http://localhost:16333",

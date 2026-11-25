@@ -6,14 +6,39 @@ import type { McpSession, SessionDependencies } from "./sessions";
 import { createMcpServer } from "./tools";
 import type { McpToolDependencies } from "./tools";
 
+/**
+ * Decides whether a verified session may make a call. `tool` is the name of the tool for a
+ * `tools/call` request and `null` for any other request. A refusal answers `429`, or `503` when
+ * `unavailable` is set because the limit could not be checked.
+ */
+export type McpRateLimit = (call: {
+  session: McpSession;
+  tool: string | null;
+}) => Promise<
+  { allowed: true } | { allowed: false; retryAfterSeconds: number; unavailable?: boolean }
+>;
+
 export type McpEndpointDependencies = SessionDependencies &
-  Omit<McpToolDependencies, "db" | "onToolAudited">;
+  Omit<McpToolDependencies, "db" | "onToolAudited"> & {
+    /** Limits the calls of a session. A request that it refuses receives `429`. */
+    rateLimit?: McpRateLimit;
+  };
 
 function unauthorized(): Response {
   return new Response(JSON.stringify({ error: "Unauthorized" }), {
     status: 401,
     headers: { "content-type": "application/json", "www-authenticate": "Bearer" },
   });
+}
+
+function refused(retryAfterSeconds: number, unavailable: boolean): Response {
+  return new Response(
+    JSON.stringify({ error: unavailable ? "Service unavailable" : "Too many requests" }),
+    {
+      status: unavailable ? 503 : 429,
+      headers: { "content-type": "application/json", "retry-after": String(retryAfterSeconds) },
+    },
+  );
 }
 
 function readBearerToken(request: Request): string | null {
@@ -32,19 +57,25 @@ function readContext(extra: Record<string, unknown> | undefined): RequestContext
   return extra?.context as RequestContext | undefined;
 }
 
+function toolCallName(message: unknown): string | null {
+  const { method, params } = (message ?? {}) as { method?: unknown; params?: { name?: unknown } };
+
+  return method === "tools/call" && typeof params?.name === "string" ? params.name : null;
+}
+
 /**
- * Returns the tool name of a `tools/call` request, or `null` for any other request. The body is
- * read from a clone, so the SDK still receives the original request.
+ * Returns one entry for each JSON-RPC message in the request: the tool name of a `tools/call`
+ * and `null` for any other message. A batch has one entry for each of its messages, so a batch
+ * cannot count as a single call. The body is read from a clone, so the SDK still receives the
+ * original request.
  */
-async function readToolCallName(request: Request): Promise<string | null> {
-  const body = await request
+async function readToolCallNames(request: Request): Promise<(string | null)[]> {
+  const body: unknown = await request
     .clone()
     .json()
     .catch(() => null);
 
-  return body?.method === "tools/call" && typeof body.params?.name === "string"
-    ? body.params.name
-    : null;
+  return Array.isArray(body) && body.length > 0 ? body.map(toolCallName) : [toolCallName(body)];
 }
 
 /**
@@ -54,6 +85,11 @@ async function readToolCallName(request: Request): Promise<string | null> {
  * any MCP processing. A `tools/call` that ends without running a tool body, because the tool is
  * not granted or its arguments fail validation, is audited here with the outcome `rejected`, so
  * denied and invalid calls appear in the log without their arguments.
+ *
+ * When the rate limit refuses a verified session, the request receives `429`, or `503` when the
+ * limit could not be checked, with `Retry-After` and before any MCP processing. The limit is
+ * checked once for each message of a batch. A refused call is not audited, so a flood of refused
+ * calls cannot grow the audit log.
  */
 export function createMcpEndpoint(deps: McpEndpointDependencies) {
   const handler = createMcpHandler(({ authInfo }) => {
@@ -80,7 +116,16 @@ export function createMcpEndpoint(deps: McpEndpointDependencies) {
         return unauthorized();
       }
 
-      const toolName = await readToolCallName(request);
+      const toolNames = await readToolCallNames(request);
+      const toolName = toolNames.length === 1 ? (toolNames[0] ?? null) : null;
+
+      for (const tool of toolNames) {
+        const decision = (await deps.rateLimit?.({ session, tool })) ?? { allowed: true };
+
+        if (!decision.allowed) {
+          return refused(decision.retryAfterSeconds, decision.unavailable === true);
+        }
+      }
 
       const context: RequestContext = { session, toolBodyRan: false };
 

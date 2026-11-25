@@ -20,6 +20,7 @@ import {
 import {
   BookOpenIcon,
   HouseIcon,
+  KeyRoundIcon,
   LogOutIcon,
   MailIcon,
   MenuIcon,
@@ -39,6 +40,7 @@ const NAV_ITEMS = [
   { to: "/playbooks", label: "Playbooks", icon: BookOpenIcon },
   { to: "/emails", label: "Processed emails", icon: MailIcon },
   { to: "/channels", label: "Channels", icon: PlugIcon },
+  { to: "/agent-access", label: "Agent access", icon: KeyRoundIcon },
   { to: "/profile", label: "Profile", icon: UserIcon },
 ] as const;
 

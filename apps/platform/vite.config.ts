@@ -15,7 +15,10 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
     server: {
-      proxy: { "/api": env.API_URL || "http://localhost:3000" },
+      proxy: {
+        "/api": env.API_URL || "http://localhost:3000",
+        "/mcp": env.API_URL || "http://localhost:3000",
+      },
     },
   };
 });

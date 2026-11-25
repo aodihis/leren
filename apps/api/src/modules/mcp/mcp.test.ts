@@ -50,9 +50,15 @@ describe("MCP API", () => {
   };
 
   const mint = async (cookie: string) => {
-    const response = await app.request(SESSIONS, { method: "POST", headers: { cookie } });
+    const response = await app.request("/api/mcp/tokens", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json", origin: ORIGIN },
+      body: JSON.stringify({ name: "Test", access: "write", expiresInDays: 30 }),
+    });
 
-    return { status: response.status, body: await response.json() };
+    const body = await response.json();
+
+    return { status: response.status, body: { ...body, sessionId: body.accessToken?.id } };
   };
 
   const listTools = (token?: string) => {
@@ -101,7 +107,7 @@ describe("MCP API", () => {
   });
 
   it("rejects the session routes without a browser session", async () => {
-    expect((await app.request(SESSIONS, { method: "POST" })).status).toBe(401);
+    expect((await app.request("/api/mcp/tokens", { method: "POST" })).status).toBe(401);
     expect((await app.request(`${SESSIONS}/${MISSING_ID}`, { method: "DELETE" })).status).toBe(401);
   });
 
@@ -120,22 +126,10 @@ describe("MCP API", () => {
     ).toBe(401);
   });
 
-  it("mints a token that the MCP endpoint accepts", async () => {
-    const cookie = await signIn("minter@example.com");
-    const { status, body } = await mint(cookie);
+  it("has no route that mints a session without a name", async () => {
+    const cookie = await signIn("no-route@example.com");
 
-    expect(status).toBe(201);
-    expect(body).toEqual({
-      token: expect.any(String),
-      sessionId: expect.any(String),
-      expiresAt: expect.any(String),
-    });
-
-    const response = await listTools(body.token);
-    const text = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(text).toContain("create_playbook");
+    expect((await app.request(SESSIONS, { method: "POST", headers: { cookie } })).status).toBe(404);
   });
 
   it("revokes a session, and the token stops working", async () => {
@@ -181,5 +175,118 @@ describe("MCP API", () => {
     });
 
     expect(response.status).toBe(400);
+  });
+  describe("access tokens", () => {
+    const TOKENS = "/api/mcp/tokens";
+
+    const create = (cookie: string, body: unknown) =>
+      app.request(TOKENS, {
+        method: "POST",
+        headers: { cookie, "content-type": "application/json", origin: ORIGIN },
+        body: JSON.stringify(body),
+      });
+
+    const list = async (cookie: string) =>
+      (await (await app.request(TOKENS, { headers: { cookie } })).json()) as {
+        tokens: { id: string; name: string; access: string }[];
+      };
+
+    it("requires a browser session", async () => {
+      expect((await app.request(TOKENS)).status).toBe(401);
+      expect((await app.request(TOKENS, { method: "POST" })).status).toBe(401);
+    });
+
+    it("creates a token that is listed without its secret and authenticates the endpoint", async () => {
+      const cookie = await signIn("token-owner@example.com");
+
+      const response = await create(cookie, {
+        name: "Claude Desktop",
+        access: "write",
+        expiresInDays: 90,
+      });
+
+      const body = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(body.accessToken).toMatchObject({ name: "Claude Desktop", access: "write" });
+      expect((await listTools(body.token)).status).toBe(200);
+
+      const listed = await list(cookie);
+
+      expect(listed.tokens).toHaveLength(1);
+      expect(JSON.stringify(listed)).not.toContain(body.token);
+    });
+
+    it("gives a read token no write tool", async () => {
+      const cookie = await signIn("reader@example.com");
+
+      const { token } = await (
+        await create(cookie, { name: "Read", access: "read", expiresInDays: 30 })
+      ).json();
+
+      const tools = await (await listTools(token)).text();
+
+      expect(tools).toContain("list_playbooks");
+      expect(tools).not.toContain("create_playbook");
+    });
+
+    it("rejects an invalid name or lifetime", async () => {
+      const cookie = await signIn("invalid@example.com");
+
+      expect((await create(cookie, { name: " ", access: "read", expiresInDays: 30 })).status).toBe(
+        400,
+      );
+      expect((await create(cookie, { name: "A", access: "admin", expiresInDays: 30 })).status).toBe(
+        400,
+      );
+      expect(
+        (await create(cookie, { name: "A", access: "read", expiresInDays: 9999 })).status,
+      ).toBe(400);
+    });
+
+    it("revokes a token through the session route and removes it from the list", async () => {
+      const cookie = await signIn("revoke-token@example.com");
+
+      const { token, accessToken } = await (
+        await create(cookie, { name: "Temp", access: "read", expiresInDays: 30 })
+      ).json();
+
+      const revoked = await app.request(`${SESSIONS}/${accessToken.id}`, {
+        method: "DELETE",
+        headers: { cookie },
+      });
+
+      expect(revoked.status).toBe(204);
+      expect((await listTools(token)).status).toBe(401);
+      expect((await list(cookie)).tokens).toEqual([]);
+    });
+
+    it("keeps the tokens of one user from another", async () => {
+      const owner = await signIn("token-a@example.com");
+      const other = await signIn("token-b@example.com");
+
+      await create(owner, { name: "Mine", access: "read", expiresInDays: 30 });
+
+      expect((await list(other)).tokens).toEqual([]);
+    });
+
+    it("refuses a token past the limit", async () => {
+      const cookie = await signIn("limit@example.com");
+
+      for (let count = 0; count < 10; count += 1) {
+        expect(
+          (await create(cookie, { name: `T${count}`, access: "read", expiresInDays: 30 })).status,
+        ).toBe(201);
+      }
+
+      const response = await create(cookie, {
+        name: "One more",
+        access: "read",
+        expiresInDays: 30,
+      });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: "limit" });
+    });
   });
 });

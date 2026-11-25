@@ -141,6 +141,13 @@
       "when": 1795516699687,
       "tag": "0019_drop_playbook_examples_response_restrictions",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795530282617,
+      "tag": "0020_mcp_access_tokens",
+      "breakpoints": true
     }
   ]
 }

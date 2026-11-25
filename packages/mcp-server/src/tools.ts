@@ -44,6 +44,12 @@ export type McpWriteAction = {
   run: (userId: string, input: never) => Promise<McpWriteOutcome>;
 };
 
+/** The names of the tools that change data. */
+export const WRITE_TOOLS = {
+  createPlaybook: "create_playbook",
+  updatePlaybook: "update_playbook",
+} as const;
+
 /** The write actions, keyed by what they do. */
 export type McpWriteActions = {
   createPlaybook: McpWriteAction;
@@ -387,8 +393,8 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
 
   if (deps.actions) {
     const writeTools = [
-      ["playbooks:write", "create_playbook", deps.actions.createPlaybook],
-      ["playbooks:write", "update_playbook", deps.actions.updatePlaybook],
+      ["playbooks:write", WRITE_TOOLS.createPlaybook, deps.actions.createPlaybook],
+      ["playbooks:write", WRITE_TOOLS.updatePlaybook, deps.actions.updatePlaybook],
     ] as const;
 
     for (const [scope, name, action] of writeTools) {
