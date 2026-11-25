@@ -44,6 +44,12 @@ The period status is computed from the start, the end and the current time. It i
 
 A missing bound is open, and both bounds are inclusive. The interface shows one status for each playbook: `disabled`, and for an enabled playbook its period status.
 
+## Connectors
+
+A **connector** links a tool that holds the user's data, such as Notion, Google Docs or Google Sheets, so that the assistant can read it. A user connects one on the Connectors page with OAuth and disconnects it there. The assistant has the read-only tools of the connectors the user has connected and no others, and it cannot change anything in them. Reading a connected tool, the assistant can draft playbooks from what it finds. A single date becomes a one-day period, and the assistant asks for the fields it still lacks, such as the timezone or the senders. Nothing is saved until the user confirms (decisions 0032 and 0054).
+
+The connectors that users can connect are chosen by the `CONNECTORS` environment variable, a comma-separated list of `notion`, `google_docs` and `google_sheets`. It is empty by default. An enabled connector needs `CHANNEL_TOKEN_ENCRYPTION_KEY`. Notion needs nothing else, because it registers its own OAuth client. The Google connectors need `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and Google Docs also needs `GOOGLE_DOCS_MCP_URL`.
+
 ## Channels and accounts
 
 A **channel** is a kind of medium that messages arrive on, such as email or Slack. A user connects a **channel account** with OAuth, for example a Gmail mailbox. A message belongs to the user who owns the account it was fetched through. The address the user signs in with is not used to match messages, and it can differ from every connected address.
@@ -231,6 +237,7 @@ Anvia Lens records every agent run, LLM call, MCP call and pipeline stage as a s
 | `@leren/auto-reply`    | Period status and conditions |
 | `@leren/inbox`         | Message records and statuses |
 | `@leren/channels`      | Channel providers and tokens |
+| `@leren/connectors`    | External MCP connectors      |
 | `@leren/agents`        | Contracts for AI agents      |
 | `@leren/observability` | Logging                      |
 | `@leren/ui`            | Shared React components      |

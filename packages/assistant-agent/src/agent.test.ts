@@ -67,6 +67,65 @@ describe("runAgent", () => {
   });
 });
 
+describe("runAgent with connectors", () => {
+  const notion = {
+    id: "notion",
+    url: "https://mcp.example.com/mcp",
+    token: "notion-token",
+    allowedTools: ["notion-search", "notion-fetch"],
+  };
+
+  const run = (connectors: readonly (typeof notion)[], onConnectorError = vi.fn()) =>
+    collectText(
+      runAgent({
+        instructions: "Be brief.",
+        messages: [{ role: "user", content: "Hi" }],
+        model: createFakeModel([{ text: "Hello" }]),
+        observer: createNoopObserver(),
+        mcp,
+        connectors,
+        onConnectorError,
+      }),
+    );
+
+  beforeEach(() => {
+    vi.mocked(connectMcp).mockClear();
+    close.mockClear();
+  });
+
+  it("registers no external server when the user has no connectors", async () => {
+    await run([]);
+
+    expect(connectMcp).toHaveBeenCalledOnce();
+    expect(connectMcp).toHaveBeenCalledWith(expect.objectContaining({ url: mcp.url }));
+  });
+
+  it("connects a connected server with its read-only tools and a strict address check", async () => {
+    await run([notion]);
+
+    expect(connectMcp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        token: "notion-token",
+        allowedTools: notion.allowedTools,
+        toolPrefix: "notion",
+        ssrfProtection: "strict",
+      }),
+    );
+
+    expect(close).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a server that cannot be reached and still answers", async () => {
+    const onConnectorError = vi.fn();
+
+    vi.mocked(connectMcp).mockResolvedValueOnce({ servers: [], close });
+    vi.mocked(connectMcp).mockRejectedValueOnce(new Error("unreachable"));
+
+    expect(await run([notion], onConnectorError)).toBe("Hello");
+    expect(onConnectorError).toHaveBeenCalledWith("notion", expect.any(Error));
+  });
+});
+
 describe("runAgent with memory", () => {
   /**
    * The store holds the earlier turns, so a client that sends its whole history must not make the

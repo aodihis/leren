@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import type { ChannelAccountsDependencies } from "@leren/channels";
 import type { Db } from "@leren/db";
@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
 import { z } from "zod";
 
+import { codeChallengeOf, parseJson } from "../../oauth";
 import { validate } from "../../validation";
 import { requireUser } from "../auth/middleware";
 import type { AuthVariables } from "../auth/middleware";
@@ -54,18 +55,6 @@ export const NO_CHANNEL_PROVIDERS: ChannelAccountsRouterDependencies = {
   apiUrl: "",
   platformUrl: "",
 };
-
-function codeChallengeOf(codeVerifier: string): string {
-  return createHash("sha256").update(codeVerifier).digest("base64url");
-}
-
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-}
 
 /**
  * Mounts the routes of channel accounts under `/api/channel-accounts`. Every route, including the

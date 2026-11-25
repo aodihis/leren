@@ -11,7 +11,8 @@ import type {
 import { createAgent } from "@leren/agents";
 import type { CreateAgentOptions, McpOptions } from "@leren/agents";
 import { tools } from "./tools";
-import { connectAssistantMcp } from "./utils/mcp";
+import { connectAssistantMcp, connectExternalMcpServers } from "./utils/mcp";
+import type { ExternalMcpServer } from "./utils/mcp";
 
 const AGENT_ID = "assistant";
 const MAX_TURNS = 75;
@@ -24,6 +25,13 @@ export interface AssistantAgentOptions extends Pick<
 > {
   readonly instructions: string;
   readonly mcp?: McpOptions | undefined;
+  /**
+   * The external MCP servers that the user has connected. A server that is not listed is never
+   * registered, and an empty list registers none.
+   */
+  readonly connectors?: readonly ExternalMcpServer[] | undefined;
+  /** Called with the id of a connector whose server could not be reached. */
+  readonly onConnectorError?: ((id: string, error: unknown) => void) | undefined;
   readonly abortSignal?: AbortSignal | undefined;
 }
 
@@ -48,6 +56,19 @@ export async function createAssistantAgent(
     ? await connectAssistantMcp(options.mcp, options.abortSignal)
     : undefined;
 
+  const external =
+    options.connectors && options.connectors.length > 0
+      ? await connectExternalMcpServers(
+          options.connectors,
+          options.onConnectorError ?? (() => {}),
+          options.abortSignal,
+        ).catch(async (error: unknown) => {
+          await connection?.close();
+
+          throw error;
+        })
+      : undefined;
+
   try {
     const agent = createAgent({
       id: AGENT_ID,
@@ -55,15 +76,20 @@ export async function createAssistantAgent(
       model: options.model,
       instructions: options.instructions,
       observer: options.observer,
-      mcpServers: connection?.servers,
+      mcpServers: [...(connection?.servers ?? []), ...(external?.servers ?? [])],
       tools: [...tools, ...(options.tools ?? [])],
       memory: options.memory,
       skills,
     });
 
-    return { agent, close: async () => connection?.close() };
+    return {
+      agent,
+      close: async () => {
+        await Promise.allSettled([connection?.close(), external?.close()]);
+      },
+    };
   } catch (error) {
-    await connection?.close();
+    await Promise.allSettled([connection?.close(), external?.close()]);
 
     throw error;
   }

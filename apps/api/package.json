@@ -23,6 +23,7 @@
     "@leren/assistant-agent": "workspace:*",
     "@leren/auto-reply": "workspace:*",
     "@leren/channels": "workspace:*",
+    "@leren/connectors": "workspace:*",
     "@leren/db": "workspace:*",
     "@leren/email": "workspace:*",
     "@leren/embedder": "workspace:*",

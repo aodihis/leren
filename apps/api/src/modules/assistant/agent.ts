@@ -6,6 +6,9 @@ import type {
   Message,
 } from "@anvia/core";
 import { runAgent } from "@leren/assistant-agent";
+import { listConnectorSessions } from "@leren/connectors";
+import type { ConnectorsDependencies } from "@leren/connectors";
+import type { Db } from "@leren/db";
 import { mintSession, revokeSession } from "@leren/mcp-server";
 import type { SessionDependencies } from "@leren/mcp-server";
 import type { Logger } from "@leren/logger";
@@ -30,18 +33,31 @@ export type AgentOptions = {
   model: CompletionModel;
   observer: Observer;
   logger: Logger;
+  db: Db;
+  /** The enabled connectors. A user's own connections decide which of them an agent run uses. */
+  connectors: ConnectorsDependencies;
 };
 
 /**
  * Builds the agent that serves the chat. Every run gets its own MCP session, bound to the user
  * and limited to the `assistant` role, and the session is revoked when the run ends, fails or is
- * abandoned, so a token never outlives its run.
+ * abandoned, so a token never outlives its run. The run registers the external MCP servers of the
+ * user's active connections and no others (decision 0054).
  */
 export function createAgent(options: AgentOptions): Agent {
   return async function* run(input) {
     const minted = await mintSession(options.sessions, { userId: input.userId, role: "assistant" });
 
     try {
+      const connectors = await listConnectorSessions(
+        options.db,
+        options.connectors,
+        input.userId,
+        (connector, error) => {
+          options.logger.warn("A connector is unavailable for this run", { connector, error });
+        },
+      );
+
       yield* runAgent({
         instructions: options.instructions,
         model: options.model,
@@ -50,6 +66,10 @@ export function createAgent(options: AgentOptions): Agent {
         memory: input.memory,
         abortSignal: input.abortSignal,
         mcp: { url: new URL(options.mcpUrl), token: minted.token },
+        connectors,
+        onConnectorError: (connector, error) => {
+          options.logger.warn("A connector could not be reached", { connector, error });
+        },
       });
     } finally {
       await revokeSession(options.sessions, input.userId, minted.sessionId).catch((error) => {

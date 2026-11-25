@@ -1,5 +1,10 @@
 import { McpClient, McpClientGroup } from "@anvia/mcp";
-import type { McpConnectOptions, McpServer, McpStreamableHttpTransport } from "@anvia/mcp";
+import type {
+  McpClientOptions,
+  McpConnectOptions,
+  McpServer,
+  McpStreamableHttpTransport,
+} from "@anvia/mcp";
 
 /** Connection details for the MCP server hosted by the API. */
 export interface McpConnectionOptions {
@@ -16,6 +21,15 @@ export interface McpConnectionOptions {
    * keep `strict`, so that it cannot be used to reach internal services.
    */
   readonly ssrfProtection?: "strict" | "disabled" | undefined;
+  /** The client name that identifies this connection to the server. It defaults to `leren`. */
+  readonly name?: string | undefined;
+  /** A prefix for the local names of the server's tools, so that two servers cannot collide. */
+  readonly toolPrefix?: string | undefined;
+  /**
+   * Whether the client falls back to older protocol revisions. External servers are not under
+   * Leren's control, so they negotiate. The default is the library's own default.
+   */
+  readonly negotiateVersion?: boolean | undefined;
 }
 
 /** The part of the connection that identifies the server and the user's session. */
@@ -56,15 +70,19 @@ export function restrictTools(
  * as a bearer header and never appears in a tool argument or prompt.
  */
 export async function connectMcp(options: McpConnectionOptions): Promise<McpConnection> {
-  const client = new McpClient({
-    name: "leren",
+  const clientOptions: McpClientOptions = {
+    name: options.name ?? "leren",
     transport: {
       type: "streamableHttp",
       url: options.url,
       ssrfProtection: options.ssrfProtection ?? "strict",
       headers: { Authorization: `Bearer ${options.token}` },
     },
-  });
+    versionNegotiation: options.negotiateVersion ? { mode: "auto" } : undefined,
+    tools: options.toolPrefix ? { prefix: options.toolPrefix } : undefined,
+  };
+
+  const client = new McpClient(clientOptions);
 
   const group = await McpClientGroup.connect({
     clients: [client],

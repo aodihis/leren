@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { loadHarness, resolveEmbeddingModel } from "@leren/agents";
 import { createChannelProviders, parseEncryptionKey } from "@leren/channels";
+import { createConnectors } from "@leren/connectors";
 import { createDb } from "@leren/db";
 import { createSmtpEmailSender } from "@leren/email";
 import { createEmbedder } from "@leren/embedder";
@@ -93,6 +94,8 @@ async function createAssistant() {
       instructions: await loaded.readPrompt("assistant"),
       model: loaded.createModel("assistant"),
       observer,
+      db,
+      connectors: connectorDependencies,
     });
   } catch (error) {
     logger.warn("The assistant chat is disabled", { error });
@@ -100,6 +103,12 @@ async function createAssistant() {
     return undefined;
   }
 }
+
+const encryptionKey = config.CHANNEL_TOKEN_ENCRYPTION_KEY
+  ? parseEncryptionKey(config.CHANNEL_TOKEN_ENCRYPTION_KEY)
+  : undefined;
+
+const connectorDependencies = { connectors: createConnectors(config), encryptionKey };
 
 const app = createApp({
   auth,
@@ -109,9 +118,13 @@ const app = createApp({
   assistant: await createAssistant(),
   channelAccounts: {
     providers: createChannelProviders(config),
-    encryptionKey: config.CHANNEL_TOKEN_ENCRYPTION_KEY
-      ? parseEncryptionKey(config.CHANNEL_TOKEN_ENCRYPTION_KEY)
-      : undefined,
+    encryptionKey,
+    cookieSecret: config.BETTER_AUTH_SECRET,
+    apiUrl: config.API_URL,
+    platformUrl: config.PLATFORM_URL,
+  },
+  connectors: {
+    ...connectorDependencies,
     cookieSecret: config.BETTER_AUTH_SECRET,
     apiUrl: config.API_URL,
     platformUrl: config.PLATFORM_URL,

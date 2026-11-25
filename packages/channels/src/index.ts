@@ -1,6 +1,6 @@
 export { channelProviderEnvShape, checkChannelProviderEnv } from "./config";
 
-export { encryptCredentials, parseEncryptionKey } from "./crypto";
+export { decryptCredentials, encryptCredentials, parseEncryptionKey } from "./crypto";
 
 export {
   CHANNEL_PROVIDER_NAMES,
