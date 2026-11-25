@@ -137,8 +137,9 @@ jobs:
             set -e
             cd "$1"
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml run --rm --no-deps api \
-              pnpm --filter @leren/db db:migrate
+            docker compose -f docker-compose.prod.yml run --rm --no-deps -T api \
+              pnpm --filter @leren/db db:migrate < /dev/null
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml ps
             docker image prune -f
           ENDSSH
