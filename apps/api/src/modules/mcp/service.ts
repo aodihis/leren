@@ -9,6 +9,9 @@ import type { CreateAccessTokenInput } from "./schema";
 /** The most access tokens that a user can hold at once. Expired and revoked tokens do not count. */
 export const ACCESS_TOKEN_LIMIT = 10;
 
+/** The scopes of the `read` level: the user's playbooks and processed mail, and nothing that writes. */
+const READ_ONLY_SCOPES = ["playbooks:read", "messages:read"] as const;
+
 const SECONDS_PER_DAY = 24 * 60 * 60;
 
 export type AccessTokenView = {
@@ -75,7 +78,7 @@ export async function createAccessToken(
   const minted = await mintSession(sessions, {
     userId,
     role: "assistant",
-    scopes: input.access === "write" ? ROLE_SCOPES.assistant : ["playbooks:read"],
+    scopes: input.access === "write" ? ROLE_SCOPES.assistant : READ_ONLY_SCOPES,
     name: input.name,
     ttlSeconds: input.expiresInDays * SECONDS_PER_DAY,
   });

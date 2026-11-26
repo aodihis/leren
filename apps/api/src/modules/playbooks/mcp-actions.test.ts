@@ -4,7 +4,7 @@ import type { TestDatabase } from "@leren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createPlaybookMcpActions } from "./mcp-actions";
+import { PLAYBOOK_FIELD_GUIDE, createPlaybookMcpActions } from "./mcp-actions";
 
 const MISSING_ID = "00000000-0000-4000-8000-000000000000";
 
@@ -46,7 +46,7 @@ describe("playbook MCP actions", () => {
 
     accountId = await addAccount(userId, "a@example.com");
 
-    actions = createPlaybookMcpActions(database.db, requestIndex);
+    actions = createPlaybookMcpActions(database.db, requestIndex, "https://app.example.com/");
   });
 
   async function addAccount(owner: string, label: string, status: "active" | "revoked" = "active") {
@@ -83,7 +83,38 @@ describe("playbook MCP actions", () => {
 
   const playbookCount = async () => (await database.db.select().from(playbooks)).length;
 
+  describe("field guide", () => {
+    it("marks only the topic, the information and the timezone as required", () => {
+      const required = PLAYBOOK_FIELD_GUIDE.playbook
+        .filter((field) => field.required)
+        .map((field) => field.name);
+
+      expect(required).toEqual(["topic", "information", "timezone"]);
+    });
+
+    it("gives the default of every field that is not required", () => {
+      expect(PLAYBOOK_FIELD_GUIDE.playbook.find((field) => field.name === "enabled")).toMatchObject(
+        { required: false, default: true },
+      );
+      expect(
+        PLAYBOOK_FIELD_GUIDE.emailConditions.find((field) => field.name === "senderMode"),
+      ).toMatchObject({ required: false, default: "any" });
+    });
+
+    it("describes every field", () => {
+      const all = [...PLAYBOOK_FIELD_GUIDE.playbook, ...PLAYBOOK_FIELD_GUIDE.emailConditions];
+
+      expect(all.filter((field) => field.description === "")).toEqual([]);
+    });
+  });
+
   describe("createPlaybook", () => {
+    it("returns the link to the saved playbook", async () => {
+      const created = await newPlaybook();
+
+      expect(created.data.url).toBe(`https://app.example.com/playbooks/${created.id}`);
+    });
+
     it("saves an enabled playbook with the email defaults and asks for it to be indexed", async () => {
       const created = (await run(actions.createPlaybook, userId, {
         topic: "Parking",

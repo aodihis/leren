@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const MESSAGE_STATUSES = [
+export const MESSAGE_STATUSES = [
   "received",
   "not_applicable",
   "queued",
@@ -11,7 +11,7 @@ const MESSAGE_STATUSES = [
   "failed",
 ] as const;
 
-const MESSAGE_OUTCOMES = ["answer", "escalate", "ignore"] as const;
+export const MESSAGE_OUTCOMES = ["answer", "escalate", "ignore"] as const;
 
 const MAX_PAGE_SIZE = 100;
 const MAX_RECIPIENTS = 50;

@@ -9,9 +9,10 @@ import Markdown from "react-markdown";
 import type { Components } from "react-markdown";
 
 const STARTERS = [
-  { label: "See my rules", prompt: "What rules do I have?" },
-  { label: "Add knowledge", prompt: "Help me add knowledge to a rule" },
-  { label: "Set up a rule", prompt: "Help me create an auto-reply rule" },
+  { label: "How do I start?", prompt: "What can you do? How do I get started?" },
+  { label: "Add a playbook", prompt: "Help me add a playbook" },
+  { label: "See my playbooks", prompt: "Which playbooks do I have?" },
+  { label: "Recent emails", prompt: "How were my recent emails handled?" },
 ];
 
 const TITLE_LENGTH = 60;

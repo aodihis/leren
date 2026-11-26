@@ -275,6 +275,24 @@ describe("deliverReply", () => {
       expect(sender.createDraft).not.toHaveBeenCalled();
     });
 
+    it("redacts the text of the message once a draft exists, and again on a repeat delivery", async () => {
+      const personal = "Write to jane.doe@example.org";
+
+      await insertReply();
+      await database.db.update(messages).set({ body: personal }).where(eq(messages.id, messageId));
+      await run();
+
+      const stored = async () =>
+        (await database.db.select().from(messages).where(eq(messages.id, messageId)))[0]?.body;
+
+      expect(await stored()).toBe("Write to [redacted]");
+
+      await database.db.update(messages).set({ body: personal }).where(eq(messages.id, messageId));
+      await run();
+
+      expect(await stored()).toBe("Write to [redacted]");
+    });
+
     it("never calls the provider again for a delivery that started and has no end", async () => {
       await insertReply({ state: "started" });
 

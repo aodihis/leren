@@ -89,6 +89,30 @@ export const toolUseCases = defineEvalCases([
     },
   },
   {
+    id: "reads-the-field-guide-when-asked-how-to-create",
+    input: {
+      conversation: [{ role: "user", content: "Which fields do I need to create a playbook?" }],
+      playbooks: [],
+    },
+    expected: {
+      mustCall: ["describe_playbook_fields"],
+      mustNotCall: ["create_playbook"],
+    } satisfies ToolExpectation,
+    metadata: { note: "Workflow step 8: the fields come from the tool, not from the prompt." },
+  },
+  {
+    id: "reads-the-processed-mail-to-explain-an-escalation",
+    input: {
+      conversation: [{ role: "user", content: "Which of my emails were escalated, and why?" }],
+      playbooks: [OFFICE_HOURS],
+    },
+    expected: {
+      mustCall: ["list_messages"],
+      mustNotCall: ["create_playbook", "update_playbook"],
+    } satisfies ToolExpectation,
+    metadata: { note: "Workflow step 7: processed mail comes from list_messages." },
+  },
+  {
     id: "tests-coverage-with-search",
     input: {
       conversation: [

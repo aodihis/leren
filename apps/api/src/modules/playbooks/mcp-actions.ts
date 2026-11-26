@@ -3,6 +3,7 @@ import type { McpWriteActions, McpWriteOutcome } from "@leren/mcp-server";
 import { z } from "zod";
 
 import { NOTHING_TO_CHANGE, definedOnly, invalid } from "../../mcp-write";
+import { platformLink } from "../../platform-url";
 import { emailConditionsSchema, playbookSchema } from "./schema";
 import type { ReplyConditionsInput } from "./schema";
 import {
@@ -37,7 +38,28 @@ const CHANNEL_DEFAULTS = {
   },
 } as const satisfies Record<ReplyConditionsInput["channel"], ReplyConditionsInput>;
 
+/** The values of the playbook fields that a caller may leave out. */
+const PLAYBOOK_DEFAULTS = {
+  enabled: true,
+  instruction: "",
+  startsAt: null,
+  endsAt: null,
+} as const;
+
 const instant = z.iso.datetime({ offset: true });
+
+const emailConditionsPatch = emailConditionsSchema
+  .omit({ channelAccountId: true, replyMode: true })
+  .extend({
+    channelAccountId: z
+      .uuid()
+      .optional()
+      .describe(
+        "The id of the connected account that the playbook answers on. A playbook that is on needs one. Leave it out to use the only account that the user has, and ask the user which one when there are several.",
+      ),
+  })
+  .partial()
+  .required({ channel: true });
 
 const playbookFields = z.object({
   enabled: z.boolean().optional().describe("Whether the playbook is on. Defaults to true."),
@@ -57,20 +79,7 @@ const playbookFields = z.object({
   startsAt: instant.nullable().optional().describe("When the playbook starts, or null for none."),
   endsAt: instant.nullable().optional().describe("When the playbook ends, or null for none."),
   conditions: z
-    .array(
-      emailConditionsSchema
-        .omit({ channelAccountId: true, replyMode: true })
-        .extend({
-          channelAccountId: z
-            .uuid()
-            .optional()
-            .describe(
-              "The id of the connected account that the playbook answers on. Leave it out to use the only account that the user has.",
-            ),
-        })
-        .partial()
-        .required({ channel: true }),
-    )
+    .array(emailConditionsPatch)
     .optional()
     .describe(
       "The reply conditions for each channel, such as who may be answered. Name the channel in each entry. Anything left out keeps its current or default value, and a channel that is not named is unchanged.",
@@ -195,13 +204,103 @@ function invalidMessage(message: string): McpWriteOutcome {
   return { status: "invalid", message };
 }
 
+type JsonProperty = {
+  type?: string;
+  enum?: unknown[];
+  items?: JsonProperty;
+  anyOf?: JsonProperty[];
+  description?: string;
+};
+
+type FieldGuideEntry = {
+  name: string;
+  type: string;
+  required: boolean;
+  default?: unknown;
+  description: string;
+};
+
+function describeType(property: JsonProperty): string {
+  if (property.enum) {
+    return property.enum.map(String).join(" | ");
+  }
+
+  if (property.anyOf) {
+    return property.anyOf.map(describeType).join(" or ");
+  }
+
+  return property.type === "array" && property.items
+    ? `list of ${describeType(property.items)}`
+    : (property.type ?? "any");
+}
+
+/**
+ * Lists the fields of an object schema with their type, whether they are required, their default
+ * and their description. It is read from the same schema that validates the tool input, so the
+ * list cannot disagree with what the tool accepts.
+ */
+function listFields(
+  schema: z.ZodObject,
+  defaults: Readonly<Record<string, unknown>> = {},
+): FieldGuideEntry[] {
+  const json = z.toJSONSchema(schema, { io: "input", unrepresentable: "any" }) as {
+    properties?: Record<string, JsonProperty>;
+    required?: string[];
+  };
+
+  return Object.entries(json.properties ?? {}).map(([name, property]) => {
+    const entry: FieldGuideEntry = {
+      name,
+      type: describeType(property),
+      required: json.required?.includes(name) ?? false,
+      description: property.description ?? "",
+    };
+
+    if (name in defaults && !entry.required) {
+      entry.default = defaults[name];
+    }
+
+    return entry;
+  });
+}
+
+/**
+ * The guide that the assistant reads to learn which fields a playbook has and which of them it
+ * must ask the user for. A field that is not required has a default, so the assistant never asks
+ * for it unless the user wants to change it.
+ */
+export const PLAYBOOK_FIELD_GUIDE = {
+  playbook: listFields(createPlaybookArgs, PLAYBOOK_DEFAULTS),
+  emailConditions: listFields(emailConditionsPatch, CHANNEL_DEFAULTS.email),
+  notes: [
+    "Ask only for the required fields. Every other field has a default.",
+    "A playbook without startsAt and endsAt is always active.",
+    "A playbook that is on needs a connected account, which is chosen automatically when the user has only one.",
+    "Each entry of conditions names its channel, and a field that it leaves out keeps its default.",
+  ],
+};
+
 /**
  * Converts the result of replacing a playbook.
  */
-function fromUpdate(result: Awaited<ReturnType<typeof updatePlaybook>>): McpWriteOutcome {
+function fromUpdate(
+  result: Awaited<ReturnType<typeof updatePlaybook>>,
+  platformUrl: string | undefined,
+): McpWriteOutcome {
   return result.status === "saved"
-    ? { status: "saved", id: result.playbook.id, data: result.playbook }
+    ? {
+        status: "saved",
+        id: result.playbook.id,
+        data: withUrl(result.playbook, platformUrl),
+      }
     : { status: "not_found" };
+}
+
+/** Adds the link to the saved playbook, when the web application's address is known. */
+function withUrl<T extends { id: string }>(playbook: T, platformUrl: string | undefined) {
+  return platformUrl
+    ? { ...playbook, url: platformLink(platformUrl, `/playbooks/${playbook.id}`) }
+    : playbook;
 }
 
 /**
@@ -210,11 +309,13 @@ function fromUpdate(result: Awaited<ReturnType<typeof updatePlaybook>>): McpWrit
  * calls the same service, so a playbook saved here is the same as one saved in the interface. The
  * assistant asks for the user's confirmation in the conversation before it calls a write tool, and
  * nothing in code enforces that (decision 0036). `requestIndex` asks for the vector index of a
- * written playbook to be updated, as the web API does.
+ * written playbook to be updated, as the web API does. A saved playbook carries `url`, its page in
+ * the web application at `platformUrl`, so the assistant can link to what it saved.
  */
 export function createPlaybookMcpActions(
   db: Db,
   requestIndex: (playbookId: string) => Promise<void>,
+  platformUrl?: string,
 ): Pick<McpWriteActions, "createPlaybook" | "updatePlaybook"> {
   return {
     createPlaybook: {
@@ -236,10 +337,7 @@ export function createPlaybookMcpActions(
         }
 
         const parsed = playbookSchema.safeParse({
-          enabled: true,
-          instruction: "",
-          startsAt: null,
-          endsAt: null,
+          ...PLAYBOOK_DEFAULTS,
           ...definedOnly(fields),
           conditions: accounts.conditions,
         });
@@ -253,7 +351,7 @@ export function createPlaybookMcpActions(
 
           await requestIndex(playbook.id);
 
-          return { status: "saved", id: playbook.id, data: playbook };
+          return { status: "saved", id: playbook.id, data: withUrl(playbook, platformUrl) };
         } catch (error) {
           const outcome = describeAccountError(error);
 
@@ -321,7 +419,7 @@ export function createPlaybookMcpActions(
             await requestIndex(result.playbook.id);
           }
 
-          return fromUpdate(result);
+          return fromUpdate(result, platformUrl);
         } catch (error) {
           const outcome = describeAccountError(error);
 

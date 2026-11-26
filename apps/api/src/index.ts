@@ -136,7 +136,12 @@ const app = createApp({
     recordEmail: (email) => recordInboundEmail({ db, queue }, email),
     simulate: config.CHANNEL_PROVIDERS.includes("mailpit"),
   },
-  mcp: { secret: config.MCP_SESSION_SECRET, search: createSearchDependencies(), rateLimiter },
+  mcp: {
+    secret: config.MCP_SESSION_SECRET,
+    platformUrl: config.PLATFORM_URL,
+    search: createSearchDependencies(),
+    rateLimiter,
+  },
 });
 
 const server = serve({ fetch: app.fetch, port: config.PORT }, (info) => {

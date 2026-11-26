@@ -24,6 +24,18 @@ export type McpToolDependencies = {
    * write tools are not registered, whatever scopes the session holds.
    */
   actions?: McpWriteActions;
+  /**
+   * The description of the fields of a playbook, with which of them are required. The API supplies
+   * it, because it is derived from the schema that the API validates with. Without it the
+   * `describe_playbook_fields` tool is not registered.
+   */
+  fieldGuide?: unknown;
+  /**
+   * The tools that read the user's processed mail. The API supplies them, because the message
+   * records and their decisions are served by the API. Each is registered only for a session that
+   * holds the `messages:read` scope.
+   */
+  readActions?: McpReadActions;
   /** Called after a tool body has run and been audited. */
   onToolAudited?: () => void;
 };
@@ -43,6 +55,34 @@ export type McpWriteAction = {
   inputSchema: z.ZodObject;
   run: (userId: string, input: never) => Promise<McpWriteOutcome>;
 };
+
+/** The outcome of a read action. */
+export type McpReadOutcome =
+  | { status: "ok"; data: unknown }
+  | { status: "invalid"; message: string }
+  | { status: "not_found" };
+
+/**
+ * One tool that reads the user's mail. `run` receives the session's user id and the validated
+ * arguments, so the user is never an argument, and it must scope every query by that user.
+ */
+export type McpReadAction = {
+  description: string;
+  inputSchema: z.ZodObject;
+  run: (userId: string, input: never) => Promise<McpReadOutcome>;
+};
+
+/** The read actions, keyed by what they do. */
+export type McpReadActions = {
+  listMessages: McpReadAction;
+  getMessage: McpReadAction;
+};
+
+/** The names of the tools that read mail. */
+export const READ_TOOLS = {
+  listMessages: "list_messages",
+  getMessage: "get_message",
+} as const;
 
 /** The names of the tools that change data. */
 export const WRITE_TOOLS = {
@@ -66,6 +106,16 @@ type ToolOutcome =
 
 function notFound(summary: Record<string, unknown>): ToolOutcome {
   return { outcome: "not_found", message: "Not found", summary };
+}
+
+/** Shapes the outcome of an action that did not succeed: an invalid request or an unknown id. */
+function failed(
+  result: Exclude<McpWriteOutcome | McpReadOutcome, { status: "saved" | "ok" }>,
+  summary: Record<string, unknown>,
+): ToolOutcome {
+  return result.status === "invalid"
+    ? { outcome: "invalid", message: result.message, summary }
+    : notFound(summary);
 }
 
 /**
@@ -126,7 +176,9 @@ type RunTool = (tool: string, body: () => Promise<ToolOutcome>) => Promise<CallT
  */
 function pickIds(args: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    ["playbookId"].flatMap((key) => (args[key] === undefined ? [] : [[key, args[key]]])),
+    ["playbookId", "messageId"].flatMap((key) =>
+      args[key] === undefined ? [] : [[key, args[key]]],
+    ),
   );
 }
 
@@ -149,13 +201,35 @@ function registerWriteTool(
         const summary = pickIds(args);
         const result = await action.run(userId, args as never);
 
-        if (result.status === "saved") {
-          return { outcome: "ok", data: result.data, summary: { ...summary, savedId: result.id } };
-        }
+        return result.status === "saved"
+          ? { outcome: "ok", data: result.data, summary: { ...summary, savedId: result.id } }
+          : failed(result, summary);
+      }),
+  );
+}
 
-        return result.status === "invalid"
-          ? { outcome: "invalid", message: result.message, summary }
-          : notFound(summary);
+/**
+ * Registers a tool that reads the user's mail. The call is audited with the ids it names and never
+ * with the mail itself.
+ */
+function registerReadTool(
+  server: McpServer,
+  name: string,
+  action: McpReadAction,
+  run: RunTool,
+  userId: string,
+): void {
+  server.registerTool(
+    name,
+    { description: action.description, inputSchema: action.inputSchema },
+    (args: Record<string, unknown>) =>
+      run(name, async () => {
+        const summary = pickIds(args);
+        const result = await action.run(userId, args as never);
+
+        return result.status === "ok"
+          ? { outcome: "ok", data: result.data, summary }
+          : failed(result, summary);
       }),
   );
 }
@@ -274,6 +348,22 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
         }),
     );
 
+    if (deps.fieldGuide !== undefined) {
+      server.registerTool(
+        "describe_playbook_fields",
+        {
+          description:
+            "Describe every field of a playbook: its type, whether it is required, its default and what it means. Use it to learn which fields to ask the user for, and to answer a question about how to create a playbook.",
+        },
+        () =>
+          run("describe_playbook_fields", async () => ({
+            outcome: "ok",
+            data: deps.fieldGuide,
+            summary: {},
+          })),
+      );
+    }
+
     server.registerTool(
       "search_playbooks",
       {
@@ -389,6 +479,17 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
         ],
       }),
     );
+  }
+
+  if (deps.readActions && holds("messages:read")) {
+    const readTools = [
+      [READ_TOOLS.listMessages, deps.readActions.listMessages],
+      [READ_TOOLS.getMessage, deps.readActions.getMessage],
+    ] as const;
+
+    for (const [name, action] of readTools) {
+      registerReadTool(server, name, action, run, session.userId);
+    }
   }
 
   if (deps.actions) {

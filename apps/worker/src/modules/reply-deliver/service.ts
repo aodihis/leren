@@ -7,7 +7,7 @@ import {
 import type { ChannelAccountsDependencies, EmailSender, OutboundReply } from "@leren/channels";
 import { channelAccounts, messages, replyDecisions } from "@leren/db";
 import type { Db } from "@leren/db";
-import { transitionMessage } from "@leren/inbox";
+import { redactMessageText, transitionMessage } from "@leren/inbox";
 import type { EmailDeliverMessage } from "@leren/inbox";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
@@ -195,6 +195,12 @@ export async function deliverReply(
     return "delivered";
   }
 
+  if (decision.deliveryMode === "draft" && decision.deliveryState === "completed") {
+    await redactMessageText(db, message.id);
+
+    return "ignored";
+  }
+
   if (decision.deliveryState === "failed") {
     await transitionMessage(
       db,
@@ -309,8 +315,10 @@ async function callProvider(
       .where(and(eq(replyDecisions.id, decision.id), eq(replyDecisions.deliveryState, "started")))
       .returning({ id: replyDecisions.id });
 
-    if (mode === "send" && completed.length > 0) {
-      await transitionMessage(db, message.id, "sent");
+    if (completed.length > 0) {
+      await (mode === "send"
+        ? transitionMessage(db, message.id, "sent")
+        : redactMessageText(db, message.id));
     }
 
     return "delivered";

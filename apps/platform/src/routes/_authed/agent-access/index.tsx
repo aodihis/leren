@@ -114,8 +114,8 @@ function AgentAccessPage() {
       <div>
         <h1 className="text-2xl font-semibold">Agent access</h1>
         <p className="text-body-sm text-ink-muted">
-          Let your own agent read and manage your playbooks through the MCP server. A token acts
-          only on your data and can be revoked at any time.
+          Let your own agent manage your playbooks and read how your emails were handled through the
+          MCP server. A token acts only on your data and can be revoked at any time.
         </p>
       </div>
       {failure && (
