@@ -5,7 +5,7 @@ export type { Environment, Observer } from "./observer";
 
 export { createNoopObserver } from "./noop";
 
-export { redact } from "./redaction";
+export { redact, redactContactDetails } from "./redaction";
 
 export const logger = {
   info: (msg: string, meta?: unknown) => console.log(`[info] ${msg}`, meta ?? ""),

@@ -222,6 +222,23 @@ describe("the message record", () => {
       });
     });
 
+    it("keeps order numbers, dates and amounts in the stored text", async () => {
+      const { messageId } = await record({
+        subject: "Refund for order 1234567890",
+        body: "Invoice INV-2026-11-0042, meeting on 2026-11-26 10:00, total 1.250.000.000.",
+        providerMessageId: "redact-3",
+      });
+
+      await transitionMessage(database.db, messageId, "queued");
+      await transitionMessage(database.db, messageId, "processing");
+      await transitionMessage(database.db, messageId, "escalated", "No match");
+
+      expect(await stored(messageId)).toMatchObject({
+        subject: "Refund for order 1234567890",
+        body: "Invoice INV-2026-11-0042, meeting on 2026-11-26 10:00, total 1.250.000.000.",
+      });
+    });
+
     it("keeps the text of a drafted message until the delivery ends", async () => {
       const { messageId } = await record({ ...personal, providerMessageId: "redact-2" });
 

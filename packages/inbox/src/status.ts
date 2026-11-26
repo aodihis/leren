@@ -1,6 +1,6 @@
 import { messages } from "@leren/db";
 import type { Db } from "@leren/db";
-import { redact } from "@leren/observability";
+import { redactContactDetails } from "@leren/observability";
 import { and, eq, inArray } from "drizzle-orm";
 
 export type MessageStatus = (typeof messages.$inferSelect)["status"];
@@ -54,7 +54,7 @@ export async function redactMessageText(
 
   await db
     .update(messages)
-    .set({ subject: redact(row.subject), body: redact(row.body) })
+    .set({ subject: redactContactDetails(row.subject), body: redactContactDetails(row.body) })
     .where(eq(messages.id, messageId));
 }
 

@@ -136,7 +136,7 @@ input guardrail ─▶ triage ─▶ retrieve ─▶ route ─▶ draft ─▶ e
 
 ## Message records
 
-Every received email has one record, so the user can see in the dashboard what arrived and where it stands. A record holds the channel, the provider and the provider's message and thread ids, the sender, the recipients, the subject, a body that is cut at 20,000 characters and the time it was received. It holds no attachments, headers or credentials.
+Every received email has one record, so the user can see in the dashboard what arrived and where it stands. A record holds the channel, the provider and the provider's message and thread ids, the sender, the recipients, the subject, a body that is cut at 20,000 characters and the time it was received. When processing ends, the email addresses and phone numbers in the subject and the body are replaced with `[redacted]`, and the addresses of the sender and the recipients are kept (decision 0059). It holds no attachments, headers or credentials.
 
 The status is updated as the message passes through the pipeline, and it only moves forward.
 
@@ -153,7 +153,7 @@ The status is updated as the message passes through the pipeline, and it only mo
 
 The result of the pipeline for each message, with its draft, is stored in `reply_decisions` (decision 0043). When a playbook asks for a mention check and the email does not address the user, the message becomes `not_applicable` with the reason `not_addressed`.
 
-`GET /api/messages` lists the user's records, newest first, and takes `status`, `outcome`, `failed`, `since`, `channel`, `channelAccountId`, `limit` and `cursor`. Each item has the `outcome` and the `deliveryState` of its decision, which are null until the pipeline has decided. `GET /api/messages/:id` returns one record with its stored body and its whole decision: the reply, the cited playbooks, the reasons, the evaluations and the delivery record (decisions 0039 and 0046).
+`GET /api/messages` lists the user's records, newest first, and takes `status`, `outcome`, `failed`, `since`, `channel`, `channelAccountId`, `limit` and `cursor`. Each item has the `outcome` and the `deliveryState` of its decision, which are null until the pipeline has decided. `GET /api/messages/:id` returns one record with its stored, redacted body and its whole decision: the reply, the cited playbooks, the reasons, the evaluations and the delivery record (decisions 0039 and 0046).
 
 The **Processed emails** page of the platform shows these records: a list with a status filter and an outcome filter, and for each email the reply, the playbooks it cites, why the pipeline ended as it did, and the delivery record with the stored request and the answer of the provider. The page is read only, and a draft is acted on in the mailbox (decision 0046).
 
@@ -203,6 +203,7 @@ When the API creates, edits, enables, disables or deletes a playbook, it publish
 The MCP server lives in `api` and exposes tools, resources and prompts. It is the integration surface of the system. It is not private to the two built-in agents, so a user can connect their own agent instead of using the assistant. The Agent access page of the dashboard creates, lists and revokes the access tokens for that, each with a name, a read-only or read-and-write level and an expiry of 30 days, 90 days or one year. A token is shown once, when it is created.
 
 - **Scopes.** Tools are grouped into scopes such as `playbooks:read`, `playbooks:write` and `reply:draft`. A session receives only the scopes granted to its client. The Assistant Agent and the Reply Agent are built-in clients with fixed scopes.
+- **Processed mail.** The tools `list_messages` and `get_message` need the scope `messages:read`, which the assistant and the read-only token level hold. A read-only token therefore exposes how emails were handled (decision 0058).
 - **Neutral tools.** Tool names and schemas do not depend on our prompts or agent framework.
 - **Confirmed writes.** The assistant asks the user to confirm in the chat before it calls a write tool. This is a prompt rule and not a mechanism, and a playbook it saves takes effect at once. No agent can send email.
 

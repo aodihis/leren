@@ -10,7 +10,7 @@ const MISSING_ID = "00000000-0000-4000-8000-000000000000";
 type Listed = {
   status: "ok";
   data: {
-    messages: { id: string; subject: string; url: string | null }[];
+    messages: { id: string; untrustedSubject: string; url: string | null }[];
     nextCursor: string | null;
   };
 };
@@ -115,7 +115,7 @@ describe("message MCP actions", () => {
       limit: 1,
     })) as Listed;
 
-    expect(drafted.data.messages.map((message) => message.subject)).toEqual(["Two"]);
+    expect(drafted.data.messages.map((message) => message.untrustedSubject)).toEqual(["Two"]);
     expect(drafted.data.nextCursor).not.toBeNull();
 
     const next = (await run(actions.listMessages, userId, {
@@ -124,7 +124,7 @@ describe("message MCP actions", () => {
       cursor: drafted.data.nextCursor,
     })) as Listed;
 
-    expect(next.data.messages.map((message) => message.subject)).toEqual(["One"]);
+    expect(next.data.messages.map((message) => message.untrustedSubject)).toEqual(["One"]);
   });
 
   it("accepts a start time with an offset", async () => {
@@ -170,7 +170,7 @@ describe("message MCP actions", () => {
     expect(result.status).toBe("ok");
     expect(result.data).toMatchObject({
       id,
-      body: "The full body of the email.",
+      untrustedBody: "The full body of the email.",
       decision: { outcome: "answer", reply: "We are open 09:00 to 17:00." },
     });
     expect(JSON.stringify(result.data)).not.toContain("deliveryRequest");
