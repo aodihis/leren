@@ -296,6 +296,7 @@ const REPLY: OutboundReply = {
   to: "ana@example.com",
   subject: "Re: Opening hours",
   body: "We open at 9.\nSee you soon.",
+  providerMessageId: "m1",
   threadId: "t1",
   messageId: "<leren-1@leren.local>",
   inReplyTo: "<original@example.com>",

@@ -256,6 +256,7 @@ export async function deliverReply(
     to: recipient,
     subject: withReplyPrefix(message.subject),
     body: decision.body,
+    providerMessageId: message.providerMessageId,
     threadId: message.providerThreadId,
     messageId: `<leren-${message.id}@${MESSAGE_ID_DOMAIN}>`,
     inReplyTo: context.messageId,

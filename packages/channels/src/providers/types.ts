@@ -1,7 +1,7 @@
 import type { InboundEmail } from "@leren/inbox";
 
 /** The names of the providers that exist. `CHANNEL_PROVIDERS` selects which of them are enabled. */
-export const CHANNEL_PROVIDER_NAMES = ["google", "mailpit"] as const;
+export const CHANNEL_PROVIDER_NAMES = ["google", "microsoft", "zoho", "mailpit"] as const;
 
 export type ChannelProviderName = (typeof CHANNEL_PROVIDER_NAMES)[number];
 
@@ -113,14 +113,17 @@ export function isEmailProvider(provider: ChannelProvider): provider is EmailPro
 }
 
 /**
- * A reply that a provider delivers (decision 0046). `messageId` is the `Message-ID` header that the
- * deliverer builds, `inReplyTo` and `references` come from the headers of the original, and
- * `threadId` puts the reply into the conversation of the original. The reply has one recipient.
+ * A reply that a provider delivers (decision 0046). `providerMessageId` is the provider's id of the
+ * original, `messageId` is the `Message-ID` header that the deliverer builds, `inReplyTo` and
+ * `references` come from the headers of the original, and `threadId` puts the reply into the
+ * conversation of the original. Each provider uses the fields that its API needs to join that
+ * conversation. The reply has one recipient.
  */
 export type OutboundReply = {
   to: string;
   subject: string;
   body: string;
+  providerMessageId: string;
   threadId: string | null;
   messageId: string;
   inReplyTo: string | null;

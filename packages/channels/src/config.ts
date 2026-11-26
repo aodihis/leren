@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 import { parseEncryptionKey } from "./crypto";
+import { PROVIDER_DEFINITIONS } from "./providers";
 import { CHANNEL_PROVIDER_NAMES } from "./providers/types";
+import { ZOHO_REGIONS } from "./providers/zoho";
+import type { ZohoRegion } from "./providers/zoho";
 
 const providerList = z
   .string()
@@ -15,15 +18,20 @@ const providerList = z
   .pipe(z.array(z.enum(CHANNEL_PROVIDER_NAMES)));
 
 /**
- * The environment variables that choose and configure the channel providers (decision 0038). The
- * API and the worker add them to their own schema and call `checkChannelProviderEnv` on the
- * result, so both fail at startup under the same conditions.
+ * The environment variables that choose and configure the channel providers (decisions 0038, 0060
+ * and 0061). The API and the worker add them to their own schema and call `checkChannelProviderEnv` on
+ * the result, so both fail at startup under the same conditions.
  */
 export const channelProviderEnvShape = {
   CHANNEL_PROVIDERS: providerList,
   CHANNEL_TOKEN_ENCRYPTION_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
+  MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
+  ZOHO_CLIENT_ID: z.string().min(1).optional(),
+  ZOHO_CLIENT_SECRET: z.string().min(1).optional(),
+  ZOHO_REGION: z.enum(Object.keys(ZOHO_REGIONS) as [ZohoRegion, ...ZohoRegion[]]).default("com"),
 };
 
 export type ChannelProviderEnv = z.infer<z.ZodObject<typeof channelProviderEnvShape>>;
@@ -44,14 +52,16 @@ export function checkChannelProviderEnv(
     );
   }
 
-  if (!config.CHANNEL_PROVIDERS.includes("google")) {
-    return;
+  for (const name of config.CHANNEL_PROVIDERS) {
+    for (const variable of PROVIDER_DEFINITIONS[name].variables) {
+      if (!config[variable]) {
+        problem(variable, `${variable} is required when the ${name} provider is enabled`);
+      }
+    }
   }
 
-  for (const name of ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"] as const) {
-    if (!config[name]) {
-      problem(name, `${name} is required when the google provider is enabled`);
-    }
+  if (!config.CHANNEL_PROVIDERS.some((name) => PROVIDER_DEFINITIONS[name].storesTokens)) {
+    return;
   }
 
   try {

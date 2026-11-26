@@ -64,6 +64,38 @@ describe("loadConfig", () => {
       expect(() => loadConfig({ ...validEnv, CHANNEL_PROVIDERS: "mailpit" })).not.toThrow();
     });
 
+    it("requires the settings of the zoho provider and accepts only a known region", () => {
+      const zoho = {
+        ...validEnv,
+        CHANNEL_PROVIDERS: "zoho",
+        ZOHO_CLIENT_ID: "id",
+        ZOHO_CLIENT_SECRET: "secret",
+        CHANNEL_TOKEN_ENCRYPTION_KEY: key,
+      };
+
+      expect(() => loadConfig({ ...validEnv, CHANNEL_PROVIDERS: "zoho" })).toThrow(
+        /ZOHO_CLIENT_ID[\s\S]*ZOHO_CLIENT_SECRET[\s\S]*CHANNEL_TOKEN_ENCRYPTION_KEY/,
+      );
+      expect(loadConfig(zoho).ZOHO_REGION).toBe("com");
+      expect(loadConfig({ ...zoho, ZOHO_REGION: "eu" }).ZOHO_REGION).toBe("eu");
+      expect(() => loadConfig({ ...zoho, ZOHO_REGION: "mars" })).toThrow(/ZOHO_REGION/);
+    });
+
+    it("requires the settings of the microsoft provider when it is enabled", () => {
+      expect(() => loadConfig({ ...validEnv, CHANNEL_PROVIDERS: "microsoft" })).toThrow(
+        /MICROSOFT_CLIENT_ID[\s\S]*MICROSOFT_CLIENT_SECRET[\s\S]*CHANNEL_TOKEN_ENCRYPTION_KEY/,
+      );
+      expect(() =>
+        loadConfig({
+          ...validEnv,
+          CHANNEL_PROVIDERS: "microsoft",
+          MICROSOFT_CLIENT_ID: "id",
+          MICROSOFT_CLIENT_SECRET: "secret",
+          CHANNEL_TOKEN_ENCRYPTION_KEY: key,
+        }),
+      ).not.toThrow();
+    });
+
     it("rejects an encryption key that is not 32 bytes", () => {
       expect(() =>
         loadConfig({ ...validEnv, ...google, CHANNEL_TOKEN_ENCRYPTION_KEY: "c2hvcnQ=" }),

@@ -200,10 +200,16 @@ describe("deliverReply", () => {
 
       expect(await run()).toBe("delivered");
 
+      const [original] = await database.db
+        .select({ providerMessageId: messages.providerMessageId })
+        .from(messages)
+        .where(eq(messages.id, messageId));
+
       const reply = {
         to: "sender@example.com",
         subject: "Re: Deadline",
         body: "The deadline is Friday.",
+        providerMessageId: original?.providerMessageId,
         threadId: "thread-1",
         messageId: `<leren-${messageId}@leren.local>`,
         inReplyTo: "<original@example.com>",

@@ -7,8 +7,8 @@ import {
   readGmailReplyContext,
   sendGmailReply,
 } from "./gmail";
-import { InvalidGrantError } from "./types";
-import type { EmailProvider, EmailSender, ProviderTokens } from "./types";
+import { readIdTokenClaims, refreshTokens, requestOAuthTokens, tokenExpiry } from "./oauth";
+import type { EmailProvider, EmailSender } from "./types";
 
 const AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -26,13 +26,6 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/gmail.compose",
 ] as const;
 
-const tokenResponseSchema = z.object({
-  access_token: z.string().min(1),
-  refresh_token: z.string().min(1).optional(),
-  expires_in: z.number().positive().optional(),
-  id_token: z.string().optional(),
-});
-
 const idTokenClaimsSchema = z.object({ sub: z.string().min(1), email: z.string().min(1) });
 
 export type GoogleProviderOptions = {
@@ -42,25 +35,6 @@ export type GoogleProviderOptions = {
   fetch?: typeof fetch;
 };
 
-/** Converts the lifetime of an access token in seconds to the instant it expires. */
-function expiry(seconds: number | undefined): string | null {
-  return seconds === undefined ? null : new Date(Date.now() + seconds * 1000).toISOString();
-}
-
-/**
- * Reads the claims of an ID token that was received directly from Google's token endpoint over
- * TLS. The OpenID Connect specification allows skipping the signature check for such a token.
- */
-function readIdToken(idToken: string | undefined) {
-  const payload = idToken?.split(".")[1];
-
-  if (!payload) {
-    throw new Error("Google did not return an ID token");
-  }
-
-  return idTokenClaimsSchema.parse(JSON.parse(Buffer.from(payload, "base64url").toString("utf8")));
-}
-
 /**
  * The Google provider for the `email` channel. It connects a Gmail or Google Workspace mailbox with
  * the authorization code flow, PKCE and offline access. The account is identified by the `sub`
@@ -69,32 +43,12 @@ function readIdToken(idToken: string | undefined) {
 export function createGoogleProvider(options: GoogleProviderOptions): EmailProvider & EmailSender {
   const send = options.fetch ?? fetch;
 
-  const requestTokens = async (parameters: Record<string, string>) => {
-    const response = await send(TOKEN_URL, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: options.clientId,
-        client_secret: options.clientSecret,
-        ...parameters,
-      }),
+  const requestTokens = (parameters: Record<string, string>) =>
+    requestOAuthTokens(send, "Google", TOKEN_URL, {
+      client_id: options.clientId,
+      client_secret: options.clientSecret,
+      ...parameters,
     });
-
-    if (!response.ok) {
-      const error: unknown = await response.json().catch(() => undefined);
-
-      if (
-        response.status === 400 &&
-        z.object({ error: z.literal("invalid_grant") }).safeParse(error).success
-      ) {
-        throw new InvalidGrantError();
-      }
-
-      throw new Error(`Google token request failed with status ${response.status}`);
-    }
-
-    return tokenResponseSchema.parse(await response.json());
-  };
 
   return {
     name: "google",
@@ -129,7 +83,7 @@ export function createGoogleProvider(options: GoogleProviderOptions): EmailProvi
         throw new Error("Google did not return a refresh token");
       }
 
-      const claims = readIdToken(response.id_token);
+      const claims = readIdTokenClaims(response.id_token, idTokenClaimsSchema, "Google");
 
       const syncCursor = await readGmailPosition(send, response.access_token).catch(() => null);
 
@@ -140,25 +94,12 @@ export function createGoogleProvider(options: GoogleProviderOptions): EmailProvi
         tokens: {
           accessToken: response.access_token,
           refreshToken: response.refresh_token,
-          expiresAt: expiry(response.expires_in),
+          expiresAt: tokenExpiry(response.expires_in),
         },
       };
     },
-    async refresh(tokens) {
-      if (!tokens.refreshToken) {
-        throw new InvalidGrantError("The account has no refresh token");
-      }
-
-      const response = await requestTokens({
-        grant_type: "refresh_token",
-        refresh_token: tokens.refreshToken,
-      });
-
-      return {
-        accessToken: response.access_token,
-        refreshToken: response.refresh_token ?? tokens.refreshToken,
-        expiresAt: expiry(response.expires_in),
-      } satisfies ProviderTokens;
+    refresh(tokens) {
+      return refreshTokens(requestTokens, tokens);
     },
     fetchNewMail(accessToken, cursor) {
       return fetchNewGmail(send, accessToken, cursor);
