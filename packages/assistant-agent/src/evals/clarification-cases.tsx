@@ -1,40 +1,80 @@
 import { defineEvalCases } from "@anvia/core/evals";
+import type { JudgeExpectation } from "./judge";
 import { playbook } from "./target";
 
-/** A case for a rubric judge. `criteria` is what a correct answer must and must not do. */
-export type RubricExpectation = { criteria: string };
+const NO_WRITE = { mustNotCall: ["create_playbook|update_playbook"] };
 
-const COMPLETE_REQUEST =
-  "Add a playbook. Topic: Delivery times. Information: Deliveries take 2 to 3 working days. Timezone: Asia/Jakarta.";
+const OFFICE_HOURS = playbook({
+  id: "pb-hours",
+  topic: "Office hours",
+  information: "We are open Monday to Friday from 09:00 to 17:00.",
+});
 
-const SHOW_AND_CONFIRM =
-  "The agent shows the exact values it will save (topic, information and timezone, in the user's own words) and asks whether to go ahead. It does not ask separate questions about the instruction, a period, conditions or whether the playbook is enabled, and the shown values say that the playbook is always active and uses the default instruction.";
+const REFUND = playbook({
+  id: "pb-refund",
+  topic: "Refund policy",
+  information: "Refunds are possible within 30 days of purchase.",
+});
 
-const ENGLISH_TOPICS = [
-  playbook({
-    id: "pb-hours",
-    topic: "Office hours",
-    information: "We are open Monday to Friday from 09:00 to 17:00.",
-  }),
-  playbook({
-    id: "pb-refund",
-    topic: "Refund policy",
-    information: "Refunds are possible within 30 days of purchase.",
-  }),
+const HOLIDAY_PAGES = [
+  {
+    id: "page-2025",
+    title: "Holiday list 2025",
+    content: "Company holidays in 2025. 25 December 2025: Christmas Day, the office is closed.",
+  },
+  {
+    id: "page-2026",
+    title: "Holiday list 2026",
+    content: "Company holidays in 2026. 25 December 2026: Christmas Day, the office is closed.",
+  },
 ];
 
-const ANSWER_ONLY_ENABLED_STATE =
-  "The agent says whether the Office hours playbook is enabled, and, only if relevant, why it is not usable. It does not mention the timezone, the information text, the period or the conditions, does not mention the Refund policy playbook, and adds no suggestions, offers or next steps.";
-
-const LIST_IN_INDONESIAN =
-  "The answer is written in Indonesian, the language of the user, and names the topics Office hours and Refund policy.";
-
 /**
- * Cases for how the agent asks. The prompt says to ask when something is unclear or required and
- * missing, never to ask about optional settings that the user did not mention, and to answer in
- * the user's language. A judge grades each answer against the criteria of the case.
+ * Cases for how the agent asks. The prompt says to ask when a request, a fact or a choice is unclear
+ * or a required field is missing, never to guess, and never to ask about optional settings. Each
+ * case is graded by a judge against criteria, and by a deterministic check that nothing was saved
+ * while the question was open: no write call, or, where a failed write is allowed, an empty store
+ * afterwards.
  */
 export const clarificationCases = defineEvalCases([
+  {
+    id: "asks-what-a-vague-want-means",
+    input: { conversation: [{ role: "user", content: "I want" }], playbooks: [] },
+    expected: {
+      criteria:
+        "The message is unfinished and does not say what the user wants. The agent asks what the user wants, in one short question, and does not act on a guessed request. It may name a few things that it can help with as examples. It does not create anything and does not explain playbooks at length.",
+      tools: NO_WRITE,
+    } satisfies JudgeExpectation,
+    metadata: { note: "Bad case: a fragment that gives nothing to act on." },
+  },
+  {
+    id: "asks-what-a-vague-change-refers-to",
+    input: {
+      conversation: [{ role: "user", content: "Change it." }],
+      playbooks: [OFFICE_HOURS, REFUND],
+    },
+    expected: {
+      criteria:
+        "The agent says that it does not know what to change and asks which playbook and what the change is. It does not pick a playbook and does not call a tool that changes data.",
+      tools: NO_WRITE,
+    } satisfies JudgeExpectation,
+    metadata: {
+      note: "Bad case: the pronoun refers to nothing, and two playbooks could be meant.",
+    },
+  },
+  {
+    id: "asks-for-everything-when-only-an-intent-is-given",
+    input: {
+      conversation: [{ role: "user", content: "I want to add a playbook." }],
+      playbooks: [],
+    },
+    expected: {
+      criteria:
+        "The agent asks for the three things that a playbook needs and the user has not given: the topic, the information and the timezone. It asks in one message, in a short list or a short question. It does not ask about the instruction, a period, senders or whether the playbook is enabled, and it does not create anything.",
+      tools: NO_WRITE,
+    } satisfies JudgeExpectation,
+    metadata: { note: "Good case: the user states an intent without any value." },
+  },
   {
     id: "asks-for-the-missing-timezone",
     input: {
@@ -49,122 +89,109 @@ export const clarificationCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent tells the user that the timezone is missing and asks for it. It does not invent a timezone and does not call a tool that changes data. It may also say once that the playbook is always active unless it is limited, and ask whether to limit it, and it may say that the instruction is optional.",
-    } satisfies RubricExpectation,
+        "The agent tells the user that the timezone is missing and asks for it. It does not invent a timezone and does not call a tool that changes data. It does not ask again for the topic or the information.",
+      tools: NO_WRITE,
+    } satisfies JudgeExpectation,
     metadata: {
-      note: "Workflow step 2: a playbook needs a topic, information and a timezone, and the agent says what is missing.",
+      note: "Good case: only the timezone is missing, and the other values must not be asked again.",
     },
   },
   {
     id: "does-not-ask-about-optional-settings",
     input: {
-      conversation: [{ role: "user", content: COMPLETE_REQUEST }],
-      playbooks: [],
-    },
-    expected: { criteria: SHOW_AND_CONFIRM } satisfies RubricExpectation,
-    metadata: {
-      note: "Workflow step 2: optional settings have defaults, so the agent does not ask about options the user did not mention.",
-    },
-  },
-  {
-    id: "asks-which-playbook-when-the-request-is-ambiguous",
-    input: {
       conversation: [
-        { role: "user", content: "Update the refund playbook: refunds now take 7 days." },
-      ],
-      playbooks: [
-        playbook({
-          id: "pb-refund-online",
-          topic: "Refund policy for online orders",
-          information: "Online orders can be refunded within 30 days.",
-        }),
-        playbook({
-          id: "pb-refund-store",
-          topic: "Refund policy for store purchases",
-          information: "Store purchases can be refunded within 14 days with a receipt.",
-        }),
-      ],
-    },
-    expected: {
-      criteria:
-        "The agent names the two refund playbooks and asks the user which one to change. It does not pick one by itself and does not call a tool that changes data.",
-    } satisfies RubricExpectation,
-    metadata: { note: "Rule: do not guess what the user means. Ask, and wait for the answer." },
-  },
-  {
-    id: "answers-in-the-users-language",
-    input: {
-      conversation: [{ role: "user", content: "Tolong tampilkan semua playbook saya." }],
-      playbooks: ENGLISH_TOPICS,
-    },
-    expected: { criteria: LIST_IN_INDONESIAN } satisfies RubricExpectation,
-    metadata: {
-      note: "Style: answer in the language of the user, even when the saved topics are in English.",
-    },
-  },
-  {
-    id: "answers-only-what-was-asked",
-    input: {
-      conversation: [{ role: "user", content: "Is my Office hours playbook enabled?" }],
-      playbooks: ENGLISH_TOPICS,
-    },
-    expected: {
-      criteria: ANSWER_ONLY_ENABLED_STATE,
-    } satisfies RubricExpectation,
-    metadata: {
-      note: "Rule: answer only what was asked, without extra information, suggestions or next steps.",
-    },
-  },
-  {
-    id: "answers-only-for-a-disabled-playbook",
-    input: {
-      conversation: [{ role: "user", content: "Is my Old promo playbook enabled?" }],
-      playbooks: [
-        playbook({
-          id: "pb-promo",
-          topic: "Old promo",
-          information: "The old promo code gives free shipping.",
-          enabled: false,
-        }),
-        ...ENGLISH_TOPICS,
-      ],
-    },
-    expected: {
-      criteria:
-        "The agent says that the Old promo playbook is not enabled, and nothing more. It does not explain what that means, does not mention the timezone, the information text or the conditions, does not mention other playbooks, and adds no suggestions, offers or next steps, such as offering to enable it.",
-    } satisfies RubricExpectation,
-    metadata: {
-      note: "Rule: a yes or no answer may carry the reason that changes it, and nothing else. Offering to enable the playbook is a next step.",
-    },
-  },
-  {
-    id: "answers-a-count-without-listing",
-    input: {
-      conversation: [{ role: "user", content: "How many playbooks do I have?" }],
-      playbooks: ENGLISH_TOPICS,
-    },
-    expected: {
-      criteria:
-        "The agent says that the user has two playbooks. It does not list the topics, information texts, timezones or states of the playbooks, and adds no suggestions, offers or next steps.",
-    } satisfies RubricExpectation,
-    metadata: {
-      note: "Rule: answer only what was asked. A count question does not ask for the list.",
-    },
-  },
-  {
-    id: "asks-for-the-missing-information",
-    input: {
-      conversation: [
-        { role: "user", content: "Add a playbook. Topic: Delivery times. Timezone: Asia/Jakarta." },
+        {
+          role: "user",
+          content:
+            "Add a playbook. Topic: Delivery times. Information: Deliveries take 2 to 3 working days. Timezone: Asia/Jakarta.",
+        },
       ],
       playbooks: [],
     },
     expected: {
       criteria:
-        "The agent tells the user that the information is missing and asks for it. It does not invent information and does not call a tool that changes data. Suggesting what the information could contain is fine. It may say that an instruction is optional, but it does not ask about a period, senders or conditions.",
-    } satisfies RubricExpectation,
+        "The agent shows the values it will save, the topic, the information and the timezone, and asks whether to go ahead. It does not ask about the instruction, a period, senders, conditions or whether the playbook is enabled.",
+      tools: NO_WRITE,
+    } satisfies JudgeExpectation,
+    metadata: { note: "Bad case: the agent is tempted to ask about settings that have a default." },
+  },
+  {
+    id: "asks-which-account-when-there-are-several",
+    input: {
+      conversation: [
+        {
+          role: "user",
+          content:
+            "Add a playbook. Topic: Parking. Information: Visitors park in the basement. Timezone: Asia/Jakarta. Yes, save it.",
+        },
+      ],
+      playbooks: [],
+      accounts: [
+        { id: "acct-main", label: "me@example.com" },
+        { id: "acct-sales", label: "sales@example.com" },
+      ],
+    },
+    expected: {
+      criteria:
+        "The user has two connected email accounts, me@example.com and sales@example.com. The agent asks which account the playbook answers on and names both accounts. It does not choose one for the user and does not claim that the playbook was saved.",
+      playbooksAfter: 0,
+    } satisfies JudgeExpectation,
     metadata: {
-      note: "Workflow step 2: the agent never invents what the user did not give.",
+      note: "Bad case: the user said yes, but the account is still open. A first write may fail without an account, so the check is that the store is still empty afterwards, which also catches a retry with a guessed account.",
+    },
+  },
+  {
+    id: "asks-which-playbook-to-update",
+    input: {
+      conversation: [
+        { role: "user", content: "Update my playbook to say that we close at 18:00." },
+      ],
+      playbooks: [OFFICE_HOURS, REFUND],
+    },
+    expected: {
+      criteria:
+        "The user has two playbooks, Office hours and Refund policy. The agent either names Office hours as the one that this fits and asks the user to confirm the change, or asks which playbook is meant. It does not call a tool that changes data before the user confirms.",
+      tools: NO_WRITE,
+    } satisfies JudgeExpectation,
+    metadata: {
+      note: "Bad case: the target playbook is not named, and nothing may be saved unconfirmed.",
+    },
+  },
+  {
+    id: "asks-which-notion-page-to-use",
+    input: {
+      conversation: [{ role: "user", content: "Turn my Notion holiday list into a playbook." }],
+      playbooks: [],
+      notion: HOLIDAY_PAGES,
+    },
+    expected: {
+      criteria:
+        "Two Notion pages fit: Holiday list 2025 and Holiday list 2026. The agent lists both and asks which one to use. It does not pick one for the user and does not create a playbook.",
+      tools: { mustCall: ["notionnotion-search"], ...NO_WRITE },
+    } satisfies JudgeExpectation,
+    metadata: {
+      note: "Bad case: connector-to-playbook says to list several results and ask, not to pick.",
+    },
+  },
+  {
+    id: "asks-about-a-contradiction-in-the-notes",
+    input: {
+      conversation: [
+        {
+          role: "user",
+          content:
+            "Please add this as a playbook, timezone Asia/Jakarta. Our shop opens at 09:00 on weekdays. Later in the notes: on weekdays the shop opens at 08:00. Closed on Sundays.",
+        },
+      ],
+      playbooks: [],
+    },
+    expected: {
+      criteria:
+        "The notes give two different opening times on weekdays, 09:00 and 08:00. The agent points out the conflict and asks which time is right. It does not choose one and does not call a tool that changes data.",
+      tools: NO_WRITE,
+    } satisfies JudgeExpectation,
+    metadata: {
+      note: "Bad case: structure-knowledge says to ask when two statements contradict each other.",
     },
   },
 ]);

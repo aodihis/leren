@@ -32,7 +32,7 @@ const COMMON_FACTS = [
   "Every playbook has the timezone Asia/Jakarta and the reply conditions of the email channel, which accept any sender.",
 ];
 
-/** What the playbook tools return for the playbooks above. It is the fixed truth for the judge. */
+/** What the playbook tools return for the three playbooks. It is the fixed truth for the judge. */
 const THREE_PLAYBOOKS_CONTEXT = [
   "The user has exactly three playbooks.",
   "Playbook 'Office hours': enabled, no start and no end, period active, usable now. Information: We are open Monday to Friday from 09:00 to 17:00.",
@@ -41,11 +41,24 @@ const THREE_PLAYBOOKS_CONTEXT = [
   ...COMMON_FACTS,
 ];
 
+const EMPTY_CONTEXT = [
+  "The user has no playbooks. The list_playbooks tool returns an empty list and search_playbooks finds nothing.",
+];
+
+const HOLIDAY_PAGE = {
+  id: "page-holidays",
+  title: "Holiday list 2026",
+  content:
+    "Company holidays in 2026. 17 August 2026: Independence Day, the office is closed. 25 December 2026: Christmas Day, the office is closed. 29 December 2026: Company retreat day, the office is closed.",
+};
+
+const HOLIDAY_CONTEXT = `The Notion page '${HOLIDAY_PAGE.title}' says: ${HOLIDAY_PAGE.content}`;
+
 /**
- * Cases for whether what the agent says about the user's data is supported by the tool results.
- * The prompt forbids inventing facts, prices, dates or policies, and requires that disabled and
- * expired playbooks are named as such. Faithfulness checks support and not truth, so each case
- * carries the tool results as `retrievalContext`.
+ * Cases for whether what the agent says about the user's data is supported by what the tools
+ * returned. Faithfulness checks support and not truth, so each case carries the tool results as
+ * `retrievalContext`. The group covers the saved playbooks, an empty store, a connected Notion
+ * page and a processed email.
  */
 export const faithfulnessCases = defineEvalCases([
   {
@@ -61,23 +74,7 @@ export const faithfulnessCases = defineEvalCases([
     },
     retrievalContext: THREE_PLAYBOOKS_CONTEXT,
     metadata: {
-      note: "The answer must name each topic and say which playbook is disabled or expired, using only what the tools returned.",
-    },
-  },
-  {
-    id: "reports-that-nothing-matches",
-    input: {
-      conversation: [{ role: "user", content: "What do my playbooks say about shipping costs?" }],
-      playbooks: [OFFICE_HOURS],
-    },
-    retrievalContext: [
-      "The user has exactly one playbook.",
-      "Playbook 'Office hours': enabled, no start and no end, period active, usable now. Information: We are open Monday to Friday from 09:00 to 17:00.",
-      "The search_playbooks tool finds no reliable match for shipping costs, because no playbook mentions shipping.",
-      ...COMMON_FACTS,
-    ],
-    metadata: {
-      note: "The prompt says to state plainly that nothing relevant was found, and not to fill the gap with a guess.",
+      note: "Good case: the answer names each topic and says which playbook is disabled or expired.",
     },
   },
   {
@@ -88,7 +85,7 @@ export const faithfulnessCases = defineEvalCases([
     },
     retrievalContext: THREE_PLAYBOOKS_CONTEXT,
     metadata: {
-      note: "A disabled playbook is not in use. The answer must not claim that it is in use, which the context contradicts.",
+      note: "Bad case: a disabled playbook is not in use, and the answer must not claim that it is.",
     },
   },
   {
@@ -107,7 +104,89 @@ export const faithfulnessCases = defineEvalCases([
       "The Holiday sale playbook does not mention delivery.",
     ],
     metadata: {
-      note: "The prompt forbids inventing facts. The answer must not claim that the playbook mentions delivery. Faithfulness cannot require the answer to say that it does not.",
+      note: "Bad case: the playbook does not mention delivery, and the answer must not claim that it does.",
+    },
+  },
+  {
+    id: "reports-that-nothing-matches",
+    input: {
+      conversation: [{ role: "user", content: "What do my playbooks say about shipping costs?" }],
+      playbooks: [OFFICE_HOURS],
+    },
+    retrievalContext: [
+      "The user has exactly one playbook.",
+      "Playbook 'Office hours': enabled, no start and no end, period active, usable now. Information: We are open Monday to Friday from 09:00 to 17:00.",
+      "The search_playbooks tool finds no reliable match for shipping costs, because no playbook mentions shipping.",
+      ...COMMON_FACTS,
+    ],
+    metadata: {
+      note: "Bad case: no playbook covers shipping, and the answer must not fill the gap with a guess.",
+    },
+  },
+  {
+    id: "empty-store-lists-nothing",
+    input: {
+      conversation: [{ role: "user", content: "Show me the list of my playbooks." }],
+      playbooks: [],
+    },
+    retrievalContext: EMPTY_CONTEXT,
+    metadata: { note: "Good case: the user has no playbooks, so the answer names none." },
+  },
+  {
+    id: "empty-store-has-no-refund-policy",
+    input: {
+      conversation: [{ role: "user", content: "What does my refund policy say?" }],
+      playbooks: [],
+    },
+    retrievalContext: EMPTY_CONTEXT,
+    metadata: {
+      note: "Bad case: a refund policy is easy to invent. The store is empty, so the answer must state no policy.",
+    },
+  },
+  {
+    id: "reads-the-notion-page-as-written",
+    input: {
+      conversation: [{ role: "user", content: "What is on my Holiday list 2026 page in Notion?" }],
+      playbooks: [],
+      notion: [HOLIDAY_PAGE],
+    },
+    retrievalContext: [HOLIDAY_CONTEXT],
+    metadata: {
+      note: "Good case: the answer reports the dates and the reasons as the page gives them.",
+    },
+  },
+  {
+    id: "notion-page-does-not-hold-the-asked-fact",
+    input: {
+      conversation: [
+        {
+          role: "user",
+          content: "Does my Holiday list 2026 page in Notion say who covers the phones?",
+        },
+      ],
+      playbooks: [],
+      notion: [HOLIDAY_PAGE],
+    },
+    retrievalContext: [HOLIDAY_CONTEXT, "The page says nothing about who covers the phones."],
+    metadata: {
+      note: "Bad case: the page holds no information on phone cover, and the answer must not name anyone.",
+    },
+  },
+  {
+    id: "explains-an-escalated-email-from-its-record",
+    input: {
+      conversation: [
+        { role: "user", content: "Why was the email from client@example.com not answered?" },
+      ],
+      playbooks: [OFFICE_HOURS],
+    },
+    retrievalContext: [
+      "The email from client@example.com has the status escalated. The reason in the record is: No playbook covers refunds.",
+      "The email asked for money back for order 123. No reply was written for it.",
+      "The record has the subject 'Refund for order 123' and the link https://app.example.com/emails/msg-1.",
+    ],
+    metadata: {
+      note: "Good case: the answer gives the reason from the record and does not guess another cause.",
     },
   },
 ]);

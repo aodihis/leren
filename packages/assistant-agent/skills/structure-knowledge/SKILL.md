@@ -21,7 +21,7 @@ Add an instruction only when the user's text clearly contains one, such as a ton
 1. Read the whole input before splitting it.
 2. Split by subject. Two facts belong in the same playbook only if one sender question or request would need both. A schedule and a refund policy are two playbooks. The opening hours and the address of the same office may be one playbook.
 3. Keep every fact that the user gave about a subject, and keep it under that subject even when the user mentioned it far from the rest.
-4. Remove only what carries no information for a sender: repetition, filler, and remarks the user made to themselves. Do not remove a fact because it seems minor.
+4. Remove only what carries no information for a sender: repetition, filler, and remarks the user made to themselves. Do not remove a fact because it seems minor. Keep every qualifier, such as "only", "at least", "except" and "first", because dropping one changes the meaning.
 5. Keep the user's meaning exactly. Do not add facts, numbers, dates, names or promises. Do not make the text more certain, more polite about commitments, or more detailed than the user wrote it.
 6. Write each piece of information so that it is complete without the rest of the input. Replace phrases such as "as mentioned above" with what they refer to.
 
