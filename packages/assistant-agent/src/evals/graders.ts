@@ -71,3 +71,62 @@ export function anyOf(patterns: readonly RegExp[]): RegExp {
     ? /(?!)/
     : new RegExp(patterns.map((pattern) => pattern.source).join("|"), "i");
 }
+
+/**
+ * The one write that a run must make. `includes` are arguments that must equal the given value,
+ * `instants` are date arguments that must fall in an inclusive range of ISO times, and `omits` are
+ * arguments that the call must not name.
+ */
+export type WriteExpectation = {
+  tool: "create_playbook" | "update_playbook";
+  includes: Readonly<Record<string, unknown>>;
+  instants?: Readonly<Record<string, readonly [string, string]>>;
+  omits?: readonly string[];
+};
+
+const WRITE_TOOLS = /^(create_playbook|update_playbook)$/;
+
+/**
+ * Passes when the run made exactly one write call, with the expected tool, the expected argument
+ * values, the date arguments inside their ranges and none of the omitted arguments.
+ */
+export function gradeWrite(
+  toolCalls: readonly ToolCall[],
+  expected: WriteExpectation | undefined,
+): Verdict {
+  if (!expected) {
+    return { pass: true };
+  }
+
+  const writes = toolCalls.filter((call) => WRITE_TOOLS.test(call.name));
+  const [call] = writes;
+
+  if (writes.length !== 1 || call?.name !== expected.tool) {
+    return {
+      pass: false,
+      comment: `Expected one ${expected.tool} call, got [${writes.map((write) => write.name).join(", ")}]`,
+    };
+  }
+
+  const wrong = Object.entries(expected.includes)
+    .filter(([key, value]) => call.input[key] !== value)
+    .map(([key]) => key);
+
+  const outside = Object.entries(expected.instants ?? {})
+    .filter(([key, [from, to]]) => {
+      const value = call.input[key];
+      const time = typeof value === "string" ? Date.parse(value) : Number.NaN;
+
+      return !(time >= Date.parse(from) && time <= Date.parse(to));
+    })
+    .map(([key]) => key);
+
+  const extra = (expected.omits ?? []).filter((key) => call.input[key] !== undefined);
+
+  return wrong.length + outside.length + extra.length === 0
+    ? { pass: true }
+    : {
+        pass: false,
+        comment: `Wrong values: [${wrong.join(", ")}]. Dates out of range: [${outside.join(", ")}]. Unrequested arguments: [${extra.join(", ")}]. Call: ${JSON.stringify(call.input)}`,
+      };
+}

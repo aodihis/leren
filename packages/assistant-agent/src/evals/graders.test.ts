@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { NOTHING_FOUND_PATTERNS, anyOf, gradeReadsAndKeepsEmpty, gradeToolCalls } from "./graders";
+import {
+  NOTHING_FOUND_PATTERNS,
+  anyOf,
+  gradeReadsAndKeepsEmpty,
+  gradeToolCalls,
+  gradeWrite,
+} from "./graders";
+import type { WriteExpectation } from "./graders";
 import type { AssistantEvalOutput, PlaybookFixture } from "./target";
 
 const call = (name: string) => ({ name, input: {} });
@@ -99,5 +106,58 @@ describe("anyOf", () => {
 
   it("matches nothing for an empty list", () => {
     expect(anyOf([]).test("anything at all")).toBe(false);
+  });
+});
+
+const write = (input: Record<string, unknown>, name = "create_playbook") => [{ name, input }];
+
+describe("gradeWrite", () => {
+  const expected: WriteExpectation = {
+    tool: "create_playbook",
+    includes: { topic: "Parking" },
+    instants: { startsAt: ["2026-12-28T16:59:00.000Z", "2026-12-28T17:01:00.000Z"] },
+    omits: ["instruction"],
+  };
+
+  const good = { topic: "Parking", startsAt: "2026-12-29T00:00:00+07:00" };
+
+  it("passes a call with the right values, an equal instant in another offset and no extras", () => {
+    expect(gradeWrite(write(good), expected)).toEqual({ pass: true });
+  });
+
+  it("fails when nothing was written", () => {
+    expect(gradeWrite([], expected)).toMatchObject({ pass: false });
+  });
+
+  it("fails when another write tool was used", () => {
+    expect(gradeWrite(write(good, "update_playbook"), expected)).toMatchObject({ pass: false });
+  });
+
+  it("fails when the agent wrote twice", () => {
+    expect(gradeWrite([...write(good), ...write(good)], expected)).toMatchObject({ pass: false });
+  });
+
+  it("fails when an argument differs", () => {
+    expect(gradeWrite(write({ ...good, topic: "Car park" }), expected)).toMatchObject({
+      pass: false,
+    });
+  });
+
+  it("fails when a date is outside its range", () => {
+    expect(
+      gradeWrite(write({ ...good, startsAt: "2026-12-29T00:00:00Z" }), expected),
+    ).toMatchObject({
+      pass: false,
+    });
+  });
+
+  it("fails when an unrequested argument is named", () => {
+    expect(gradeWrite(write({ ...good, instruction: "Be formal" }), expected)).toMatchObject({
+      pass: false,
+    });
+  });
+
+  it("passes when no write is expected", () => {
+    expect(gradeWrite([], undefined)).toEqual({ pass: true });
   });
 });
