@@ -30,24 +30,48 @@ function isTimezone(timezone: string): boolean {
  * gets `draft` (decision 0039).
  */
 export const emailConditionsSchema = z.object({
-  channel: z.literal("email"),
+  channel: z.literal("email").describe("The channel that these conditions are for."),
   channelAccountId: z.uuid().nullable().optional(),
   replyMode: z.enum(["draft", "send"]).default("draft"),
-  senderMode: z.enum(["any", "allowlist"]),
+  senderMode: z
+    .enum(["any", "allowlist"])
+    .describe("Who may be answered: `any` sender, or only the senders in `senderAllowlist`."),
   senderAllowlist: z
     .array(
       z.string().trim().toLowerCase().regex(SENDER_ENTRY_PATTERN, "Enter an address or @domain"),
     )
-    .max(MAX_LIST_ITEMS),
-  replyWhenTo: z.boolean(),
-  replyWhenCc: z.boolean(),
-  replyWhenBcc: z.boolean(),
-  requireSoleRecipient: z.boolean(),
-  mentionOverrides: z.boolean(),
-  mentionDetection: z.enum(["alias", "alias_then_llm"]),
-  mentionAliases: z.array(z.string().trim().min(1).max(100)).max(MAX_LIST_ITEMS),
-  threadMode: z.enum(["new", "reply", "both"]),
-  skipBulkMail: z.boolean(),
+    .max(MAX_LIST_ITEMS)
+    .describe(
+      "Full addresses or `@domain` entries. It is used only when `senderMode` is `allowlist`.",
+    ),
+  replyWhenTo: z.boolean().describe("Reply when the message is addressed to the user in To."),
+  replyWhenCc: z.boolean().describe("Reply when the user was copied in Cc."),
+  replyWhenBcc: z
+    .boolean()
+    .describe("Reply when the user's address is in neither To nor Cc, so the user was in Bcc."),
+  requireSoleRecipient: z
+    .boolean()
+    .describe("Skip messages in To that are also sent to other people."),
+  mentionOverrides: z
+    .boolean()
+    .describe(
+      "Answer a message that names the user even when the user's role or the number of recipients would exclude it.",
+    ),
+  mentionDetection: z
+    .enum(["alias", "alias_then_llm"])
+    .describe(
+      "How a mention is detected: by the aliases only, or by the aliases first and then by a model.",
+    ),
+  mentionAliases: z
+    .array(z.string().trim().min(1).max(100))
+    .max(MAX_LIST_ITEMS)
+    .describe("The names that count as a mention of the user."),
+  threadMode: z
+    .enum(["new", "reply", "both"])
+    .describe("Which messages are answered: only new conversations, only replies, or both."),
+  skipBulkMail: z
+    .boolean()
+    .describe("Never reply to newsletters, list mail or messages sent by a machine."),
 });
 
 /**

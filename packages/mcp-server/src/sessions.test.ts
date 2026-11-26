@@ -47,7 +47,7 @@ describe("MCP sessions", () => {
       id: minted.sessionId,
       userId,
       role: "assistant",
-      scopes: ["playbooks:read", "playbooks:write"],
+      scopes: ["playbooks:read", "playbooks:write", "messages:read"],
       messageId: null,
       name: null,
     });

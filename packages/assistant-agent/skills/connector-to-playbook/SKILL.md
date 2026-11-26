@@ -1,6 +1,6 @@
 ---
 name: connector-to-playbook
-description: Reads data from a tool that the user connected, such as Notion, Google Docs or Google Sheets, and turns it into draft playbooks with a topic, information, a period and the missing rule fields. Use it when the user asks to turn something from a connected tool into a playbook or into information.
+description: Reads data from a tool that the user connected, such as Notion, Google Docs or Google Sheets, and turns it into draft playbooks with a topic, information, a period and the required fields that are missing. Use it when the user asks to turn something from a connected tool into a playbook or into information.
 ---
 
 # Connector to playbook
@@ -30,23 +30,15 @@ After you show the draft, ask whether the user wants to refine the information o
 
 ## Ask for what is missing
 
-Check these fields. Ask only for those that the user has not given and that you cannot take from the source or from a tool:
+Call `describe_playbook_fields` and ask only for the required fields that the user has not given and that you cannot take from the source or from a tool, such as the timezone. Do not ask for a field that is not required, because it has a default.
 
-- Timezone
-- Email account, when the playbook is enabled and the user has several accounts
-- Who may be answered: anyone, or only listed senders or domains
-- Reply mode: draft or send
-- Instruction, which is optional
-
-Ask in a single message. When two or more fields are missing, write them as a bulleted list with one field in each bullet and its choices, not as a sentence. For example:
+When two or more fields are missing, write them as a bulleted list with one field in each bullet and a short hint, not as a sentence. For example:
 
 - Timezone, such as Asia/Jakarta
-- Senders: anyone, or only these addresses or domains
-- Reply mode: draft or send
-- Instruction (optional): how to answer, or "none"
+- Email account, when the user has several
 
-When only one field is missing, ask for it in one short sentence. Do not ask for a field that the user already gave, and do not guess a value.
+When only one field is missing, ask for it in one short sentence. Do not guess a value.
 
 ## Present and confirm
 
-Show each draft with its topic, information, period and every rule field. Say how many playbooks you made. Do not call `create_playbook` until the user clearly confirms the exact content.
+Show each draft with its topic, information and period, and one line with the defaults that apply. Say how many playbooks you made. Do not call `create_playbook` until the user clearly confirms the exact content.

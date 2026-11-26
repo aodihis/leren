@@ -93,6 +93,123 @@ function toView(item: PlaybookFixture) {
   };
 }
 
+const PLATFORM_URL = "https://app.example.com";
+
+/** Adds the link to a playbook that a write tool returns, as the real tools do. */
+function withUrl<T extends { id: string }>(view: T) {
+  return { ...view, url: `${PLATFORM_URL}/playbooks/${view.id}` };
+}
+
+/**
+ * The field guide that the real `describe_playbook_fields` tool returns, reduced to the fields that
+ * the fake store keeps.
+ */
+const FIELD_GUIDE = {
+  playbook: [
+    {
+      name: "topic",
+      type: "string",
+      required: true,
+      description: "The subject of the playbook, up to 200 characters.",
+    },
+    {
+      name: "information",
+      type: "string",
+      required: true,
+      description: "What the assistant knows about the subject, up to 5000 characters.",
+    },
+    {
+      name: "timezone",
+      type: "string",
+      required: true,
+      description: "An IANA timezone name, such as Asia/Jakarta.",
+    },
+    {
+      name: "enabled",
+      type: "boolean",
+      required: false,
+      default: true,
+      description: "Whether the playbook is on.",
+    },
+    {
+      name: "instruction",
+      type: "string",
+      required: false,
+      default: "",
+      description:
+        "How to answer when this playbook is used. It applies together with the default instruction.",
+    },
+    {
+      name: "startsAt",
+      type: "string or null",
+      required: false,
+      default: null,
+      description: "When the playbook starts.",
+    },
+    {
+      name: "endsAt",
+      type: "string or null",
+      required: false,
+      default: null,
+      description: "When the playbook ends.",
+    },
+    {
+      name: "conditions",
+      type: "list of object",
+      required: false,
+      description: "The reply conditions for each channel, such as who may be answered.",
+    },
+  ],
+  emailConditions: [
+    {
+      name: "channelAccountId",
+      type: "string",
+      required: false,
+      description:
+        "The connected account that the playbook answers on. A playbook that is on needs one.",
+    },
+    {
+      name: "senderMode",
+      type: "any | allowlist",
+      required: false,
+      default: "any",
+      description: "Who may be answered.",
+    },
+  ],
+  notes: [
+    "Ask only for the required fields. Every other field has a default.",
+    "A playbook without startsAt and endsAt is always active.",
+  ],
+};
+
+/** Messages that the fake `list_messages` and `get_message` tools serve. */
+const MESSAGES = [
+  {
+    id: "msg-1",
+    from: "client@example.com",
+    subject: "Refund for order 123",
+    preview: "I want my money back for order 123.",
+    receivedAt: "2026-11-22T08:00:00.000Z",
+    status: "escalated",
+    statusReason: "No playbook covers refunds.",
+    outcome: "escalate",
+    deliveryState: null,
+    url: `${PLATFORM_URL}/emails/msg-1`,
+  },
+  {
+    id: "msg-2",
+    from: "colleague@example.com",
+    subject: "Opening hours",
+    preview: "When are you open?",
+    receivedAt: "2026-11-22T09:00:00.000Z",
+    status: "drafted",
+    statusReason: null,
+    outcome: "answer",
+    deliveryState: "delivered",
+    url: `${PLATFORM_URL}/emails/msg-2`,
+  },
+];
+
 /** The arguments that a write call names: those that are set, without the conditions. */
 function defined(input: Record<string, unknown>) {
   return Object.fromEntries(
@@ -227,6 +344,48 @@ function createFakePlaybookTools(
       handler: ({ playbookId }) => toView(find(playbookId)),
     }),
     createTool({
+      name: "describe_playbook_fields",
+      description:
+        "Describe every field of a playbook: its type, whether it is required, its default and what it means. Use it to learn which fields to ask the user for, and to answer a question about how to create a playbook.",
+      inputSchema: z.object({}),
+      handler: () => FIELD_GUIDE,
+    }),
+    createTool({
+      name: "list_messages",
+      description:
+        "List the user's received emails, newest first, with how each one was handled: its status, the outcome of the decision and whether a reply was delivered. Returns a preview of each body and a cursor for the next page.",
+      inputSchema: z.object({
+        status: z.string().optional(),
+        outcome: z.string().optional(),
+        failedOnly: z.boolean().optional(),
+        since: z.string().optional(),
+        limit: z.number().optional(),
+        cursor: z.string().optional(),
+      }),
+      handler: ({ status, outcome }) => ({
+        messages: MESSAGES.filter(
+          (message) =>
+            (!status || message.status === status) && (!outcome || message.outcome === outcome),
+        ),
+        nextCursor: null,
+      }),
+    }),
+    createTool({
+      name: "get_message",
+      description:
+        "Get one received email of the user with its full body and the decision of the pipeline: the reply that was written, the playbooks it cited, the reasons for an escalation and the delivery state.",
+      inputSchema: z.object({ messageId: z.string() }),
+      handler: ({ messageId }) => {
+        const message = MESSAGES.find((entry) => entry.id === messageId);
+
+        if (!message) {
+          throw new Error("Not found");
+        }
+
+        return { ...message, body: message.preview, decision: null };
+      },
+    }),
+    createTool({
       name: "search_playbooks",
       description:
         "Find the enabled playbooks that are valid now and match a text. Returns no matches when nothing is reliably close.",
@@ -273,7 +432,7 @@ function createFakePlaybookTools(
 
         store.push(created);
 
-        return toView(created);
+        return withUrl(toView(created));
       },
     }),
     createTool({
@@ -286,7 +445,7 @@ function createFakePlaybookTools(
 
         Object.assign(item, defined(changes));
 
-        return toView(item);
+        return withUrl(toView(item));
       },
     }),
   ];

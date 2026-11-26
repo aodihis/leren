@@ -84,7 +84,7 @@ describe("chat page", () => {
 
     expect(router.state.location.pathname).toMatch(/^\/chat\/[\w-]{36}$/);
     expect(await screen.findByRole("heading", { name: "Hello, Ada" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add knowledge" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add a playbook" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "New chat" })).toBeTruthy();
   });
 
@@ -126,14 +126,14 @@ describe("chat page", () => {
 
   it("sends a starter card as the first message", async () => {
     const user = userEvent.setup();
-    const fetchStub = stubChatEndpoint([{ text: "You have no rules yet." }]);
+    const fetchStub = stubChatEndpoint([{ text: "You have no playbooks yet." }]);
 
     await renderApp("/chat");
-    await user.click(await screen.findByRole("button", { name: "See my rules" }));
+    await user.click(await screen.findByRole("button", { name: "See my playbooks" }));
 
-    expect(await screen.findByText("You have no rules yet.")).toBeTruthy();
+    expect(await screen.findByText("You have no playbooks yet.")).toBeTruthy();
     expect(JSON.parse(String(fetchStub.mock.calls[0][1].body)).messages.at(-1).content).toEqual([
-      { type: "text", text: "What rules do I have?" },
+      { type: "text", text: "Which playbooks do I have?" },
     ]);
   });
 

@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 import { EMAIL_RECEIVED_QUEUE, MESSAGE_BODY_LIMIT, recordInboundEmail, truncate } from "./record";
 import type { InboundEmail } from "./record";
-import { canTransition, transitionMessage } from "./status";
+import { canTransition, redactMessageText, transitionMessage } from "./status";
 
 describe("truncate", () => {
   it("keeps text that fits", () => {
@@ -193,5 +193,47 @@ describe("the message record", () => {
     const [row] = await database.db.select().from(messages).where(eq(messages.id, messageId));
 
     expect(row).toMatchObject({ status: "failed", statusReason: "boom" });
+  });
+
+  const stored = async (messageId: string) => {
+    const [row] = await database.db.select().from(messages).where(eq(messages.id, messageId));
+
+    return row;
+  };
+
+  describe("redaction of the text", () => {
+    const personal = {
+      subject: "Call me on +62 812 3456 7890",
+      body: "Write to jane.doe@example.org or call +62 812 3456 7890.",
+    };
+
+    it("redacts the subject and the body, and keeps the addresses, when a message ends", async () => {
+      const { messageId } = await record({ ...personal, providerMessageId: "redact-1" });
+
+      await transitionMessage(database.db, messageId, "queued");
+      await transitionMessage(database.db, messageId, "processing");
+      await transitionMessage(database.db, messageId, "escalated", "No match");
+
+      expect(await stored(messageId)).toMatchObject({
+        subject: "Call me on [redacted]",
+        body: "Write to [redacted] or call [redacted].",
+        fromAddress: "sender@example.com",
+        toAddresses: ["me@example.com"],
+      });
+    });
+
+    it("keeps the text of a drafted message until the delivery ends", async () => {
+      const { messageId } = await record({ ...personal, providerMessageId: "redact-2" });
+
+      await transitionMessage(database.db, messageId, "queued");
+      await transitionMessage(database.db, messageId, "processing");
+      await transitionMessage(database.db, messageId, "drafted");
+
+      expect((await stored(messageId))?.body).toContain("jane.doe@example.org");
+
+      await redactMessageText(database.db, messageId);
+
+      expect((await stored(messageId))?.body).toBe("Write to [redacted] or call [redacted].");
+    });
   });
 });

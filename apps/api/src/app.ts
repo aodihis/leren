@@ -22,10 +22,11 @@ import type { ChannelAccountsRouterDependencies } from "./modules/channel-accoun
 import type { Auth } from "./modules/auth/service";
 import { createDashboardRouter } from "./modules/dashboard/router";
 import { createMcpRateLimit } from "./modules/mcp/rate-limit";
+import { createMessageMcpActions } from "./modules/messages/mcp-actions";
 import { createMcpRouter } from "./modules/mcp/router";
 import { NO_INBOX, createMessagesRouter } from "./modules/messages/router";
 import type { MessagesRouterDependencies } from "./modules/messages/router";
-import { createPlaybookMcpActions } from "./modules/playbooks/mcp-actions";
+import { PLAYBOOK_FIELD_GUIDE, createPlaybookMcpActions } from "./modules/playbooks/mcp-actions";
 import { createPlaybooksRouter } from "./modules/playbooks/router";
 
 const echoSchema = z.object({ message: z.string().min(1) });
@@ -90,6 +91,8 @@ export type AppDependencies = {
   mcp: {
     /** Signs MCP session tokens. At least 32 characters. */
     secret: string;
+    /** The address of the web application. Without it, a saved playbook has no link. */
+    platformUrl?: string;
     /** The retrieval collaborators of the `search_playbooks` tool. */
     search?: McpToolDependencies["search"];
     /** Limits the access tokens of users per user. Without it, no call is limited. */
@@ -118,8 +121,10 @@ export function createApp({
     ...sessions,
     search: mcp.search,
     rateLimit: mcp.rateLimiter && createMcpRateLimit(mcp.rateLimiter, logger),
+    fieldGuide: PLAYBOOK_FIELD_GUIDE,
+    readActions: createMessageMcpActions(db, mcp.platformUrl),
     actions: {
-      ...createPlaybookMcpActions(db, requestKnowledgeIndex),
+      ...createPlaybookMcpActions(db, requestKnowledgeIndex, mcp.platformUrl),
     },
   });
 

@@ -11,7 +11,7 @@ import { createMcpEndpoint } from "./handler";
 import type { McpRateLimit } from "./handler";
 import { mintSession, revokeSession } from "./sessions";
 import type { MintSessionInput } from "./sessions";
-import type { McpWriteAction, McpWriteActions, McpWriteOutcome } from "./tools";
+import type { McpReadAction, McpWriteAction, McpWriteActions, McpWriteOutcome } from "./tools";
 
 const SECRET = "a-test-secret-that-is-at-least-32-characters";
 const NOW = new Date("2026-06-15T12:00:00Z");
@@ -31,6 +31,15 @@ function stubAction(
   const action: McpWriteAction = { description: "A stub", inputSchema: z.object(fields), run };
 
   return { action, run };
+}
+
+/** A read action that returns nothing, for tests of which tools a session sees. */
+function stubRead(): McpReadAction {
+  return {
+    description: "A stub",
+    inputSchema: z.object({}),
+    run: async () => ({ status: "ok", data: {} }),
+  };
 }
 
 type RpcBody = {
@@ -124,6 +133,11 @@ describe("MCP endpoint", () => {
       now: () => clock,
       search: { store, embedder },
       actions,
+      fieldGuide: { playbook: [{ name: "topic", required: true }] },
+      readActions: {
+        listMessages: stubRead(),
+        getMessage: stubRead(),
+      },
     });
 
     ({ userId, playbookId } = await seedUser("a@example.com"));
@@ -313,6 +327,31 @@ describe("MCP endpoint", () => {
       expect(response.status).toBe(503);
       expect(response.headers.get("retry-after")).toBe("5");
       await limited.close();
+    });
+
+    it("lists the mail tools only for a session with the mail scope", async () => {
+      const withMail = toolNames(await rpc(await tokenFor(), "tools/list"));
+
+      const reply = toolNames(
+        await rpc(await tokenFor({ role: "reply", messageId: "m1" }), "tools/list"),
+      );
+
+      const playbooksOnly = toolNames(
+        await rpc(await tokenFor({ scopes: ["playbooks:read"] }), "tools/list"),
+      );
+
+      expect(withMail).toEqual(expect.arrayContaining(["list_messages", "get_message"]));
+      expect(reply).not.toContain("list_messages");
+      expect(playbooksOnly).not.toContain("get_message");
+    });
+
+    it("serves the field guide to a session that may read playbooks", async () => {
+      const guide = parsed(await call(await tokenFor(), "describe_playbook_fields", {}));
+
+      expect(guide).toEqual({ playbook: [{ name: "topic", required: true }] });
+      expect(toolNames(await rpc(await tokenFor(), "tools/list"))).toContain(
+        "describe_playbook_fields",
+      );
     });
 
     it("rejects a call to a tool outside the granted scopes", async () => {

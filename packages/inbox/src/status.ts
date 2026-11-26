@@ -1,5 +1,6 @@
 import { messages } from "@leren/db";
 import type { Db } from "@leren/db";
+import { redact } from "@leren/observability";
 import { and, eq, inArray } from "drizzle-orm";
 
 export type MessageStatus = (typeof messages.$inferSelect)["status"];
@@ -20,6 +21,43 @@ const TRANSITIONS: Record<MessageStatus, readonly MessageStatus[]> = {
   failed: [],
 };
 
+/**
+ * The statuses that end the processing of a message's text. When a message moves to one of them,
+ * its subject and body are redacted. A message that is `drafted` is not in the list, because the
+ * delivery of its reply still reads the subject. `redactMessageText` is called when that delivery
+ * ends.
+ */
+const REDACTED_ON_ENTRY: readonly MessageStatus[] = [
+  "not_applicable",
+  "sent",
+  "escalated",
+  "failed",
+];
+
+/**
+ * Replaces the email addresses and phone numbers in the subject and the body of a message with
+ * `[redacted]`. The addresses of the sender and the recipients are kept, because the rules and the
+ * delivery of a reply read them. It is safe to call again, because redacted text is unchanged.
+ */
+export async function redactMessageText(
+  db: Pick<Db, "select" | "update">,
+  messageId: string,
+): Promise<void> {
+  const [row] = await db
+    .select({ subject: messages.subject, body: messages.body })
+    .from(messages)
+    .where(eq(messages.id, messageId));
+
+  if (!row) {
+    return;
+  }
+
+  await db
+    .update(messages)
+    .set({ subject: redact(row.subject), body: redact(row.body) })
+    .where(eq(messages.id, messageId));
+}
+
 /** Reports whether a message in status `from` may move to status `to`. */
 export function canTransition(from: MessageStatus, to: MessageStatus): boolean {
   return TRANSITIONS[from].includes(to);
@@ -36,7 +74,8 @@ function statusesBefore(to: MessageStatus): MessageStatus[] {
  * message and a message that arrives late cannot move a record backwards. Returns whether the
  * status changed. A message that is already in `to` is left alone and reports `false`. When
  * `only` is given, the move is also limited to messages that are in one of those statuses, so a
- * stage cannot fail a message that a later stage has taken over.
+ * stage cannot fail a message that a later stage has taken over. A move to a status that ends the
+ * processing of the text redacts the subject and the body in the same transaction.
  */
 export async function transitionMessage(
   db: Db,
@@ -48,11 +87,24 @@ export async function transitionMessage(
   const now = new Date();
   const allowed = statusesBefore(to).filter((from) => !only || only.includes(from));
 
-  const changed = await db
-    .update(messages)
-    .set({ status: to, statusReason: reason, statusChangedAt: now, updatedAt: now })
-    .where(and(eq(messages.id, messageId), inArray(messages.status, allowed)))
-    .returning({ id: messages.id });
+  const move = async (executor: Pick<Db, "update">) =>
+    executor
+      .update(messages)
+      .set({ status: to, statusReason: reason, statusChangedAt: now, updatedAt: now })
+      .where(and(eq(messages.id, messageId), inArray(messages.status, allowed)))
+      .returning({ id: messages.id });
 
-  return changed.length > 0;
+  if (!REDACTED_ON_ENTRY.includes(to)) {
+    return (await move(db)).length > 0;
+  }
+
+  return db.transaction(async (tx) => {
+    const changed = await move(tx);
+
+    if (changed.length > 0) {
+      await redactMessageText(tx, messageId);
+    }
+
+    return changed.length > 0;
+  });
 }
