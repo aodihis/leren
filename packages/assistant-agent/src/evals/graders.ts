@@ -55,9 +55,9 @@ export function gradeReadsAndKeepsEmpty(output: AssistantEvalOutput): Verdict {
 /** The ways that a reply says that it found no playbook. */
 export const NOTHING_FOUND_PATTERNS: readonly RegExp[] = [
   /\bno\b[^.]*\bplaybooks?/i,
-  /(don'?t|do not|doesn'?t|does not) (have|see|hold|contain)/i,
-  /(haven'?t|have not|hasn'?t|has not) (created|added|set up)/i,
-  /(couldn'?t|could not|can'?t|cannot|didn'?t|did not) find/i,
+  /(don['’]?t|do not|doesn['’]?t|does not) (have|see|hold|contain)/i,
+  /(haven['’]?t|have not|hasn['’]?t|has not) (created|added|set up)/i,
+  /(couldn['’]?t|could not|can['’]?t|cannot|didn['’]?t|did not) find/i,
   /\bnone\b|\bempty\b|\bnot any\b|\bno (matching|such)\b/i,
   /not (yet )?(created|set up|have)/i,
 ];
@@ -128,5 +128,18 @@ export function gradeWrite(
     : {
         pass: false,
         comment: `Wrong values: [${wrong.join(", ")}]. Dates out of range: [${outside.join(", ")}]. Unrequested arguments: [${extra.join(", ")}]. Call: ${JSON.stringify(call.input)}`,
+      };
+}
+
+/**
+ * Passes when the store holds the expected number of playbooks after the run. It catches a write
+ * that succeeded, also when an earlier write in the same run failed.
+ */
+export function gradeStoreSize(output: AssistantEvalOutput, expected: number | undefined): Verdict {
+  return expected === undefined || output.playbooks.length === expected
+    ? { pass: true }
+    : {
+        pass: false,
+        comment: `Expected ${expected} playbooks afterwards, found ${output.playbooks.length}.`,
       };
 }

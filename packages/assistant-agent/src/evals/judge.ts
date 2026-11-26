@@ -1,7 +1,7 @@
 import { EvalOutcome, createEvalTypes, llmJudge } from "@anvia/core/evals";
 import type { CompletionModel } from "@anvia/core";
 import { z } from "zod";
-import { gradeToolCalls, gradeWrite } from "./graders";
+import { gradeStoreSize, gradeToolCalls, gradeWrite } from "./graders";
 import type { ToolExpectation, WriteExpectation } from "./graders";
 import type { AssistantEvalInput, AssistantEvalOutput } from "./target";
 
@@ -15,6 +15,8 @@ export type JudgeExpectation = {
   reference?: string;
   tools?: ToolExpectation;
   write?: WriteExpectation;
+  /** The number of playbooks that the store must hold after the run. */
+  playbooksAfter?: number;
 };
 
 const { defineMetric } = createEvalTypes<
@@ -81,6 +83,19 @@ export const writeMetric = defineMetric({
   dataType: "BOOLEAN",
   evaluate({ case: testCase, output }) {
     const verdict = gradeWrite(output.toolCalls, testCase.expected?.write);
+
+    return verdict.pass
+      ? EvalOutcome.pass(true)
+      : EvalOutcome.fail(false, { comment: verdict.comment });
+  },
+});
+
+/** Passes when the store holds the number of playbooks that the case expects after the run. */
+export const storeSizeMetric = defineMetric({
+  name: "store-size",
+  dataType: "BOOLEAN",
+  evaluate({ case: testCase, output }) {
+    const verdict = gradeStoreSize(output, testCase.expected?.playbooksAfter);
 
     return verdict.pass
       ? EvalOutcome.pass(true)

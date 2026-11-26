@@ -3,6 +3,7 @@ import {
   NOTHING_FOUND_PATTERNS,
   anyOf,
   gradeReadsAndKeepsEmpty,
+  gradeStoreSize,
   gradeToolCalls,
   gradeWrite,
 } from "./graders";
@@ -85,6 +86,8 @@ describe("NOTHING_FOUND_PATTERNS", () => {
     "You have no playbooks yet.",
     "There is no refund playbook.",
     "I couldn't find a playbook about that.",
+    "I couldn’t find a playbook about office hours.",
+    "You don’t have a refund playbook.",
     "You don't have any playbooks.",
     "The list is empty.",
   ])("accepts %j", (text) => {
@@ -159,5 +162,23 @@ describe("gradeWrite", () => {
 
   it("passes when no write is expected", () => {
     expect(gradeWrite([], undefined)).toEqual({ pass: true });
+  });
+});
+
+describe("gradeStoreSize", () => {
+  it("fails when a playbook was saved although none was expected", () => {
+    const created = { id: "pb-new" } as PlaybookFixture;
+
+    expect(gradeStoreSize(output(["create_playbook"], [created]), 0)).toMatchObject({
+      pass: false,
+    });
+  });
+
+  it("passes when the store has the expected size", () => {
+    expect(gradeStoreSize(output([]), 0)).toEqual({ pass: true });
+  });
+
+  it("passes when no size is expected", () => {
+    expect(gradeStoreSize(output([]), undefined)).toEqual({ pass: true });
   });
 });

@@ -1,6 +1,6 @@
 import { runEvalCli } from "@anvia/core/evals";
 import { clarificationCases } from "./clarification-cases";
-import { createRubricJudge, toolCallsMetric } from "./judge";
+import { createRubricJudge, storeSizeMetric, toolCallsMetric } from "./judge";
 import { getJudgeModel } from "./models";
 import { reporters, target } from "./target";
 
@@ -10,6 +10,10 @@ await runEvalCli({
   target,
   reporters,
   concurrency: 1,
-  metrics: [createRubricJudge("clarification", await getJudgeModel()), toolCallsMetric],
+  metrics: [
+    createRubricJudge("clarification", await getJudgeModel()),
+    toolCallsMetric,
+    storeSizeMetric,
+  ],
   exitCode: true,
 });

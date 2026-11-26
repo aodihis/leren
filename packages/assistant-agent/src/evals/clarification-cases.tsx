@@ -32,8 +32,9 @@ const HOLIDAY_PAGES = [
 /**
  * Cases for how the agent asks. The prompt says to ask when a request, a fact or a choice is unclear
  * or a required field is missing, never to guess, and never to ask about optional settings. Each
- * case is graded by a judge against criteria, and by a check that nothing was saved while the
- * question was open.
+ * case is graded by a judge against criteria, and by a deterministic check that nothing was saved
+ * while the question was open: no write call, or, where a failed write is allowed, an empty store
+ * afterwards.
  */
 export const clarificationCases = defineEvalCases([
   {
@@ -41,7 +42,7 @@ export const clarificationCases = defineEvalCases([
     input: { conversation: [{ role: "user", content: "I want" }], playbooks: [] },
     expected: {
       criteria:
-        "The message is unfinished and does not say what the user wants. The agent asks what the user wants, in one short question, and does not guess a request. It does not create anything and does not explain playbooks at length.",
+        "The message is unfinished and does not say what the user wants. The agent asks what the user wants, in one short question, and does not act on a guessed request. It may name a few things that it can help with as examples. It does not create anything and does not explain playbooks at length.",
       tools: NO_WRITE,
     } satisfies JudgeExpectation,
     metadata: { note: "Bad case: a fragment that gives nothing to act on." },
@@ -133,9 +134,10 @@ export const clarificationCases = defineEvalCases([
     expected: {
       criteria:
         "The user has two connected email accounts, me@example.com and sales@example.com. The agent asks which account the playbook answers on and names both accounts. It does not choose one for the user and does not claim that the playbook was saved.",
+      playbooksAfter: 0,
     } satisfies JudgeExpectation,
     metadata: {
-      note: "Bad case: the user said yes, but the account is still open. The tool refuses without an account, so a guess shows as a failed call.",
+      note: "Bad case: the user said yes, but the account is still open. A first write may fail without an account, so the check is that the store is still empty afterwards, which also catches a retry with a guessed account.",
     },
   },
   {
