@@ -492,3 +492,52 @@ describe("createGmailDraft and sendGmailReply", () => {
     await expect(sendGmailReply(send, "token", REPLY)).rejects.toThrow();
   });
 });
+
+describe("Gmail edge cases", () => {
+  it("reads a message without headers, thread or body", () => {
+    expect(
+      parseGmailMessage({
+        id: "m1",
+        internalDate: "1700000000000",
+        payload: { mimeType: "multipart/mixed", parts: [] },
+      } as never),
+    ).toMatchObject({ providerThreadId: null, from: "", to: [], subject: "", body: "" });
+  });
+
+  it("reads history entries that add no message or carry no labels", async () => {
+    const send = vi.fn(async (input: RequestInfo | URL) =>
+      String(input).includes("/history")
+        ? reply({
+            history: [{ labelsAdded: [] }, { messagesAdded: [{ message: { id: "m1" } }] }],
+            historyId: "200",
+          })
+        : reply(gmailMessage()),
+    );
+
+    const result = await fetchNewGmail(send, "token", "100");
+
+    expect(result.emails.map((email) => email.providerMessageId)).toEqual(["m1"]);
+  });
+
+  it("fails and keeps the cursor when the history cannot be read", async () => {
+    const send = vi.fn(async () => reply({}, 503));
+
+    await expect(fetchNewGmail(send, "token", "100")).rejects.toThrow("status 503");
+  });
+
+  it("writes an empty body for an empty reply", () => {
+    const raw = Buffer.from(buildRawReply({ ...REPLY, body: "" }), "base64url").toString();
+
+    expect(raw.endsWith("\r\n\r\n\r\n")).toBe(true);
+  });
+
+  it("returns nulls when the original has no headers at all", async () => {
+    const send = vi.fn(async () => reply({ payload: { mimeType: "text/plain" } }));
+
+    expect(await readGmailReplyContext(send, "token", "m1")).toEqual({
+      messageId: null,
+      references: null,
+      replyTo: null,
+    });
+  });
+});

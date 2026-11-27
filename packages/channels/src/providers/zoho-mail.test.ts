@@ -6,6 +6,7 @@ import type { OutboundReply } from "./types";
 import {
   createZohoDraft,
   fetchNewZohoMail,
+  readZohoAccount,
   readZohoPosition,
   readZohoReplyContext,
   sendZohoReply,
@@ -81,6 +82,57 @@ describe("readZohoPosition", () => {
     });
     expect(send.mock.calls[0]?.[1]?.headers).toEqual({ authorization: "Zoho-oauthtoken token" });
   });
+
+  it("falls back to the first folder of type Inbox when none has the inbox path", async () => {
+    const send = mailbox({
+      "/folders": () => respond({ data: [{ folderId: "9", folderType: "Inbox" }] }),
+      "/messages/view": () => respond({ data: [] }),
+    });
+
+    expect(JSON.parse(await readZohoPosition(send, API, "token", "100"))).toMatchObject({
+      accountId: "100",
+      folderId: "9",
+    });
+  });
+
+  it("fails when the account has no inbox", async () => {
+    const send = mailbox({
+      "/folders": () => respond({ data: [{ folderId: "2", path: "/Sent" }] }),
+    });
+
+    await expect(readZohoPosition(send, API, "token", "100")).rejects.toThrow("no inbox");
+  });
+});
+
+describe("readZohoAccount", () => {
+  it("returns the mailbox of Zoho Mail's own type, not one that the user added", async () => {
+    const send = mailbox({
+      "/api/accounts": () =>
+        respond({
+          data: [
+            { accountId: "5", type: "IMAP_ACCOUNT", primaryEmailAddress: "other@gmail.com" },
+            { accountId: "6", primaryEmailAddress: " Me@Acme.com " },
+          ],
+        }),
+    });
+
+    expect(await readZohoAccount(send, API, "token")).toEqual({
+      accountId: "6",
+      zuid: null,
+      address: "me@acme.com",
+    });
+  });
+
+  it("fails when the token has no mailbox of Zoho Mail's own type", async () => {
+    const send = mailbox({
+      "/api/accounts": () =>
+        respond({
+          data: [{ accountId: "5", type: "IMAP_ACCOUNT", primaryEmailAddress: "other@gmail.com" }],
+        }),
+    });
+
+    await expect(readZohoAccount(send, API, "token")).rejects.toThrow("no mailbox");
+  });
 });
 
 describe("fetchNewZohoMail", () => {
@@ -148,6 +200,74 @@ describe("fetchNewZohoMail", () => {
     expect(JSON.parse(result.cursor)).toMatchObject({ after: 0, seen: [] });
   });
 
+  it("starts from the current position when there is no cursor yet", async () => {
+    const send = mailbox({
+      "/api/accounts": () => respond(ACCOUNTS),
+      "/folders": () => respond(FOLDERS),
+      "/messages/view": () => respond({ data: [listed("m1", 1000)] }),
+    });
+
+    const result = await fetchNewZohoMail(send, API, "token", null);
+
+    expect(result).toMatchObject({ emails: [], baseline: true });
+    expect(JSON.parse(result.cursor)).toMatchObject({ after: 1000, seen: ["m1"] });
+  });
+
+  it("stops at the first message older than the cursor and skips entries of an unknown shape", async () => {
+    const send = mailbox({
+      "/messages/view": () =>
+        respond({
+          data: [listed("m3", 3000), { unexpected: true }, listed("old", 500), listed("m4", 4000)],
+        }),
+      "/header": () => header({ From: "ana@example.com" }),
+      "/content": () => respond({ data: { content: "Hi" } }),
+    });
+
+    const result = await fetchNewZohoMail(send, API, "token", CURSOR);
+
+    expect(result.emails.map((email) => email.providerMessageId)).toEqual(["1:m3"]);
+  });
+
+  it("adds the messages of the same second to the ones the cursor has already seen", async () => {
+    const send = mailbox({
+      "/messages/view": () => respond({ data: [listed("m2", 1000), listed("m1", 1000)] }),
+      "/header": () => header({ From: "ana@example.com" }),
+      "/content": () => respond({ data: { content: "Hi" } }),
+    });
+
+    const result = await fetchNewZohoMail(send, API, "token", CURSOR);
+
+    expect(result.emails.map((email) => email.providerMessageId)).toEqual(["1:m2"]);
+    expect(JSON.parse(result.cursor)).toMatchObject({ after: 1000, seen: ["m1", "m2"] });
+  });
+
+  it.each([
+    ["the sender of the list", "ana@example.com", "ana@example.com"],
+    ["nothing", null, ""],
+  ])(
+    "reads a message without headers, thread, subject or body, taking the sender from %s",
+    async (_name, fromAddress, from) => {
+      const send = mailbox({
+        "/messages/view": () =>
+          respond({
+            data: [{ ...listed("m2", 2000), threadId: null, subject: null, fromAddress }],
+          }),
+        "/header": () => respond({ data: { headerContent: {} } }),
+        "/content": () => respond({ data: { content: null } }),
+      });
+
+      const result = await fetchNewZohoMail(send, API, "token", CURSOR);
+
+      expect(result.emails[0]).toMatchObject({
+        providerThreadId: null,
+        from,
+        to: [],
+        subject: "",
+        body: "",
+      });
+    },
+  );
+
   it("fails without moving the cursor when a message cannot be fetched", async () => {
     const send = mailbox({
       "/messages/view": () => respond({ data: [listed("m2", 2000)] }),
@@ -177,6 +297,27 @@ describe("readZohoReplyContext", () => {
     });
     expect(String(send.mock.calls[1]?.[0])).toBe(
       `${API}/api/accounts/100/folders/1/messages/m1/header?raw=false`,
+    );
+  });
+
+  it("returns nothing for the headers that the original does not have", async () => {
+    const send = mailbox({
+      "/api/accounts": () => respond(ACCOUNTS),
+      "/header": () => header({}),
+    });
+
+    expect(await readZohoReplyContext(send, API, "token", "1:m1")).toEqual({
+      messageId: null,
+      references: null,
+      replyTo: null,
+    });
+  });
+
+  it("refuses a message id that is not a Zoho Mail id", async () => {
+    const send = mailbox({ "/api/accounts": () => respond(ACCOUNTS) });
+
+    await expect(readZohoReplyContext(send, API, "token", "m1")).rejects.toThrow(
+      "not a Zoho Mail id",
     );
   });
 });
@@ -219,6 +360,18 @@ describe("createZohoDraft and sendZohoReply", () => {
       inReplyTo: "<original@example.com>",
       refHeader: "<first@example.com> <original@example.com>",
     });
+  });
+
+  it("saves a draft without threading fields when the original has no ids", async () => {
+    const send = mailbox({
+      "/api/accounts": () => respond(ACCOUNTS),
+      "/api/accounts/100/messages": () => respond({ data: { messageId: "d2" } }),
+    });
+
+    await createZohoDraft(send, API, "token", { ...REPLY, inReplyTo: null, references: null });
+
+    expect(bodyOf(send, 1)).not.toHaveProperty("inReplyTo");
+    expect(bodyOf(send, 1)).not.toHaveProperty("refHeader");
   });
 
   it("sends the reply with the reply action on the original", async () => {

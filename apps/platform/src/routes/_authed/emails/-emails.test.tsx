@@ -143,6 +143,68 @@ describe("processed emails routes", () => {
     );
   });
 
+  it("loads the list again with the outcome that the user chooses", async () => {
+    messagesApi.$get.mockImplementation(() =>
+      jsonResponse({ messages: [summary], nextCursor: null }),
+    );
+    const user = userEvent.setup();
+
+    await renderApp("/emails");
+    await user.selectOptions(await screen.findByLabelText("Outcome"), "escalate");
+
+    await vi.waitFor(() =>
+      expect(messagesApi.$get).toHaveBeenLastCalledWith({
+        query: expect.objectContaining({ outcome: "escalate" }),
+      }),
+    );
+  });
+
+  it("shows failed emails since an instant from the address, and how to see them all", async () => {
+    messagesApi.$get.mockImplementation(() => jsonResponse({ messages: [], nextCursor: null }));
+
+    await renderApp("/emails?failed=true&since=2026-11-20T00:00:00.000Z");
+
+    expect(await screen.findByText("No email matches these filters.")).toBeTruthy();
+    expect(screen.getByText(/Showing failed emails received since/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Show all emails" })).toBeTruthy();
+    expect(messagesApi.$get).toHaveBeenCalledWith({
+      query: expect.objectContaining({ failed: "true", since: "2026-11-20T00:00:00.000Z" }),
+    });
+  });
+
+  it("drops a malformed instant from the address and shows every email since a valid one", async () => {
+    messagesApi.$get.mockImplementation(() =>
+      jsonResponse({ messages: [{ ...summary, subject: "" }], nextCursor: null }),
+    );
+
+    await renderApp("/emails?since=yesterday");
+
+    expect(await screen.findByRole("link", { name: "(no subject)" })).toBeTruthy();
+    expect(screen.queryByText(/Showing/)).toBeNull();
+    expect(messagesApi.$get).toHaveBeenCalledWith({
+      query: expect.objectContaining({ since: undefined }),
+    });
+  });
+
+  it("offers the newest page from a later page", async () => {
+    messagesApi.$get.mockImplementation(() =>
+      jsonResponse({ messages: [summary], nextCursor: null }),
+    );
+
+    await renderApp("/emails?cursor=page-2&since=2026-11-20T00:00:00.000Z");
+
+    expect(await screen.findByRole("link", { name: "Newest emails" })).toBeTruthy();
+    expect(screen.getByText(/Showing emails received since/)).toBeTruthy();
+  });
+
+  it("explains when the list cannot be loaded", async () => {
+    messagesApi.$get.mockImplementation(() => jsonResponse({ error: "boom" }, 500));
+
+    await renderApp("/emails");
+
+    expect(await screen.findByText(/Could not load your processed emails/)).toBeTruthy();
+  });
+
   it("shows the email, the reply, the cited playbook and the delivery record", async () => {
     messagesApi[":id"].$get.mockImplementation(() => jsonResponse(detail));
 
@@ -173,6 +235,53 @@ describe("processed emails routes", () => {
     expect(
       await screen.findByText("The assistant has not decided on this email yet."),
     ).toBeTruthy();
+  });
+
+  it("shows an escalation that has no reply, no citation and no delivery", async () => {
+    messagesApi[":id"].$get.mockImplementation(() =>
+      jsonResponse({
+        ...detail,
+        subject: "",
+        to: [],
+        status: "escalated",
+        decision: {
+          ...detail.decision,
+          outcome: "escalate",
+          body: null,
+          citations: [],
+          citedPlaybooks: [],
+          reasons: ["No playbook matches the email reliably."],
+          delivery: {
+            ...detail.decision.delivery,
+            mode: null,
+            state: null,
+            attempts: 0,
+            startedAt: null,
+            finishedAt: null,
+            mailboxDraftId: null,
+            request: null,
+            response: null,
+          },
+        },
+      }),
+    );
+
+    await renderApp(`/emails/${MESSAGE_ID}`);
+
+    expect(await screen.findByRole("heading", { name: "(no subject)" })).toBeTruthy();
+    expect(screen.getByText("No playbook matches the email reliably.")).toBeTruthy();
+    expect(screen.getByText("The assistant wrote no reply.")).toBeTruthy();
+    expect(screen.getByText("The reply cites no playbook.")).toBeTruthy();
+    expect(screen.queryByText("Request that was stored before the call")).toBeNull();
+    expect(screen.queryByText("Answer of the provider")).toBeNull();
+  });
+
+  it("explains when the email cannot be loaded", async () => {
+    messagesApi[":id"].$get.mockImplementation(() => jsonResponse({ error: "boom" }, 500));
+
+    await renderApp(`/emails/${MESSAGE_ID}`);
+
+    expect(await screen.findByText(/Could not load the email/)).toBeTruthy();
   });
 
   it("shows a message for an email that does not exist", async () => {

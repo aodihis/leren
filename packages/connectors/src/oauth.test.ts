@@ -179,3 +179,130 @@ describe("the read-only allow-lists", () => {
     }
   });
 });
+
+describe("the OAuth client of a connector", () => {
+  const sheets = defineConnector("google_sheets");
+  const notion = defineConnector("notion");
+  const tokens = { accessToken: "a", refreshToken: "r", expiresAt: null, clientId: null };
+
+  it("refuses a connector that has neither metadata nor endpoints", async () => {
+    const connector = createConnector(
+      { ...sheets, oauth: { ...sheets.oauth, authorizationUrl: undefined } },
+      { fetch: vi.fn<typeof fetch>() },
+    );
+
+    await expect(
+      connector.start({ state: "s", codeChallenge: "c", redirectUri: "u" }),
+    ).rejects.toThrow("has no OAuth endpoints");
+  });
+
+  it("discovers the endpoints again after a failed metadata request", async () => {
+    const send = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("down", { status: 503 }))
+      .mockImplementation(createNotionServer());
+
+    const connector = createConnector(notion, { fetch: send });
+    const start = () => connector.start({ state: "s", codeChallenge: "c", redirectUri: "u" });
+
+    await expect(start()).rejects.toThrow("metadata request failed (503)");
+    await expect(start()).resolves.toMatchObject({ clientId: "registered-client" });
+  });
+
+  it("refuses dynamic registration when the server offers none", async () => {
+    const connector = createConnector(notion, {
+      fetch: vi.fn<typeof fetch>(async () =>
+        Response.json({ ...METADATA, registration_endpoint: undefined }),
+      ),
+    });
+
+    await expect(
+      connector.start({ state: "s", codeChallenge: "c", redirectUri: "u" }),
+    ).rejects.toThrow("does not offer client registration");
+  });
+
+  it("reports a refused client registration", async () => {
+    const connector = createConnector(notion, {
+      fetch: vi.fn<typeof fetch>(async (input) =>
+        String(input).endsWith("/register")
+          ? new Response("no", { status: 403 })
+          : Response.json(METADATA),
+      ),
+    });
+
+    await expect(
+      connector.start({ state: "s", codeChallenge: "c", redirectUri: "u" }),
+    ).rejects.toThrow("client registration failed (403)");
+  });
+
+  it.each([
+    ["another error code", Response.json({ error: "invalid_client" }, { status: 400 })],
+    ["a body that is not JSON", new Response("Bad gateway", { status: 502 })],
+  ])("reports a token request refused with %s as a failure to retry", async (_name, answer) => {
+    const connector = createConnector(sheets, { fetch: vi.fn<typeof fetch>(async () => answer) });
+
+    const failure = await connector.refresh(tokens).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toBeInstanceOf(InvalidGrantError);
+    expect(String(failure)).toContain("token request failed");
+  });
+
+  it("refuses to refresh a connection that has no refresh token", async () => {
+    const send = vi.fn<typeof fetch>();
+    const connector = createConnector(sheets, { fetch: send });
+
+    await expect(connector.refresh({ ...tokens, refreshToken: null })).rejects.toBeInstanceOf(
+      InvalidGrantError,
+    );
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("keeps the refresh token and the expiry open when the provider returns neither", async () => {
+    const send = vi.fn<typeof fetch>(async () => Response.json({ access_token: "new" }));
+    const connector = createConnector(sheets, { clientId: "google-id", fetch: send });
+
+    expect(await connector.refresh(tokens)).toEqual({
+      accessToken: "new",
+      refreshToken: "r",
+      expiresAt: null,
+      clientId: null,
+    });
+    expect(lastRequestBody(send as never).get("client_id")).toBe("google-id");
+  });
+
+  it("revokes the refresh token, or the access token when there is none", async () => {
+    const send = vi.fn<typeof fetch>(async () => new Response(null, { status: 200 }));
+    const connector = createConnector(sheets, { clientId: "google-id", fetch: send });
+
+    await connector.revoke(tokens);
+    await connector.revoke({ ...tokens, refreshToken: null });
+
+    expect(String(send.mock.calls[0]?.[0])).toBe("https://oauth2.googleapis.com/revoke");
+    expect(new URLSearchParams(String(send.mock.calls[0]?.[1]?.body)).get("token")).toBe("r");
+    expect(new URLSearchParams(String(send.mock.calls[1]?.[1]?.body)).get("token")).toBe("a");
+  });
+
+  it("does nothing to revoke when the provider has no revocation endpoint", async () => {
+    const send = vi.fn<typeof fetch>();
+
+    const connector = createConnector(
+      { ...sheets, oauth: { ...sheets.oauth, revokeUrl: undefined } },
+      { fetch: send },
+    );
+
+    await connector.revoke(tokens);
+
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("reports a refused revocation", async () => {
+    const connector = createConnector(sheets, {
+      fetch: vi.fn<typeof fetch>(async () => new Response(null, { status: 500 })),
+    });
+
+    await expect(connector.revoke(tokens)).rejects.toThrow(
+      "token revocation failed with status 500",
+    );
+  });
+});
