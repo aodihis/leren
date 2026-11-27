@@ -67,6 +67,8 @@ export interface GenerateJsonOptions<Value> {
   readonly instructions: string;
   readonly prompt: string;
   readonly schema: z.ZodType<Value>;
+  /** The most tokens that the model may write. */
+  readonly maxTokens?: number | undefined;
   readonly abortSignal?: AbortSignal | undefined;
 }
 
@@ -75,15 +77,22 @@ export interface GenerateJsonOptions<Value> {
  * validated object. A stage that only classifies or scores what it is given uses this and not an
  * agent. The model is told to answer in JSON by the instructions, and the text is parsed here, so
  * the helper works with every model, whether or not it supports structured output. Throws
- * `InvalidModelOutputError` when the answer is not valid.
+ * `InvalidModelOutputError` when the answer is not valid or was cut off at the token limit.
  */
 export async function generateJson<Value>(options: GenerateJsonOptions<Value>): Promise<Value> {
   const response = await generateCompletion({
     model: options.model,
     instructions: options.instructions,
     prompt: options.prompt,
+    maxTokens: options.maxTokens,
     abortSignal: options.abortSignal,
   });
+
+  if (response.finishReason === "length") {
+    throw new InvalidModelOutputError(
+      `The answer was cut off at the limit of ${options.maxTokens ?? "the model's"} output tokens.`,
+    );
+  }
 
   const parsed = parseJsonOutput(response.text, options.schema);
 

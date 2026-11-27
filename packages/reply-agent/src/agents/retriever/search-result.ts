@@ -1,6 +1,6 @@
 import type { Message } from "@anvia/core";
 import { playbookSchema } from "./types";
-import type { Playbook, Retrieval } from "./types";
+import type { Playbook } from "./types";
 
 const MAX_DEPTH = 8;
 
@@ -89,40 +89,42 @@ export function mergePlaybooks(
   return [...byId.values()];
 }
 
-/**
- * Reads the result of the `search_playbooks` MCP tool. Anything that holds no playbook, including a
- * malformed answer, is read as `no_reliable_result`, so a bad answer ends in an escalation and
- * never in a reply that is built on nothing.
- */
-export function parseSearchResult(data: unknown): Retrieval {
-  const playbooks = readPlaybooks(data);
-
-  return playbooks.length === 0 ? { status: "no_reliable_result" } : { status: "ok", playbooks };
+/** The outputs of the playbook tools in the messages of an agent run, in order. */
+function playbookOutputs(messages: readonly Message[]) {
+  return messages.flatMap((message) =>
+    message.role === "tool"
+      ? message.content.flatMap((part) =>
+          part.type === "tool-result" && PLAYBOOK_TOOLS.some((name) => part.toolName.endsWith(name))
+            ? [part.output]
+            : [],
+        )
+      : [],
+  );
 }
 
 /**
- * Returns the playbooks that the playbook tools of an agent run returned. The drafting agent may search
- * again for a question that the first search did not cover, and the checks of the pipeline must
- * accept what it found.
+ * Returns the playbooks that the playbook tools of an agent run returned. These are the only
+ * playbooks that the answering agent found, so the checks of the pipeline accept citations of them
+ * and no others.
  */
 export function collectPlaybooks(messages: readonly Message[]): Playbook[] {
   const found: Playbook[] = [];
 
-  for (const message of messages) {
-    if (message.role !== "tool") {
-      continue;
-    }
-
-    for (const part of message.content) {
-      if (
-        part.type === "tool-result" &&
-        PLAYBOOK_TOOLS.some((name) => part.toolName.endsWith(name)) &&
-        part.output.type !== "execution-denied"
-      ) {
-        walk(part.output.value, found, 0);
-      }
+  for (const output of playbookOutputs(messages)) {
+    if (output.type === "text" || output.type === "json" || output.type === "content") {
+      walk(output.value, found, 0);
     }
   }
 
   return mergePlaybooks([], found);
+}
+
+/**
+ * Whether a playbook tool failed during an agent run. A failed call is a server or authorization
+ * problem and not an answer without a playbook, so the caller must not record it as an escalation.
+ */
+export function playbookToolFailed(messages: readonly Message[]): boolean {
+  return playbookOutputs(messages).some(
+    (output) => output.type === "error-text" || output.type === "error-json",
+  );
 }

@@ -4,10 +4,6 @@ export { readReplyPrompts } from "./prompts";
 
 export type { ReplyPrompts } from "./prompts";
 
-export { judge } from "./stages";
-
-export { CRITERIA } from "./types";
-
 export type { ReplyPipelineDeps } from "./stages";
 
 export type {

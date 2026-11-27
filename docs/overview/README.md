@@ -118,20 +118,21 @@ Whether an email is handled at all is decided by the gate, in code, from stored 
 
 ## Reply pipeline
 
-The pipeline runner does not call the Reply Agent directly. It runs one message through fixed stages (decision 0042):
+The pipeline runner does not call the Reply Agent directly. It runs one message through fixed stages (decision 0066):
 
 ```
-input guardrail ─▶ triage ─▶ retrieve ─▶ route ─▶ draft ─▶ evaluate ⇄ revise ─▶ output guardrail ─▶ persist
-                               │                                  │ failed twice
-                               │ no reliable result               ▼
-                               └──────────────────────────▶ escalate, with the reasons
+input guardrail ─▶ triage ─▶ answer ⇄ revise ─▶ style ─▶ output guardrail ─▶ persist
+                               │ escalated,        │ failed
+                               │ no playbook or    ▼
+                               │ failed twice      content draft is kept
+                               ▼
+                             escalate, with the reasons
 ```
 
 - **Guardrails** are code. They treat the email as untrusted data and block credentials, answers without citations and a repeated system prompt.
 - **Triage** also reports its confidence. An email below 0.6 is escalated before anything is searched (product decision 0003).
-- **Retrieve** calls the `search_playbooks` MCP tool for each question in the email. When nothing reliable is found for any of them, the pipeline escalates and does not call the drafting agent.
-- **Draft** is the Reply Agent. It cites the playbooks it used and follows the instruction of each playbook it uses, and the default instruction of the user, such as a persona or a tone, where a playbook has none.
-- **Evaluate** checks the draft against the retrieved playbooks, their instructions, and the default instruction, and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
+- **Answer** is the Reply Agent. It searches the playbooks through MCP for each question in the email, decides whether to answer or escalate, and writes the content of the reply. It cites the playbooks it used and follows what their instructions and the default instruction of the user forbid. An answer for which no playbook was found is escalated. A judge then checks the content against the playbooks it found and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
+- **Style** rewrites the reply with the default instruction of the user and the instructions of the cited playbooks, such as a persona or a tone. A second judge checks that the facts did not change and that the instructions are followed. A styled reply that fails is not revised: the checked content draft is used. The stage is skipped when there are no instructions.
 - **Persist** saves the decision and the draft and moves the message status. Nothing in the pipeline sends email.
 
 ## Message records

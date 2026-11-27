@@ -16,7 +16,7 @@ The dashboard shows what was answered, escalated or ignored, and how each playbo
 - The assistant answers only from enabled playbooks that are inside their period.
 - Prompt injections in an email are treated as text, never as instructions.
 - Replies are drafts unless you turn on sending for a playbook.
-- Every agent has an evaluation suite: `pnpm run evals` for the assistant and `pnpm run evals:reply` for the reply pipeline.
+- The assistant has an evaluation suite, `pnpm run evals`, and `pnpm run evals:reply` measures the retrieval recall of the reply pipeline.
 
 ## Built with
 

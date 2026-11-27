@@ -32,7 +32,7 @@ const answer: ReplyResult = {
     confidence: 0.9,
   },
   playbooks: [{ id: "p1", topic: "Deadline", information: "Friday." }],
-  evaluations: [{ pass: true, issues: [] }],
+  evaluations: [{ stage: "content", pass: true, issues: [] }],
   revisions: 0,
 };
 

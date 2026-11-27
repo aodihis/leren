@@ -1,6 +1,6 @@
 import type { Message } from "@anvia/core";
 import { describe, expect, it } from "vitest";
-import { collectPlaybooks, parseSearchResult, readPlaybooks } from "./search-result";
+import { collectPlaybooks, readPlaybooks } from "./search-result";
 
 const playbook = { id: "p1", topic: "Deadline", information: "Friday.", usable: true };
 
@@ -37,15 +37,6 @@ describe("readPlaybooks", () => {
 
   it("returns nothing for text that is not JSON", () => {
     expect(readPlaybooks("Unauthorized")).toEqual([]);
-  });
-});
-
-describe("parseSearchResult", () => {
-  it("reads an answer without a playbook as no reliable result", () => {
-    expect(parseSearchResult({ status: "no_reliable_result", matches: [] })).toEqual({
-      status: "no_reliable_result",
-    });
-    expect(parseSearchResult(null)).toEqual({ status: "no_reliable_result" });
   });
 });
 
