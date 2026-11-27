@@ -82,8 +82,8 @@ export interface GenerateJsonOptions<Value> {
  * The lowest reasoning effort that the model accepts, as a control value, or `undefined` for a
  * model without a reasoning effort control. A reasoning model counts its reasoning against the
  * output token limit of a call, so every stage of the pipeline runs it at its lowest effort to keep
- * room for the answer within the limits of decision 0066. The adapter lists the efforts of a model
- * from the lowest to the highest.
+ * room for the answer within the limits of decision 0066 (decision 0067). The adapter lists the
+ * efforts of a model from the lowest to the highest.
  */
 export function lowestReasoningEffort(
   model: CompletionModel,

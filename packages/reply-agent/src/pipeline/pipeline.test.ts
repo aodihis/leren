@@ -359,6 +359,36 @@ describe("runReplyPipeline", () => {
       await expect(runReplyPipeline(deps, input)).rejects.toThrow("playbook search");
     });
 
+    it("answers when the agent recovers from a search query that the server rejects", async () => {
+      const recovered: ReplyRun = {
+        output: JSON.stringify(answered),
+        messages: [
+          {
+            role: "tool",
+            content: [
+              {
+                type: "tool-result",
+                toolCallId: "c0",
+                toolName: "search_playbooks",
+                output: {
+                  type: "error-text",
+                  value:
+                    "Input validation error: Invalid arguments for tool search_playbooks: query is too long",
+                },
+              },
+            ],
+          },
+          ...searched([playbook]),
+        ],
+      };
+
+      const { deps } = setup({ runs: [recovered] });
+
+      const result = await runReplyPipeline(deps, input);
+
+      expect(result).toMatchObject({ outcome: "answer", citations: ["p1"] });
+    });
+
     it("answers when the agent recovers from a get_playbook error for an unknown id", async () => {
       const recovered: ReplyRun = {
         output: JSON.stringify(answered),
