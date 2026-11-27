@@ -1,8 +1,9 @@
 # 0062. Channel accounts connected by OAuth or by signing in to the mail server
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-27
 - Affects: packages/db, packages/channels, apps/api, apps/worker, apps/platform, docs/overview/README.md
+- Superseded by: [0065](0065-several-email-accounts-per-user.md)
 
 ## Context
 

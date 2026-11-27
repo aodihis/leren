@@ -4,7 +4,7 @@ import type { TestDatabase } from "@leren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ACCOUNT_UNAVAILABLE, NO_ACTIVE_PLAYBOOK, gateMessage } from "./service";
+import { gateMessage } from "./service";
 
 const NOW = new Date("2026-11-22T12:00:00Z");
 
@@ -129,28 +129,25 @@ describe("the email gate", () => {
     });
   });
 
-  it("records not applicable when the user has no usable playbook", async () => {
+  it("deletes a message when the user has no usable playbook", async () => {
     const messageId = await addMessage();
 
     await addPlaybook({ enabled: false });
     await addPlaybook({ endsAt: new Date("2026-11-01T00:00:00Z") });
     await addPlaybook({ startsAt: new Date("2026-12-01T00:00:00Z") });
 
-    expect(await gate(messageId)).toBe("not_applicable");
-    expect(await stored(messageId)).toMatchObject({
-      status: "not_applicable",
-      statusReason: NO_ACTIVE_PLAYBOOK,
-    });
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
     expect(publishProcess).not.toHaveBeenCalled();
   });
 
-  it("records the reason of the conditions that skipped the message", async () => {
+  it("deletes a message that the conditions skip", async () => {
     const messageId = await addMessage({ isBulk: true });
 
     await addPlaybook();
 
-    expect(await gate(messageId)).toBe("not_applicable");
-    expect((await stored(messageId))?.statusReason).toBe("bulk_mail");
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
   });
 
   it("ignores a playbook that listens on another account or none", async () => {
@@ -158,8 +155,8 @@ describe("the email gate", () => {
 
     await addPlaybook({}, {}, null);
 
-    expect(await gate(messageId)).toBe("not_applicable");
-    expect((await stored(messageId))?.statusReason).toBe(NO_ACTIVE_PLAYBOOK);
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
   });
 
   it("ignores a playbook of another user", async () => {
@@ -182,7 +179,8 @@ describe("the email gate", () => {
       settings: OPEN_CONDITIONS,
     });
 
-    expect(await gate(messageId)).toBe("not_applicable");
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
   });
 
   it("passes a message that needs a mention check to the pipeline with that verdict", async () => {
@@ -216,10 +214,11 @@ describe("the email gate", () => {
 
     await addPlaybook({}, { senderMode: "nobody" });
 
-    expect(await gate(messageId)).toBe("not_applicable");
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
   });
 
-  it("records not applicable when the account is revoked", async () => {
+  it("deletes a message when the account is revoked", async () => {
     const messageId = await addMessage();
 
     await addPlaybook();
@@ -228,17 +227,39 @@ describe("the email gate", () => {
       .set({ status: "revoked" })
       .where(eq(channelAccounts.id, accountId));
 
-    expect(await gate(messageId)).toBe("not_applicable");
-    expect((await stored(messageId))?.statusReason).toBe(ACCOUNT_UNAVAILABLE);
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
   });
 
-  it("records not applicable when the account was deleted", async () => {
+  it("deletes a message when the account was deleted", async () => {
     const messageId = await addMessage({ channelAccountId: null });
 
     await addPlaybook();
 
-    expect(await gate(messageId)).toBe("not_applicable");
-    expect((await stored(messageId))?.statusReason).toBe(ACCOUNT_UNAVAILABLE);
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
+  });
+
+  it("deletes a message sent from another of the user's own accounts", async () => {
+    await database.db.insert(channelAccounts).values({
+      userId,
+      channel: "email",
+      provider: "mailpit",
+      providerAccountId: "shared@example.com",
+      label: "Shared@example.com",
+    });
+
+    const messageId = await addMessage({ fromAddress: "shared@example.com" });
+
+    await addPlaybook();
+
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
+    expect(publishProcess).not.toHaveBeenCalled();
+
+    await database.db
+      .delete(channelAccounts)
+      .where(eq(channelAccounts.providerAccountId, "shared@example.com"));
   });
 
   it("does nothing for a record that has left the gate or does not exist", async () => {
@@ -252,7 +273,7 @@ describe("the email gate", () => {
     expect(publishProcess).not.toHaveBeenCalled();
   });
 
-  it("does not report not applicable for a queued record that can no longer move there", async () => {
+  it("does not delete a queued record that no playbook handles any more", async () => {
     const messageId = await addMessage({ status: "queued" });
 
     await addPlaybook({ enabled: false });

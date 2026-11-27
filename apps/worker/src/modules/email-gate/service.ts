@@ -1,7 +1,7 @@
 import { evaluateEmailConditions } from "@leren/auto-reply";
 import { channelAccounts, messages, playbooks, replyConditions, users } from "@leren/db";
 import type { Db } from "@leren/db";
-import { transitionMessage } from "@leren/inbox";
+import { deleteReceivedMessage, transitionMessage } from "@leren/inbox";
 import type { EmailProcessMessage } from "@leren/inbox";
 import { isKnowledgeUsable } from "@leren/knowledge";
 import { and, eq } from "drizzle-orm";
@@ -15,14 +15,11 @@ export type EmailGateDependencies = {
 };
 
 /**
- * What the gate did. `queued` means that the message was published to `email.process`.
- * `not_applicable` means that no playbook handles it. `ignored` means that the record was gone or
- * had already left the gate, so nothing was done.
+ * What the gate did. `queued` means that the message was published to `email.process`. `deleted`
+ * means that no playbook handles it, so its record was deleted. `ignored` means that the record was
+ * gone or had already left the gate, so nothing was done.
  */
-export type GateOutcome = "queued" | "not_applicable" | "ignored";
-
-export const NO_ACTIVE_PLAYBOOK = "no_active_playbook";
-export const ACCOUNT_UNAVAILABLE = "account_unavailable";
+export type GateOutcome = "queued" | "deleted" | "ignored";
 
 /**
  * Returns the names that a mention of the user may use: the first name, the last name, both
@@ -39,33 +36,27 @@ function namesOf(user: {
 }
 
 /**
- * Records that no playbook handles the message. The outcome is `not_applicable` only when the
- * record changed. A record that cannot move there, such as one that was already queued and
- * published, is left as it is and the outcome is `ignored`, so the outcome never claims a status
- * that was not written.
+ * Deletes the record of a message that no playbook handles. A record that has moved on, such as one
+ * that was already queued and published, is left as it is and the outcome is `ignored`, so the
+ * pipeline never loses a record that it was given.
  */
-async function settleNotApplicable(
-  db: Db,
-  messageId: string,
-  reason: string,
-): Promise<GateOutcome> {
-  const changed = await transitionMessage(db, messageId, "not_applicable", reason);
-
-  return changed ? "not_applicable" : "ignored";
+async function deleteSkipped(db: Db, messageId: string): Promise<GateOutcome> {
+  return (await deleteReceivedMessage(db, messageId)) ? "deleted" : "ignored";
 }
 
 /**
- * Decides whether a recorded message is handled, and records the decision (decision 0039). The
- * decision is code only and calls no model. The function reads the current row and never trusts a
- * message about its state, so a repeated or reordered `email.received` leaves the same result:
- * a record that has left `received` and `queued` is ignored, and a `queued` record is published
- * again, which repairs a publish that was lost after the status changed.
+ * Decides whether a recorded message is handled (decisions 0039 and 0064). The decision is code
+ * only and calls no model. A message that no playbook handles is deleted, so the database keeps
+ * only the messages that the pipeline considers. The function reads the current row and never
+ * trusts a message about its state, so a repeated or reordered `email.received` leaves the same
+ * result: a record that has left `received` and `queued` is ignored, and a `queued` record is
+ * published again, which repairs a publish that was lost after the status changed.
  *
  * The playbooks considered are the user's, are usable at `now` according to `isKnowledgeUsable`,
  * and name the channel account that the message arrived on. An account that was deleted or revoked
- * has no playbooks to consider. A playbook whose stored email settings are invalid is not
- * evaluated. The reason of a `not_applicable` record is `no_active_playbook` when no playbook was
- * considered, and otherwise the reason of the first playbook that skipped the message.
+ * has no playbooks to consider. A message sent from any of the user's own accounts on the channel
+ * is never handled, so two mailboxes of one user cannot answer each other without end
+ * (decision 0065). A playbook whose stored email settings are invalid is not evaluated.
  */
 export async function gateMessage(
   { db, publishProcess }: EmailGateDependencies,
@@ -80,17 +71,26 @@ export async function gateMessage(
 
   const { channelAccountId } = message;
 
-  const [account] = channelAccountId
-    ? await db
-        .select({ label: channelAccounts.label, status: channelAccounts.status })
-        .from(channelAccounts)
-        .where(
-          and(eq(channelAccounts.id, channelAccountId), eq(channelAccounts.userId, message.userId)),
-        )
-    : [];
+  const ownAccounts = await db
+    .select({
+      id: channelAccounts.id,
+      label: channelAccounts.label,
+      status: channelAccounts.status,
+    })
+    .from(channelAccounts)
+    .where(
+      and(eq(channelAccounts.userId, message.userId), eq(channelAccounts.channel, message.channel)),
+    );
+
+  const account = ownAccounts.find((candidate) => candidate.id === channelAccountId);
+  const sender = message.fromAddress.toLowerCase();
 
   if (!channelAccountId || !account || account.status !== "active") {
-    return settleNotApplicable(db, messageId, ACCOUNT_UNAVAILABLE);
+    return deleteSkipped(db, messageId);
+  }
+
+  if (ownAccounts.some((candidate) => candidate.label.toLowerCase() === sender)) {
+    return deleteSkipped(db, messageId);
   }
 
   const [[user], rows] = await Promise.all([
@@ -119,7 +119,6 @@ export async function gateMessage(
 
   const recipient = { email: account.label, names: user ? namesOf(user) : [] };
   const verdicts: EmailProcessMessage["playbooks"] = [];
-  let skipReason: string | null = null;
 
   for (const { playbook, settings } of rows) {
     const parsed = emailSettingsSchema.safeParse(settings);
@@ -130,9 +129,7 @@ export async function gateMessage(
 
     const verdict = evaluateEmailConditions(parsed.data, facts, recipient);
 
-    if (verdict.outcome === "skip") {
-      skipReason ??= verdict.reason;
-    } else {
+    if (verdict.outcome !== "skip") {
       verdicts.push({
         playbookId: playbook.id,
         verdict: verdict.outcome === "handle" ? "handle" : "check_mention",
@@ -141,7 +138,7 @@ export async function gateMessage(
   }
 
   if (verdicts.length === 0) {
-    return settleNotApplicable(db, messageId, skipReason ?? NO_ACTIVE_PLAYBOOK);
+    return deleteSkipped(db, messageId);
   }
 
   const moved = await transitionMessage(db, messageId, "queued");

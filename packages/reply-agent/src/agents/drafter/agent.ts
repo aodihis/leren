@@ -5,12 +5,12 @@ import { tools } from "./tools";
 import { connectReplyMcp } from "./utils/mcp";
 
 const AGENT_ID = "reply";
-const MAX_TURNS = 5;
+const MAX_TURNS = 6;
 
 /** Everything one Reply Agent run needs. */
 export interface RunAgentOptions extends Pick<
   CreateAgentOptions,
-  "model" | "observer" | "tools" | "memory"
+  "model" | "observer" | "tools" | "memory" | "maxTokens" | "controls"
 > {
   readonly instructions: string;
   readonly prompt: AgentPrompt;
@@ -32,7 +32,8 @@ export interface ReplyRun {
  * The agent runs as one step of the email pipeline, so the caller needs the final answer, and the
  * tool results that the pipeline checks the answer against, and not the events. When `mcp` is
  * given, the MCP connection is opened for this run only and is always closed. The agent is limited
- * to 5 turns, as decided in ADR 0006.
+ * to 6 turns, so that it can search for every question of an email and still answer (decision
+ * 0066).
  */
 export async function generateReply(options: RunAgentOptions): Promise<ReplyRun> {
   const connection = options.mcp
@@ -43,6 +44,8 @@ export async function generateReply(options: RunAgentOptions): Promise<ReplyRun>
     const agent = createAgent({
       id: AGENT_ID,
       maxTurns: MAX_TURNS,
+      maxTokens: options.maxTokens,
+      controls: options.controls,
       model: options.model,
       instructions: options.instructions,
       observer: options.observer,

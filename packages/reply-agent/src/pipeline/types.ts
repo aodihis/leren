@@ -1,14 +1,30 @@
 import { z } from "zod";
 import type { Playbook } from "../agents/retriever/types";
 
-/** The most revisions of a draft that the evaluator may ask for (decision 0042). */
+/** The most revisions of a content draft that the content judge may ask for (decision 0066). */
 export const MAX_REVISIONS = 2;
 
-/** The most questions of one email that are searched for separately. */
+/** The most questions of one email that the answering agent is asked to search for. */
 export const MAX_QUESTIONS = 5;
 
-/** The longest reply body, in characters, that the evaluator accepts. */
-export const MAX_BODY_LENGTH = 5000;
+/**
+ * The longest reply body, in characters, that the checks accept. It is about 450 words, which is
+ * well above a normal email reply of 50 to 200 words.
+ */
+export const MAX_BODY_LENGTH = 3000;
+
+/**
+ * The most tokens that each model call of a stage may write (decision 0066). The limit of the
+ * answering agent applies to each of its turns. A reasoning model counts its reasoning against the
+ * limit as well, so every stage runs it at its lowest reasoning effort (decision 0067). An answer
+ * that is cut off is not valid JSON, so the stage treats it as unreadable.
+ */
+export const MAX_OUTPUT_TOKENS = {
+  triage: 600,
+  answer: 1500,
+  style: 1200,
+  judge: 800,
+} as const;
 
 /** The longest reply instructions, in characters, that the pipeline passes to the drafter. */
 export const MAX_INSTRUCTIONS_LENGTH = 2000;
@@ -66,52 +82,85 @@ export const triageSchema = z.object({
 
 export type Triage = z.infer<typeof triageSchema>;
 
-/** What the routing model answers. */
-export const routeSchema = z.object({
+/**
+ * What the answering agent answers. With `escalate`, `reason` says why and the other fields are
+ * ignored. With `answer`, `body` is the content of the reply and `citations` lists the playbooks
+ * it uses.
+ */
+export const answerSchema = z.object({
   outcome: z.enum(["answer", "escalate"]),
-  reason: z.string(),
-});
-
-export type Route = z.infer<typeof routeSchema>;
-
-/** What the drafting agent answers. */
-export const draftSchema = z.object({
-  body: z.string(),
-  citations: z.array(z.string()),
+  reason: z.string().default(""),
+  body: z.string().default(""),
+  citations: z.array(z.string()).default([]),
   confidence: z.number().min(0).max(1).optional(),
 });
 
-export type Draft = z.infer<typeof draftSchema>;
+export type Answer = z.infer<typeof answerSchema>;
 
-/** The criteria that the judge scores, each as a pass or a fail. */
-export const CRITERIA = [
+/** A reply that the pipeline checks: its body and the ids of the playbooks it cites. */
+export type Draft = Pick<Answer, "body" | "citations" | "confidence">;
+
+/** What the style model answers: the content draft rewritten with the reply instructions. */
+export const styleSchema = z.object({ body: z.string() });
+
+/** The criteria that the content judge scores, each as a pass or a fail. */
+export const CONTENT_CRITERIA = [
   "groundedness",
   "coverage",
   "ruleCompliance",
-  "instructionCompliance",
   "injectionSafety",
 ] as const;
 
-export type Criterion = (typeof CRITERIA)[number];
-
-/** What the judge model answers. */
-export const verdictSchema = z.object({
+/** What the content judge answers. */
+export const contentVerdictSchema = z.object({
   groundedness: z.boolean(),
   coverage: z.boolean(),
   ruleCompliance: z.boolean(),
-  instructionCompliance: z.boolean(),
   injectionSafety: z.boolean(),
   feedback: z.string(),
 });
 
-export type Verdict = z.infer<typeof verdictSchema>;
+export type ContentVerdict = z.infer<typeof contentVerdictSchema>;
 
-/** The evaluator's result for one draft. It passes only when no check and no criterion fails. */
-export interface Evaluation {
-  readonly pass: boolean;
-  readonly issues: readonly string[];
-  readonly verdict?: Verdict | undefined;
-}
+/** The criteria that the style judge scores, each as a pass or a fail. */
+export const STYLE_CRITERIA = [
+  "faithfulness",
+  "instructionCompliance",
+  "ruleCompliance",
+  "injectionSafety",
+] as const;
+
+/** What the style judge answers. */
+export const styleVerdictSchema = z.object({
+  faithfulness: z.boolean(),
+  instructionCompliance: z.boolean(),
+  ruleCompliance: z.boolean(),
+  injectionSafety: z.boolean(),
+  feedback: z.string(),
+});
+
+export type StyleVerdict = z.infer<typeof styleVerdictSchema>;
+
+export type Verdict = ContentVerdict | StyleVerdict;
+
+/**
+ * The result of checking one draft. `stage` names the draft that was checked, the content draft of
+ * the answering agent or the styled draft, and so the judge whose verdict it holds. It passes only
+ * when no check and no criterion fails.
+ */
+export type Evaluation =
+  | {
+      readonly stage: "content";
+      readonly pass: boolean;
+      readonly issues: readonly string[];
+      readonly verdict?: ContentVerdict | undefined;
+    }
+  | {
+      readonly stage: "style";
+      readonly pass: boolean;
+      readonly issues: readonly string[];
+      readonly verdict?: StyleVerdict | undefined;
+    };
 
 /** What the pipeline returns for one message. */
 export interface ReplyResult {

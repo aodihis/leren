@@ -12,8 +12,3 @@ export const playbookSchema = z.looseObject({
 });
 
 export type Playbook = z.infer<typeof playbookSchema>;
-
-/** The result of searching the knowledge for one email. */
-export type Retrieval =
-  | { readonly status: "ok"; readonly playbooks: readonly Playbook[] }
-  | { readonly status: "no_reliable_result" };

@@ -1,5 +1,5 @@
 import type { Observer } from "@leren/observability";
-import { createMcpRetriever, runReplyPipeline } from "@leren/reply-agent";
+import { runReplyPipeline } from "@leren/reply-agent";
 import type { ReplyPipelineDeps } from "@leren/reply-agent";
 
 import type { PipelineRunner } from "./service";
@@ -15,30 +15,20 @@ export type PipelineRunnerOptions = {
 };
 
 /**
- * Builds the function that runs the reply pipeline for one message. Each run has its own MCP
- * connection, which searches for the questions of the email and is closed when the run ends,
- * whether it succeeded or failed. The drafting agent connects with the same session token.
+ * Builds the function that runs the reply pipeline for one message. The answering agent searches
+ * the playbooks through the MCP server with the session token of the run.
  */
 export function createPipelineRunner(options: PipelineRunnerOptions): PipelineRunner {
-  return async ({ input, allowedPlaybookIds, token, signal }) => {
-    const mcp = { url: options.mcpUrl, token };
-    const retriever = createMcpRetriever(mcp);
-
-    try {
-      return await runReplyPipeline(
-        {
-          models: options.models,
-          prompts: options.prompts,
-          observer: options.observer,
-          retrieve: (query, abortSignal) => retriever.retrieve(query, abortSignal),
-          allowedPlaybookIds,
-          mcp,
-          abortSignal: signal,
-        },
-        input,
-      );
-    } finally {
-      await retriever.close();
-    }
-  };
+  return ({ input, allowedPlaybookIds, token, signal }) =>
+    runReplyPipeline(
+      {
+        models: options.models,
+        prompts: options.prompts,
+        observer: options.observer,
+        allowedPlaybookIds,
+        mcp: { url: options.mcpUrl, token },
+        abortSignal: signal,
+      },
+      input,
+    );
 }

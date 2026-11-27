@@ -32,7 +32,7 @@ The rules part has an optional start, an optional end, a timezone and conditions
 
 ## Enabling and derived status
 
-A playbook is enabled or disabled. The assistant may use a playbook only when it is enabled and the current time is inside its period. The user turns a playbook on or off in the list. A playbook that is on must name the connected email account that it answers on, because the gate passes an email only to the playbooks of the account that received it. The API refuses to save or turn on a playbook without one, the assistant uses the user's only account when it creates a playbook, and the list marks a playbook that is on and has none as "No mailbox" (decision 0044).
+A playbook is enabled or disabled. The assistant may use a playbook only when it is enabled and the current time is inside its period. The user turns a playbook on or off in the list. A playbook that is on must name the connected email account that it answers on, because the gate passes an email only to the playbooks of the account that received it. The API refuses to save or turn on a playbook without one, the assistant uses the user's account when it creates a playbook and asks which one when the user has several, and the list marks a playbook that is on and has none as "No mailbox" (decision 0044).
 
 The period status is computed from the start, the end and the current time. It is never stored.
 
@@ -54,9 +54,9 @@ The connectors that users can connect are chosen by the `CONNECTORS` environment
 
 A **channel** is a kind of medium that messages arrive on, such as email or Slack. A user connects a **channel account** with OAuth, for example a Gmail mailbox, or by signing in to the mail server of a mailbox that has no OAuth. An account whose credentials stop working becomes revoked, and the user connects it again. A message belongs to the user who owns the account it was fetched through. The address the user signs in with is not used to match messages, and it can differ from every connected address.
 
-A user has many playbooks. A playbook listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. A user connects and disconnects accounts on the Channels page, and chooses the account of a playbook on its Rules tab. A user can have one email account in the first version, and an account cannot belong to two users.
+A user has many playbooks. A playbook listens on a channel when it has the conditions for that channel, and those conditions name the channel account to listen on. A user connects and disconnects accounts on the Channels page, and chooses the account of a playbook on its Rules tab. A user can have up to 10 email accounts, and an account cannot belong to two users.
 
-The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `microsoft` connects a Microsoft 365 or Outlook.com mailbox and needs `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. An administrator of a work or school organisation may have to approve the application once. Disconnecting a Microsoft account does not withdraw the application's permission, so the user removes it in their Microsoft account settings. `zoho` connects a Zoho Mail mailbox and needs `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `ZOHO_REGION` chooses the Zoho data center, such as `com` or `eu`, and only accounts in that data center can connect. `imap` connects any other mailbox that offers IMAP and SMTP, such as the mailbox that comes with a domain or web hosting, and needs only `CHANNEL_TOKEN_ENCRYPTION_KEY`. The user enters the address, the password and the servers, and the Channels page can suggest the servers for the address. Where the host offers app passwords, the user should create one for Leren, because the product stores the password and cannot revoke it. Proton Mail cannot be connected, because it offers IMAP only on the user's own computer. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0038, 0060, 0061, 0062 and 0063 specify this. The worker reads new mail from a Gmail, Microsoft, Zoho or IMAP mailbox every `EMAIL_POLL_INTERVAL_SECONDS` seconds, 60 by default, and records only mail that arrives after the account is connected. Mail that arrives while an account is disconnected or revoked is not read later. While `mailpit` is enabled, `POST /api/messages/simulate` records an email as if the mailbox had received it.
+The providers that users can connect are chosen by the `CHANNEL_PROVIDERS` environment variable, a comma-separated list such as `google,mailpit`. It is empty by default, so no account can be connected until a provider is enabled. `google` connects a Gmail or Google Workspace mailbox and needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `microsoft` connects a Microsoft 365 or Outlook.com mailbox and needs `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. An administrator of a work or school organisation may have to approve the application once. Disconnecting a Microsoft account does not withdraw the application's permission, so the user removes it in their Microsoft account settings. `zoho` connects a Zoho Mail mailbox and needs `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` and `CHANNEL_TOKEN_ENCRYPTION_KEY`. `ZOHO_REGION` chooses the Zoho data center, such as `com` or `eu`, and only accounts in that data center can connect. `imap` connects any other mailbox that offers IMAP and SMTP, such as the mailbox that comes with a domain or web hosting, and needs only `CHANNEL_TOKEN_ENCRYPTION_KEY`. The user enters the address, the password and the servers, and the Channels page can suggest the servers for the address. Where the host offers app passwords, the user should create one for Leren, because the product stores the password and cannot revoke it. Proton Mail cannot be connected, because it offers IMAP only on the user's own computer. `mailpit` connects the development mailbox without OAuth and is refused in production. When a provider is removed from the list, its accounts stop being used, and they work again when it is added back. Decisions 0038, 0060, 0061, 0062, 0063 and 0065 specify this. The worker reads new mail from a Gmail, Microsoft, Zoho or IMAP mailbox every `EMAIL_POLL_INTERVAL_SECONDS` seconds, 60 by default, and records only mail that arrives after the account is connected. Mail that arrives while an account is disconnected or revoked is not read later. While `mailpit` is enabled, `POST /api/messages/simulate` records an email as if the mailbox had received it.
 
 ## Agents
 
@@ -94,9 +94,9 @@ Email listener ─▶ message record (status: received) ─▶ [email.received]
                                 │
                                 ▼
                        Gate (worker, code only)
-                         - duplicates are one record, by provider message id
+                         - duplicates of a kept record are one record, by provider message id
                          - find the user's active playbooks for the account
-                         - none handles it: status "not applicable", with the reason, and stop
+                         - none handles it: delete the record and stop
                          - otherwise status "queued"
                                 │
                                 ▼
@@ -118,32 +118,33 @@ Whether an email is handled at all is decided by the gate, in code, from stored 
 
 ## Reply pipeline
 
-The pipeline runner does not call the Reply Agent directly. It runs one message through fixed stages (decision 0042):
+The pipeline runner does not call the Reply Agent directly. It runs one message through fixed stages (decision 0066):
 
 ```
-input guardrail ─▶ triage ─▶ retrieve ─▶ route ─▶ draft ─▶ evaluate ⇄ revise ─▶ output guardrail ─▶ persist
-                               │                                  │ failed twice
-                               │ no reliable result               ▼
-                               └──────────────────────────▶ escalate, with the reasons
+input guardrail ─▶ triage ─▶ answer ⇄ revise ─▶ style ─▶ output guardrail ─▶ persist
+                               │ escalated,        │ failed
+                               │ no playbook or    ▼
+                               │ failed twice      content draft is kept
+                               ▼
+                             escalate, with the reasons
 ```
 
 - **Guardrails** are code. They treat the email as untrusted data and block credentials, answers without citations and a repeated system prompt.
 - **Triage** also reports its confidence. An email below 0.6 is escalated before anything is searched (product decision 0003).
-- **Retrieve** calls the `search_playbooks` MCP tool for each question in the email. When nothing reliable is found for any of them, the pipeline escalates and does not call the drafting agent.
-- **Draft** is the Reply Agent. It cites the playbooks it used and follows the instruction of each playbook it uses, and the default instruction of the user, such as a persona or a tone, where a playbook has none.
-- **Evaluate** checks the draft against the retrieved playbooks, their instructions, and the default instruction, and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
+- **Answer** is the Reply Agent. It searches the playbooks through MCP for each question in the email, decides whether to answer or escalate, and writes the content of the reply. It cites the playbooks it used and follows what their instructions and the default instruction of the user forbid. An answer for which no playbook was found is escalated. A judge then checks the content against the playbooks it found and that every question is answered or explicitly deferred. A draft that fails goes back for at most 2 revisions. A draft that still fails is escalated, never saved as a reply.
+- **Style** rewrites the reply with the default instruction of the user and the instructions of the cited playbooks, such as a persona or a tone. A second judge checks that the facts did not change and that the instructions are followed. A styled reply that fails is not revised: the checked content draft is used. The stage is skipped when there are no instructions.
 - **Persist** saves the decision and the draft and moves the message status. Nothing in the pipeline sends email.
 
 ## Message records
 
-Every received email has one record, so the user can see in the dashboard what arrived and where it stands. A record holds the channel, the provider and the provider's message and thread ids, the sender, the recipients, the subject, a body that is cut at 20,000 characters and the time it was received. When processing ends, the email addresses and phone numbers in the subject and the body are replaced with `[redacted]`, and the addresses of the sender and the recipients are kept (decision 0059). It holds no attachments, headers or credentials.
+Every email that a playbook handles has one record, so the user can see in the dashboard what arrived and where it stands. The record of an email that no playbook handles is deleted by the gate (decision 0064). A record holds the channel, the provider and the provider's message and thread ids, the sender, the recipients, the subject, a body that is cut at 20,000 characters and the time it was received. When processing ends, the email addresses and phone numbers in the subject and the body are replaced with `[redacted]`, and the addresses of the sender and the recipients are kept (decision 0059). It holds no attachments, headers or credentials.
 
 The status is updated as the message passes through the pipeline, and it only moves forward.
 
 | Status           | Meaning                                                |
 | ---------------- | ------------------------------------------------------ |
 | `received`       | The email is recorded and waits for the gate.          |
-| `not_applicable` | No playbook handles it. The reason is stored with it.  |
+| `not_applicable` | The pipeline found that it does not apply.             |
 | `queued`         | The gate passed it to the pipeline.                    |
 | `processing`     | The pipeline is working on it.                         |
 | `drafted`        | A reply is ready. In draft mode it is in the mailbox.  |
@@ -159,7 +160,7 @@ The **Processed emails** page of the platform shows these records: a list with a
 
 ## Dashboard and playbook report
 
-The overview of the platform shows how many emails arrived in the last 30 days, how many the assistant answered, escalated or ignored, and the latest failures, which are emails that failed or whose reply could not be delivered. Each count links to the matching Processed emails list. `GET /api/dashboard/overview` returns the counts and takes `days`, from 1 to 365.
+The overview of the platform shows how many emails that a playbook handles arrived in the last 30 days, how many the assistant answered, escalated or ignored, and the latest failures, which are emails that failed or whose reply could not be delivered. Each count links to the matching Processed emails list. `GET /api/dashboard/overview` returns the counts and takes `days`, from 1 to 365.
 
 A playbook whose period has ended has a report: the emails it was used for during the period, grouped by outcome and by delivery state, and how many replies cite it. `GET /api/dashboard/playbooks/:id/report` answers `409` with `period_not_ended` while the period is open or has no end:
 

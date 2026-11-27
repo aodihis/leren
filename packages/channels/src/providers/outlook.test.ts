@@ -5,6 +5,7 @@ import {
   createOutlookDraft,
   fetchNewOutlookMail,
   parseOutlookMessage,
+  readOutlookAddress,
   readOutlookReplyContext,
   sendOutlookReply,
 } from "./outlook";
@@ -306,5 +307,91 @@ describe("createOutlookDraft and sendOutlookReply", () => {
     await expect(sendOutlookReply(send, "token", REPLY)).rejects.toBeInstanceOf(
       DeliveryNotSentError,
     );
+  });
+});
+
+describe("parseOutlookMessage with missing fields", () => {
+  it("reads a message without a conversation, sender, recipients, subject or body", () => {
+    expect(
+      parseOutlookMessage(
+        outlookMessage({
+          conversationId: null,
+          from: { emailAddress: { address: "  " } },
+          toRecipients: null,
+          ccRecipients: [{ emailAddress: null }],
+          subject: null,
+          body: null,
+        }),
+      ),
+    ).toMatchObject({ providerThreadId: null, from: "", to: [], cc: [], subject: "", body: "" });
+  });
+});
+
+describe("fetchNewOutlookMail and its delta links", () => {
+  it("starts again from now when Graph asks for a full resync with another status", async () => {
+    const send = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(respond({ error: { code: "resyncRequired" } }, 400))
+      .mockResolvedValueOnce(respond({ value: [], "@odata.deltaLink": "https://delta/new" }));
+
+    expect(await fetchNewOutlookMail(send, "token", "https://delta/old")).toMatchObject({
+      cursor: "https://delta/new",
+      baseline: true,
+    });
+  });
+
+  it("fails and keeps the cursor when the delta fails for another reason", async () => {
+    const send = vi.fn<typeof fetch>().mockResolvedValue(new Response("down", { status: 503 }));
+
+    await expect(fetchNewOutlookMail(send, "token", "https://delta/old")).rejects.toThrow(
+      /status 503/,
+    );
+  });
+
+  it("fails on a delta page that has neither a next link nor a delta link", async () => {
+    const send = vi.fn<typeof fetch>().mockResolvedValue(respond({ value: [] }));
+
+    await expect(fetchNewOutlookMail(send, "token", "https://delta/old")).rejects.toThrow(
+      "without a next link or a delta link",
+    );
+  });
+});
+
+describe("readOutlookAddress", () => {
+  it.each([
+    [
+      "the primary address",
+      { mail: "Ana@Example.com", userPrincipalName: "ana@corp" },
+      "ana@example.com",
+    ],
+    [
+      "the user principal name when there is no address",
+      { mail: null, userPrincipalName: "Ana@Corp.onmicrosoft.com" },
+      "ana@corp.onmicrosoft.com",
+    ],
+  ])("returns %s", async (_name, profile, address) => {
+    const send = vi.fn<typeof fetch>().mockResolvedValue(respond(profile));
+
+    expect(await readOutlookAddress(send, "token")).toBe(address);
+  });
+
+  it("fails when Graph returns no address", async () => {
+    const send = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(respond({ mail: "", userPrincipalName: null }));
+
+    await expect(readOutlookAddress(send, "token")).rejects.toThrow("did not return the address");
+  });
+});
+
+describe("readOutlookReplyContext without headers", () => {
+  it("returns nothing for a blank Message-ID and a missing Reply-To", async () => {
+    const send = vi.fn<typeof fetch>().mockResolvedValue(respond({ internetMessageId: " " }));
+
+    expect(await readOutlookReplyContext(send, "token", "m1")).toEqual({
+      messageId: null,
+      references: null,
+      replyTo: null,
+    });
   });
 });

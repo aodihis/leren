@@ -1,6 +1,6 @@
 import type { Message } from "@anvia/core";
 import { playbookSchema } from "./types";
-import type { Playbook, Retrieval } from "./types";
+import type { Playbook } from "./types";
 
 const MAX_DEPTH = 8;
 
@@ -89,40 +89,54 @@ export function mergePlaybooks(
   return [...byId.values()];
 }
 
-/**
- * Reads the result of the `search_playbooks` MCP tool. Anything that holds no playbook, including a
- * malformed answer, is read as `no_reliable_result`, so a bad answer ends in an escalation and
- * never in a reply that is built on nothing.
- */
-export function parseSearchResult(data: unknown): Retrieval {
-  const playbooks = readPlaybooks(data);
-
-  return playbooks.length === 0 ? { status: "no_reliable_result" } : { status: "ok", playbooks };
+/** The outputs of the named tools in the messages of an agent run, in order. */
+function toolOutputs(messages: readonly Message[], tools: readonly string[]) {
+  return messages.flatMap((message) =>
+    message.role === "tool"
+      ? message.content.flatMap((part) =>
+          part.type === "tool-result" && tools.some((name) => part.toolName.endsWith(name))
+            ? [part.output]
+            : [],
+        )
+      : [],
+  );
 }
 
 /**
- * Returns the playbooks that the playbook tools of an agent run returned. The drafting agent may search
- * again for a question that the first search did not cover, and the checks of the pipeline must
- * accept what it found.
+ * Returns the playbooks that the playbook tools of an agent run returned. These are the only
+ * playbooks that the answering agent found, so the checks of the pipeline accept citations of them
+ * and no others.
  */
 export function collectPlaybooks(messages: readonly Message[]): Playbook[] {
   const found: Playbook[] = [];
 
-  for (const message of messages) {
-    if (message.role !== "tool") {
-      continue;
-    }
-
-    for (const part of message.content) {
-      if (
-        part.type === "tool-result" &&
-        PLAYBOOK_TOOLS.some((name) => part.toolName.endsWith(name)) &&
-        part.output.type !== "execution-denied"
-      ) {
-        walk(part.output.value, found, 0);
-      }
+  for (const output of toolOutputs(messages, PLAYBOOK_TOOLS)) {
+    if (output.type === "text" || output.type === "json" || output.type === "content") {
+      walk(output.value, found, 0);
     }
   }
 
   return mergePlaybooks([], found);
+}
+
+/**
+ * The start of the error that the MCP server returns when the arguments of a tool call do not match
+ * the tool's input schema.
+ */
+const INPUT_VALIDATION_ERROR = "Input validation error";
+
+/**
+ * Whether `search_playbooks` failed during an agent run for a reason other than the model's own
+ * arguments. Such a failure is a server, authorization or connection problem and not an answer
+ * without a playbook, so the caller must not record it as an escalation. A query that the server
+ * rejects, such as an empty one or one longer than 2000 characters, and every error of
+ * `get_playbook`, such as an unknown id, are caused by the model, which can read the error and
+ * carry on, so they are not counted.
+ */
+export function playbookSearchFailed(messages: readonly Message[]): boolean {
+  return toolOutputs(messages, ["search_playbooks"]).some(
+    (output) =>
+      (output.type === "error-text" || output.type === "error-json") &&
+      !JSON.stringify(output.value).includes(INPUT_VALIDATION_ERROR),
+  );
 }
