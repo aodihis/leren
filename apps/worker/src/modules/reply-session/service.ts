@@ -7,8 +7,8 @@ import { NonRetryableError } from "@leren/queue";
 import { eq, inArray } from "drizzle-orm";
 
 /**
- * How long the session of one reply run lasts, in seconds. It covers the longest run: three drafts
- * of at most five turns each, the judge calls and the searches. A retry of the job opens a new
+ * How long the session of one reply run lasts, in seconds. It covers the longest run: three runs of
+ * the answering agent of at most six turns each, with their searches, and the judge calls. A retry of the job opens a new
  * session and never reuses an earlier one.
  */
 export const REPLY_SESSION_TTL_SECONDS = 10 * 60;

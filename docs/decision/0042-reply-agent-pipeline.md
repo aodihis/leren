@@ -1,8 +1,9 @@
 # 0042. The Reply Agent runs inside a fixed pipeline with an evaluator-optimizer loop and guardrails
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-22
 - Affects: packages/reply-agent, apps/worker, docs/overview/README.md, docs/plans/0001-auto-reply-roadmap.md
+- Superseded by: [0066](0066-answer-agent-and-style-step.md)
 
 ## Context
 

@@ -6,8 +6,9 @@ const config = defineHarnessConfig({
     assistant: "a.md",
     reply: "r.md",
     replyTriage: "t.md",
-    replyRoute: "o.md",
     replyJudge: "j.md",
+    replyStyle: "s.md",
+    replyStyleJudge: "sj.md",
   },
   models: {
     fast: {
