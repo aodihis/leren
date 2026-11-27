@@ -1,8 +1,9 @@
 # 0038. Channel providers, Google as the first provider and token encryption
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-22
 - Affects: packages/db, apps/api, apps/platform, .env.example, docs/overview/README.md, docs/plans/0001-auto-reply-roadmap.md
+- Superseded by: [0065](0065-several-email-accounts-per-user.md)
 
 ## Context
 

@@ -8,7 +8,7 @@ import type {
   ConnectStart,
   ProviderTokens,
 } from "@leren/channels";
-import { channelAccounts } from "@leren/db";
+import { channelAccounts, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
 import type { TestDatabase } from "@leren/db/testing";
 import { createInMemoryEmailSender } from "@leren/email/testing";
@@ -20,7 +20,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../../app";
 import { createAuth } from "../auth/service";
-import { listChannelAccounts } from "./service";
+import { EMAIL_ACCOUNT_LIMIT, listChannelAccounts } from "./service";
 
 const ORIGIN = "http://localhost:5173";
 const PATH = "/api/channel-accounts";
@@ -513,7 +513,7 @@ describe("channel accounts API", () => {
     expect((await list(cookie)).accounts).toEqual([]);
   });
 
-  it("allows one email account for each user and replaces it when it is connected again", async () => {
+  it("allows several email accounts for each user and replaces one when it is connected again", async () => {
     const cookie = await signIn("single@example.com");
 
     fake.state.next = { providerAccountId: "sub-single", label: "old@gmail.com", tokens: TOKENS };
@@ -523,7 +523,7 @@ describe("channel accounts API", () => {
 
     const second = await connect(cookie);
 
-    expect(second.headers.get("location")).toBe(`${ORIGIN}/channels?error=limit`);
+    expect(second.headers.get("location")).toBe(`${ORIGIN}/channels?connected=google`);
 
     await database.db
       .update(channelAccounts)
@@ -535,8 +535,7 @@ describe("channel accounts API", () => {
 
     const { accounts } = await list(cookie);
 
-    expect(accounts).toHaveLength(1);
-    expect(accounts[0]?.label).toBe("new@gmail.com");
+    expect(accounts.map((account) => account.label)).toEqual(["new@gmail.com", "other@gmail.com"]);
 
     const [stored] = await database.db
       .select({ cursor: channelAccounts.syncCursor })
@@ -544,6 +543,32 @@ describe("channel accounts API", () => {
       .where(eq(channelAccounts.providerAccountId, "sub-single"));
 
     expect(stored?.cursor).toBeNull();
+  });
+
+  it("refuses an email account past the limit of each user", async () => {
+    const cookie = await signIn("many@example.com");
+
+    const [user] = await database.db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, "many@example.com"));
+
+    await database.db.insert(channelAccounts).values(
+      Array.from({ length: EMAIL_ACCOUNT_LIMIT }, (_, index) => ({
+        userId: user?.id ?? "",
+        channel: "email",
+        provider: "google",
+        providerAccountId: `sub-many-${index}`,
+        label: `many-${index}@gmail.com`,
+      })),
+    );
+
+    fake.state.next = { providerAccountId: "sub-many-extra", label: "x@gmail.com", tokens: TOKENS };
+
+    const refused = await connect(cookie);
+
+    expect(refused.headers.get("location")).toBe(`${ORIGIN}/channels?error=limit`);
+    expect((await list(cookie)).accounts).toHaveLength(EMAIL_ACCOUNT_LIMIT);
   });
 
   it("does not let a provider account belong to two users", async () => {

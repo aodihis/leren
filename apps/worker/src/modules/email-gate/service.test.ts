@@ -240,6 +240,28 @@ describe("the email gate", () => {
     expect(await stored(messageId)).toBeUndefined();
   });
 
+  it("deletes a message sent from another of the user's own accounts", async () => {
+    await database.db.insert(channelAccounts).values({
+      userId,
+      channel: "email",
+      provider: "mailpit",
+      providerAccountId: "shared@example.com",
+      label: "Shared@example.com",
+    });
+
+    const messageId = await addMessage({ fromAddress: "shared@example.com" });
+
+    await addPlaybook();
+
+    expect(await gate(messageId)).toBe("deleted");
+    expect(await stored(messageId)).toBeUndefined();
+    expect(publishProcess).not.toHaveBeenCalled();
+
+    await database.db
+      .delete(channelAccounts)
+      .where(eq(channelAccounts.providerAccountId, "shared@example.com"));
+  });
+
   it("does nothing for a record that has left the gate or does not exist", async () => {
     const messageId = await addMessage({ status: "processing" });
 
