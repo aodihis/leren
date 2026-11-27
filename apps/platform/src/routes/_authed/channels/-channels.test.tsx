@@ -6,7 +6,11 @@ const authClient = vi.hoisted(() => ({ getSession: vi.fn() }));
 
 const channelAccountsApi = vi.hoisted(() => ({
   $get: vi.fn(),
-  ":provider": { connect: { $post: vi.fn() } },
+  ":provider": {
+    connect: { $post: vi.fn() },
+    settings: { $get: vi.fn() },
+    "sign-in": { $post: vi.fn() },
+  },
   ":id": { $delete: vi.fn() },
 }));
 
@@ -199,6 +203,202 @@ describe("channels route", () => {
       param: { id: connectedAccount.id },
     });
     expect(await screen.findByText("You have not connected an account yet.")).toBeTruthy();
+  });
+
+  it("explains a disconnect that fails and keeps the list", async () => {
+    channelAccountsApi.$get.mockImplementation(() => overview([connectedAccount]));
+    channelAccountsApi[":id"].$delete.mockImplementation(() =>
+      jsonResponse({ error: "Not found" }, 404),
+    );
+    const user = userEvent.setup();
+
+    await renderApp("/channels");
+    await user.click(await screen.findByRole("button", { name: "Disconnect dewi@company.com" }));
+
+    expect(await screen.findByText("Could not disconnect the account")).toBeTruthy();
+    expect(channelAccountsApi.$get).toHaveBeenCalledOnce();
+  });
+
+  it("explains a connection that fails for another reason", async () => {
+    channelAccountsApi[":provider"].connect.$post.mockImplementation(() =>
+      jsonResponse({ error: "boom" }, 500),
+    );
+    const user = userEvent.setup();
+
+    await renderApp("/channels");
+    await user.click(await screen.findByRole("button", { name: "Connect Google" }));
+
+    expect(await screen.findByText("Could not connect the account. Try again.")).toBeTruthy();
+  });
+
+  it("names the provider of an account whose provider is no longer enabled", async () => {
+    channelAccountsApi.$get.mockImplementation(() =>
+      overview([{ ...connectedAccount, provider: "zoho" }], [google]),
+    );
+
+    await renderApp("/channels");
+
+    expect(await screen.findByText("zoho")).toBeTruthy();
+  });
+});
+
+const signIn = () => channelAccountsApi[":provider"]["sign-in"].$post;
+
+/** Opens the sign-in form of the IMAP provider and fills in the address and the password. */
+async function openForm() {
+  const user = userEvent.setup();
+
+  await renderApp("/channels");
+  await user.click(await screen.findByRole("button", { name: "Connect Other email (IMAP)" }));
+  await user.type(await screen.findByLabelText("Email address"), "ada@mail.test");
+  await user.type(screen.getByLabelText("Password"), "app-password");
+
+  return user;
+}
+
+describe("signing in to a mail server", () => {
+  const imap = {
+    name: "imap",
+    channel: "email",
+    displayName: "Other email (IMAP)",
+    connection: "sign-in",
+  };
+
+  const suggested = {
+    imapHost: "imap.mail.test",
+    imapPort: 143,
+    smtpHost: "smtp.mail.test",
+    smtpPort: 587,
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    authClient.getSession.mockResolvedValue({
+      data: { user: { id: "u1", name: "Ada", email: "ada@example.com" } },
+      error: null,
+    });
+    channelAccountsApi.$get.mockImplementation(() => overview([], [google, imap]));
+  });
+
+  it("fills in the settings that the provider suggests for the address", async () => {
+    channelAccountsApi[":provider"].settings.$get.mockImplementation(async () =>
+      jsonResponse({ settings: suggested }, 200),
+    );
+    const user = await openForm();
+
+    await user.click(screen.getByRole("button", { name: "Find settings" }));
+
+    expect(channelAccountsApi[":provider"].settings.$get).toHaveBeenCalledExactlyOnceWith({
+      param: { provider: "imap" },
+      query: { address: "ada@mail.test" },
+    });
+    await vi.waitFor(() =>
+      expect(screen.getByLabelText<HTMLInputElement>("Incoming server (IMAP)").value).toBe(
+        "imap.mail.test",
+      ),
+    );
+    expect(screen.getByLabelText<HTMLSelectElement>("SMTP port").value).toBe("587");
+    expect(screen.queryByText(/No settings were found/)).toBeNull();
+  });
+
+  it.each([
+    ["the provider knows none", () => jsonResponse({ error: "not_found" }, 404)],
+    [
+      "the lookup fails",
+      () => {
+        throw new Error("offline");
+      },
+    ],
+  ])("says so when %s", async (_name, answer) => {
+    channelAccountsApi[":provider"].settings.$get.mockImplementation(async () => answer());
+    const user = await openForm();
+
+    await user.click(screen.getByRole("button", { name: "Find settings" }));
+
+    expect(await screen.findByText(/No settings were found for this address/)).toBeTruthy();
+  });
+
+  it("signs in with the entered settings, closes the form and reloads the accounts", async () => {
+    channelAccountsApi.$get
+      .mockImplementationOnce(() => overview([], [google, imap]))
+      .mockImplementation(() =>
+        overview([{ ...connectedAccount, provider: "imap", label: "ada@mail.test" }], [imap]),
+      );
+    signIn().mockImplementation(async () => jsonResponse({ account: connectedAccount }, 201));
+    const user = await openForm();
+
+    await user.type(screen.getByLabelText("Incoming server (IMAP)"), "imap.mail.test");
+    await user.selectOptions(screen.getByLabelText("IMAP port"), "143");
+    await user.type(screen.getByLabelText("Outgoing server (SMTP)"), "smtp.mail.test");
+    await user.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(signIn()).toHaveBeenCalledExactlyOnceWith({
+      param: { provider: "imap" },
+      json: {
+        address: "ada@mail.test",
+        username: "",
+        password: "app-password",
+        imapHost: "imap.mail.test",
+        imapPort: 143,
+        smtpHost: "smtp.mail.test",
+        smtpPort: 465,
+      },
+    });
+    expect(await screen.findByText("ada@mail.test")).toBeTruthy();
+    expect(screen.queryByLabelText("Email address")).toBeNull();
+  });
+
+  it("shows the message of each field that the API rejected", async () => {
+    signIn().mockImplementation(async () =>
+      jsonResponse({ fieldErrors: { imapHost: ["Enter the incoming server"] } }, 400),
+    );
+    const user = await openForm();
+
+    await user.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByText("Enter the incoming server")).toBeTruthy();
+    expect(screen.queryByText("Could not connect the account. Try again.")).toBeNull();
+  });
+
+  it.each([
+    [
+      "a known error",
+      () => jsonResponse({ error: "authentication_failed" }, 400),
+      "The mail server refused the user name or password. If your account uses two-step sign-in, use an app password.",
+    ],
+    [
+      "an unknown error",
+      () => jsonResponse({ error: "something_new" }, 400),
+      "Could not connect the account. Try again.",
+    ],
+    [
+      "a body that is not JSON",
+      () => new Response("Bad gateway", { status: 502 }),
+      "Could not connect the account. Try again.",
+    ],
+    [
+      "a failed request",
+      () => {
+        throw new Error("offline");
+      },
+      "Could not connect the account. Try again.",
+    ],
+  ])("explains a sign-in refused with %s", async (_name, answer, message) => {
+    signIn().mockImplementation(async () => answer());
+    const user = await openForm();
+
+    await user.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByText(message)).toBeTruthy();
+  });
+
+  it("closes the form when it is cancelled", async () => {
+    const user = await openForm();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByLabelText("Email address")).toBeNull();
+    expect(signIn()).not.toHaveBeenCalled();
   });
 });
 

@@ -115,6 +115,19 @@ describe("playbook MCP actions", () => {
       expect(created.data.url).toBe(`https://app.example.com/playbooks/${created.id}`);
     });
 
+    it("returns no link when the address of the web application is not known", async () => {
+      const withoutUrl = createPlaybookMcpActions(database.db, requestIndex);
+
+      const created = (await run(withoutUrl.createPlaybook, userId, {
+        topic: "Parking",
+        information: "Free parking",
+        timezone: "UTC",
+      })) as Saved;
+
+      expect(created.status).toBe("saved");
+      expect(created.data).not.toHaveProperty("url");
+    });
+
     it("saves an enabled playbook with the email defaults and asks for it to be indexed", async () => {
       const created = (await run(actions.createPlaybook, userId, {
         topic: "Parking",
