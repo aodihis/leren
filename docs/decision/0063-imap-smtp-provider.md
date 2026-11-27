@@ -46,7 +46,7 @@ IMAP has no notifications that reach a server across the internet, so the listen
 - When `UIDVALIDITY` differs from the cursor's, the result is a baseline at the current position, which the listener records as a gap.
 - Messages are fetched with `BODY.PEEK[]`, so reading them does not mark them as read.
 - The sender, the recipients, the copied recipients and the subject come from the parsed message. The body is its plain-text part, or its HTML part converted to text. `isReply` and `isBulk` follow the rules of the other providers. A message that cannot be parsed is reported in `unreadable`.
-- The provider message id is the `UIDVALIDITY` and the UID, joined by a colon. IMAP has no conversation id, so the thread id is null.
+- The provider message id is the provider's identifier of the account, the `UIDVALIDITY` and the UID, joined by colons. A UID is unique only within one inbox and stored messages are not keyed by account, so the identifier keeps the messages of two mailboxes of one user apart, and connecting the same mailbox again gives the same ids. The `UIDVALIDITY` and the UID are read from the end, so a user name that contains a colon does not change them. IMAP has no conversation id, so the thread id is null.
 
 ### Delivering a reply
 

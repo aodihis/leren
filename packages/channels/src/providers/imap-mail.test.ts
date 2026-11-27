@@ -28,11 +28,14 @@ const SETTINGS: ImapSettings = {
   smtpPort: 465,
 };
 
+/** The mailbox identity of `SETTINGS`, which starts every provider message id. */
+const MAILBOX = "mail.acme.com/me@acme.com";
+
 const REPLY: OutboundReply = {
   to: "ana@example.com",
   subject: "Re: Opening hours",
   body: "We open at 9.",
-  providerMessageId: "7:42",
+  providerMessageId: `${MAILBOX}:7:42`,
   threadId: null,
   messageId: "<leren-1@leren.local>",
   inReplyTo: "<original@example.com>",
@@ -174,7 +177,7 @@ describe("fetchNewImapMail", () => {
     expect(result.cursor).toBe(JSON.stringify({ uidValidity: "7", uid: 12 }));
     expect(result.emails).toEqual([
       expect.objectContaining({
-        providerMessageId: "7:11",
+        providerMessageId: `${MAILBOX}:7:11`,
         providerThreadId: null,
         from: "ana@example.com",
         to: ["me@acme.com"],
@@ -184,8 +187,25 @@ describe("fetchNewImapMail", () => {
         isReply: false,
         isBulk: false,
       }),
-      expect.objectContaining({ providerMessageId: "7:12", isReply: true }),
+      expect.objectContaining({ providerMessageId: `${MAILBOX}:7:12`, isReply: true }),
     ]);
+  });
+
+  it("gives the same UID in two mailboxes of one user different ids", async () => {
+    const cursor = JSON.stringify({ uidValidity: "7", uid: 10 });
+
+    const read = (settings: ImapSettings) =>
+      fetchNewImapMail(
+        serversOf(createClient({ uidNext: 12, messages: { 11: source(11) } })),
+        settings,
+        cursor,
+      );
+
+    const first = await read(SETTINGS);
+    const second = await read({ ...SETTINGS, username: "sales@acme.com" });
+
+    expect(first.emails[0]?.providerMessageId).toBe(`${MAILBOX}:7:11`);
+    expect(second.emails[0]?.providerMessageId).toBe("mail.acme.com/sales@acme.com:7:11");
   });
 
   it("reads at most a fixed number of UIDs and leaves the rest to the next poll", async () => {
@@ -214,7 +234,7 @@ describe("fetchNewImapMail", () => {
       JSON.stringify({ uidValidity: "7", uid: 10 }),
     );
 
-    expect(result).toMatchObject({ emails: [], unreadable: ["7:11"] });
+    expect(result).toMatchObject({ emails: [], unreadable: [`${MAILBOX}:7:11`] });
     expect(result.cursor).toBe(JSON.stringify({ uidValidity: "7", uid: 11 }));
   });
 
@@ -255,7 +275,7 @@ describe("readImapReplyContext", () => {
       ),
     });
 
-    expect(await readImapReplyContext(serversOf(client), SETTINGS, "7:42")).toEqual({
+    expect(await readImapReplyContext(serversOf(client), SETTINGS, `${MAILBOX}:7:42`)).toEqual({
       messageId: "<original@example.com>",
       references: "<first@example.com> <second@example.com>",
       replyTo: "desk@example.com",
@@ -267,12 +287,30 @@ describe("readImapReplyContext", () => {
     );
   });
 
+  it("finds the original of a mailbox whose user name contains a colon", async () => {
+    const client = createClient({ uidValidity: 7, uidNext: 50 });
+
+    client.fetchOne.mockResolvedValueOnce({
+      seq: 1,
+      uid: 42,
+      headers: Buffer.from("Message-ID: <original@example.com>\r\n"),
+    });
+
+    await readImapReplyContext(
+      serversOf(client),
+      { ...SETTINGS, username: "acme:me" },
+      "mail.acme.com/acme:me:7:42",
+    );
+
+    expect(client.fetchOne).toHaveBeenCalledWith("42", expect.anything(), { uid: true });
+  });
+
   it("fails when the inbox was renumbered since the original was read", async () => {
     const client = createClient({ uidValidity: 8, uidNext: 50 });
 
-    await expect(readImapReplyContext(serversOf(client), SETTINGS, "7:42")).rejects.toThrow(
-      /renumbered/,
-    );
+    await expect(
+      readImapReplyContext(serversOf(client), SETTINGS, `${MAILBOX}:7:42`),
+    ).rejects.toThrow(/renumbered/);
   });
 });
 

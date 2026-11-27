@@ -42,12 +42,30 @@ function parseCursor(cursor: string | null): Position | null {
   }
 }
 
-function encodeMessageId(uidValidity: string, uid: number): string {
-  return `${uidValidity}:${uid}`;
+/**
+ * The identity of a mailbox: its IMAP host and user name, in lower case and joined by a slash. It is
+ * also the provider's identifier of the account, so connecting the same mailbox again gives it the
+ * same identity.
+ */
+export function mailboxIdentity(settings: ImapSettings): string {
+  return `${settings.imapHost}/${settings.username}`.toLowerCase();
 }
 
+/**
+ * Builds the provider message id: the mailbox identity, the `UIDVALIDITY` of the inbox and the UID,
+ * joined by colons (decision 0063). A UID is unique only within one inbox, and stored messages are
+ * not keyed by account, so the mailbox identity keeps the ids of two mailboxes of one user apart.
+ */
+function encodeMessageId(mailbox: string, uidValidity: string, uid: number): string {
+  return `${mailbox}:${uidValidity}:${uid}`;
+}
+
+/**
+ * Reads the `UIDVALIDITY` and the UID from the end of a provider message id, so a user name that
+ * contains a colon does not change them.
+ */
 function decodeMessageId(providerMessageId: string): Position {
-  const [uidValidity = "", uid = ""] = providerMessageId.split(":");
+  const [uid = "", uidValidity = ""] = providerMessageId.split(":").toReversed();
 
   return cursorSchema.parse({ uidValidity, uid: Number(uid) });
 }
@@ -117,10 +135,9 @@ function headersOf(parsed: ParsedMail): Map<string, string> {
   );
 }
 
-/** Converts the raw source of one message to an email. */
+/** Converts the raw source of one message to an email with the provider message id `id`. */
 async function toEmail(
-  uidValidity: string,
-  uid: number,
+  id: string,
   source: Buffer,
   internalDate: Date | string | undefined,
 ): Promise<FetchedEmail> {
@@ -129,7 +146,7 @@ async function toEmail(
   const receivedAt = internalDate ? new Date(internalDate) : (parsed.date ?? new Date());
 
   return {
-    providerMessageId: encodeMessageId(uidValidity, uid),
+    providerMessageId: id,
     providerThreadId: null,
     from: parseAddresses(headers.get("from"))[0] ?? "",
     to: parseAddresses(headers.get("to")),
@@ -168,6 +185,7 @@ export async function fetchNewImapMail(
     }
 
     const last = Math.min(position.uid + MAX_UIDS_PER_POLL, current.uid);
+    const mailbox = mailboxIdentity(settings);
     const emails: { uid: number; email: FetchedEmail }[] = [];
     const unreadable: string[] = [];
 
@@ -176,6 +194,8 @@ export async function fetchNewImapMail(
       { uid: true, source: true, internalDate: true },
       { uid: true },
     )) {
+      const id = encodeMessageId(mailbox, current.uidValidity, message.uid);
+
       try {
         if (!message.source) {
           throw new Error("The message has no source");
@@ -183,15 +203,10 @@ export async function fetchNewImapMail(
 
         emails.push({
           uid: message.uid,
-          email: await toEmail(
-            current.uidValidity,
-            message.uid,
-            message.source,
-            message.internalDate,
-          ),
+          email: await toEmail(id, message.source, message.internalDate),
         });
       } catch {
-        unreadable.push(encodeMessageId(current.uidValidity, message.uid));
+        unreadable.push(id);
       }
     }
 

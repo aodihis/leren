@@ -2,6 +2,7 @@ import { suggestImapSettings } from "./imap-discovery";
 import {
   createImapDraft,
   fetchNewImapMail,
+  mailboxIdentity,
   readImapPosition,
   readImapReplyContext,
   sendImapReply,
@@ -35,7 +36,7 @@ export function createImapProvider(
       smtp.quit();
 
       return {
-        providerAccountId: `${settings.imapHost}/${settings.username}`.toLowerCase(),
+        providerAccountId: mailboxIdentity(settings),
         label: settings.address,
         tokens: { accessToken: JSON.stringify(settings), refreshToken: null, expiresAt: null },
         syncCursor,
