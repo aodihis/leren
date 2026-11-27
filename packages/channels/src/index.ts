@@ -7,8 +7,10 @@ export {
   DeliveryNotSentError,
   DeliveryRejectedError,
   InvalidGrantError,
+  SignInError,
   isEmailProvider,
   isEmailSender,
+  isSignInProvider,
 } from "./providers/types";
 
 export type {
@@ -20,13 +22,28 @@ export type {
   EmailProvider,
   EmailSender,
   FetchResult,
+  MailDeliverer,
+  MailReader,
   OutboundReply,
   ProviderTokens,
+  RedirectProvider,
   ReplyContext,
+  SignInFailure,
+  SignInProvider,
 } from "./providers/types";
 
 export { createChannelProviders } from "./providers";
 
-export { getAccessToken, readTokens, requireKey } from "./tokens";
+export { imapSettingsInputSchema } from "./providers/imap-settings";
+
+export type { SuggestedSettings } from "./providers/imap-discovery";
+
+export {
+  getAccessToken,
+  markAccountRevoked,
+  readTokens,
+  requireKey,
+  revokeOnRefusedCredentials,
+} from "./tokens";
 
 export type { ChannelAccountsDependencies } from "./tokens";

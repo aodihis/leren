@@ -9,7 +9,7 @@ import {
   readOutlookReplyContext,
   sendOutlookReply,
 } from "./outlook";
-import type { EmailProvider, EmailSender } from "./types";
+import type { MailDeliverer, MailReader, RedirectProvider } from "./types";
 
 const AUTHORITY_URL = "https://login.microsoftonline.com/common/oauth2/v2.0";
 
@@ -51,7 +51,7 @@ export type MicrosoftProviderOptions = {
  */
 export function createMicrosoftProvider(
   options: MicrosoftProviderOptions,
-): EmailProvider & EmailSender {
+): RedirectProvider & MailReader & MailDeliverer {
   const send = options.fetch ?? fetch;
 
   const requestTokens = (parameters: Record<string, string>) =>

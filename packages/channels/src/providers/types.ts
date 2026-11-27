@@ -1,7 +1,9 @@
 import type { InboundEmail } from "@leren/inbox";
 
+import type { SuggestedSettings } from "./imap-discovery";
+
 /** The names of the providers that exist. `CHANNEL_PROVIDERS` selects which of them are enabled. */
-export const CHANNEL_PROVIDER_NAMES = ["google", "microsoft", "zoho", "mailpit"] as const;
+export const CHANNEL_PROVIDER_NAMES = ["google", "microsoft", "zoho", "imap", "mailpit"] as const;
 
 export type ChannelProviderName = (typeof CHANNEL_PROVIDER_NAMES)[number];
 
@@ -42,15 +44,23 @@ export class InvalidGrantError extends Error {
   }
 }
 
-/**
- * An adapter for one provider of channel accounts (decision 0038). The API calls these methods and
- * knows nothing else about the provider. Adapters never log tokens.
- */
-export interface ChannelProvider {
+/** What every adapter of a provider of channel accounts has, however it connects (decision 0038). */
+interface ProviderBase {
   readonly name: ChannelProviderName;
   readonly channel: "email";
   /** The name shown to users, such as "Google". */
   readonly displayName: string;
+  /** Returns new tokens. Throws `InvalidGrantError` when the refresh token is no longer valid. */
+  refresh(tokens: ProviderTokens): Promise<ProviderTokens>;
+  /** Revokes the tokens at the provider. */
+  revoke(tokens: ProviderTokens): Promise<void>;
+}
+
+/**
+ * A provider that connects an account by sending the user to the provider's consent page, or at
+ * once when it has no consent step (decision 0062).
+ */
+export interface RedirectProvider extends ProviderBase {
   /**
    * Starts a connection for a user whose sign-in address is `userEmail`. An OAuth provider returns
    * the authorization URL for the given `state` and PKCE `codeChallenge`. A provider without OAuth
@@ -68,10 +78,51 @@ export interface ChannelProvider {
     codeVerifier: string;
     redirectUri: string;
   }): Promise<AuthorisedAccount>;
-  /** Returns new tokens. Throws `InvalidGrantError` when the refresh token is no longer valid. */
-  refresh(tokens: ProviderTokens): Promise<ProviderTokens>;
-  /** Revokes the tokens at the provider. */
-  revoke(tokens: ProviderTokens): Promise<void>;
+}
+
+/**
+ * Why signing in to a mail server failed: the server refused the credentials, could not be reached,
+ * could not set up an encrypted connection, or is at an address that the product does not connect
+ * to.
+ */
+export type SignInFailure =
+  | "authentication_failed"
+  | "server_unreachable"
+  | "encryption_failed"
+  | "host_not_allowed";
+
+/** Thrown by `signIn` when the account cannot be connected for a reason the user can act on. */
+export class SignInError extends Error {
+  constructor(
+    readonly reason: SignInFailure,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SignInError";
+  }
+}
+
+/**
+ * A provider that connects an account by signing in to its mail server with settings and a
+ * password that the user gives (decision 0062). `signIn` validates `settings` itself, throws
+ * `SignInError` when the sign-in fails, and returns the account only after it succeeded.
+ * `suggestSettings`, when the provider has it, suggests the servers of an address, or returns null
+ * when it finds none.
+ */
+export interface SignInProvider extends ProviderBase {
+  signIn(settings: unknown): Promise<AuthorisedAccount>;
+  suggestSettings?(address: string): Promise<SuggestedSettings | null>;
+}
+
+/**
+ * An adapter for one provider of channel accounts (decision 0038). The API calls these methods and
+ * knows nothing else about the provider. Adapters never log tokens or passwords.
+ */
+export type ChannelProvider = RedirectProvider | SignInProvider;
+
+/** Whether `provider` connects an account by signing in to a mail server. */
+export function isSignInProvider(provider: ChannelProvider): provider is SignInProvider {
+  return "signIn" in provider && typeof provider.signIn === "function";
 }
 
 /**
@@ -99,13 +150,17 @@ export type FetchResult = {
 };
 
 /**
- * A provider that can read new mail from a mailbox (decision 0041). `fetchNewMail` returns the
+ * The capability of reading new mail from a mailbox (decision 0041). `fetchNewMail` returns the
  * emails that arrived after `cursor`, and it throws on any failure other than a message that no
  * longer exists, which it skips. With a null cursor it returns the current position and no emails.
+ * It throws `InvalidGrantError` when the mailbox refuses the stored credentials.
  */
-export interface EmailProvider extends ChannelProvider {
+export type MailReader = {
   fetchNewMail(accessToken: string, cursor: string | null): Promise<FetchResult>;
-}
+};
+
+/** A provider that can read new mail from a mailbox. */
+export type EmailProvider = ChannelProvider & MailReader;
 
 /** Whether `provider` can read mail from a mailbox. */
 export function isEmailProvider(provider: ChannelProvider): provider is EmailProvider {
@@ -174,16 +229,20 @@ export class DeliveryRejectedError extends Error {
 }
 
 /**
- * A provider that can put a reply into a mailbox (decision 0046). `readReplyContext` reads the
+ * The capability of putting a reply into a mailbox (decision 0046). `readReplyContext` reads the
  * headers of the original, and `createDraft` and `sendReply` deliver the same reply. Delivery calls
  * throw `DeliveryNotSentError` or `DeliveryRejectedError` when the outcome is known, and any other
- * error when it is not.
+ * error when it is not. Any of them throws `InvalidGrantError` when the mailbox refuses the stored
+ * credentials, which also means that nothing was delivered.
  */
-export interface EmailSender extends ChannelProvider {
+export type MailDeliverer = {
   readReplyContext(accessToken: string, providerMessageId: string): Promise<ReplyContext>;
   createDraft(accessToken: string, reply: OutboundReply): Promise<DeliveryReceipt>;
   sendReply(accessToken: string, reply: OutboundReply): Promise<DeliveryReceipt>;
-}
+};
+
+/** A provider that can put a reply into a mailbox. */
+export type EmailSender = ChannelProvider & MailDeliverer;
 
 /** Whether `provider` can deliver a reply. */
 export function isEmailSender(provider: ChannelProvider): provider is EmailSender {

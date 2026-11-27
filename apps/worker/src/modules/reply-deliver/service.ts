@@ -3,6 +3,7 @@ import {
   DeliveryRejectedError,
   getAccessToken,
   isEmailSender,
+  revokeOnRefusedCredentials,
 } from "@leren/channels";
 import type { ChannelAccountsDependencies, EmailSender, OutboundReply } from "@leren/channels";
 import { channelAccounts, messages, replyDecisions } from "@leren/db";
@@ -245,7 +246,16 @@ export async function deliverReply(
     return refuse(db, message.id, DELIVERY_UNAVAILABLE);
   }
 
-  const context = await provider.readReplyContext(accessToken, message.providerMessageId);
+  const read = await revokeOnRefusedCredentials(db, account, () =>
+    provider.readReplyContext(accessToken, message.providerMessageId),
+  );
+
+  if (read.revoked) {
+    return refuse(db, message.id, DELIVERY_UNAVAILABLE);
+  }
+
+  const context = read.value;
+
   const recipient = recipientOf(message.fromAddress, context.replyTo);
 
   if (isAddressOf(recipient, account.label)) {
@@ -278,28 +288,37 @@ export async function deliverReply(
     return "ignored";
   }
 
-  return callProvider(db, provider, accessToken, record, reply);
+  return callProvider(db, provider, accessToken, account, record, reply);
 }
 
 /**
  * Makes the call and writes its end. A known failure ends the delivery or puts it back to
- * `pending`. Any other failure is thrown and leaves the delivery `started`, so that it is never
- * called again.
+ * `pending`. Credentials that the mailbox refused make the account `revoked` and end the delivery,
+ * because nothing was delivered and nothing can be until the account is connected again. Any other
+ * failure is thrown and leaves the delivery `started`, so that it is never called again.
  */
 async function callProvider(
   db: Db,
   provider: EmailSender,
   accessToken: string,
+  account: Pick<typeof channelAccounts.$inferSelect, "id" | "credentials">,
   { message, decision }: DeliveryRecord,
   reply: OutboundReply,
 ): Promise<ReplyDeliverOutcome> {
   const mode = decision.deliveryMode;
 
   try {
-    const receipt =
+    const call = await revokeOnRefusedCredentials(db, account, () =>
       mode === "send"
-        ? await provider.sendReply(accessToken, reply)
-        : await provider.createDraft(accessToken, reply);
+        ? provider.sendReply(accessToken, reply)
+        : provider.createDraft(accessToken, reply),
+    );
+
+    if (call.revoked) {
+      return await refuse(db, message.id, DELIVERY_UNAVAILABLE);
+    }
+
+    const receipt = call.value;
 
     await db
       .update(replyDecisions)

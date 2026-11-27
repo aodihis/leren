@@ -1,4 +1,5 @@
 import { createGoogleProvider } from "./google";
+import { createImapProvider } from "./imap";
 import { createMailpitProvider } from "./mailpit";
 import { createMicrosoftProvider } from "./microsoft";
 import { CHANNEL_PROVIDER_NAMES } from "./types";
@@ -64,6 +65,7 @@ export const PROVIDER_DEFINITIONS: Record<ChannelProviderName, ProviderDefinitio
         region: settings.ZOHO_REGION ?? "com",
       }),
   },
+  imap: { variables: [], storesTokens: true, create: () => createImapProvider() },
   mailpit: { variables: [], storesTokens: false, create: () => createMailpitProvider() },
 };
 

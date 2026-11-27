@@ -8,7 +8,7 @@ import {
   sendGmailReply,
 } from "./gmail";
 import { readIdTokenClaims, refreshTokens, requestOAuthTokens, tokenExpiry } from "./oauth";
-import type { EmailProvider, EmailSender } from "./types";
+import type { MailDeliverer, MailReader, RedirectProvider } from "./types";
 
 const AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -40,7 +40,9 @@ export type GoogleProviderOptions = {
  * the authorization code flow, PKCE and offline access. The account is identified by the `sub`
  * claim and labelled with the address. It reads new mail with the Gmail history API.
  */
-export function createGoogleProvider(options: GoogleProviderOptions): EmailProvider & EmailSender {
+export function createGoogleProvider(
+  options: GoogleProviderOptions,
+): RedirectProvider & MailReader & MailDeliverer {
   const send = options.fetch ?? fetch;
 
   const requestTokens = (parameters: Record<string, string>) =>

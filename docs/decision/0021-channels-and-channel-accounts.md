@@ -1,8 +1,9 @@
 # 0021. Channels and channel accounts
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-20
 - Affects: packages/db, apps/api, apps/worker, apps/platform, docs/overview/README.md, docs/plans/0001-auto-reply-roadmap.md
+- Superseded by: [0062](0062-channel-accounts-connected-by-oauth-or-sign-in.md)
 
 ## Context
 

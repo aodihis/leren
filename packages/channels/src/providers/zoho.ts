@@ -1,5 +1,5 @@
 import { refreshTokens, requestOAuthTokens, tokenExpiry } from "./oauth";
-import type { EmailProvider, EmailSender } from "./types";
+import type { MailDeliverer, MailReader, RedirectProvider } from "./types";
 import {
   createZohoDraft,
   fetchNewZohoMail,
@@ -54,7 +54,9 @@ export type ZohoProviderOptions = {
  * configured data center with the authorization code flow, PKCE and offline access. Zoho issues no
  * ID token, so the account is identified and labelled from the Zoho Mail account of the token.
  */
-export function createZohoProvider(options: ZohoProviderOptions): EmailProvider & EmailSender {
+export function createZohoProvider(
+  options: ZohoProviderOptions,
+): RedirectProvider & MailReader & MailDeliverer {
   const send = options.fetch ?? fetch;
   const domain = ZOHO_REGIONS[options.region];
   const accounts = `https://accounts.${domain}`;

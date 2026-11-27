@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { InvalidGrantError, getAccessToken } from "@leren/channels";
+import { InvalidGrantError, SignInError, getAccessToken } from "@leren/channels";
 import type {
   AuthorisedAccount,
   ChannelAccountsDependencies,
@@ -14,6 +14,7 @@ import type { TestDatabase } from "@leren/db/testing";
 import { createInMemoryEmailSender } from "@leren/email/testing";
 import type { InMemoryEmailSender } from "@leren/email/testing";
 import type { Logger } from "@leren/logger";
+import { createMemoryRateLimiter } from "@leren/rate-limit/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -77,6 +78,38 @@ function createFakeProvider() {
   return { provider, state };
 }
 
+const IMAP_SETTINGS = {
+  address: "me@acme.com",
+  password: "app-password",
+  imapHost: "mail.acme.com",
+  imapPort: 993,
+  smtpHost: "mail.acme.com",
+  smtpPort: 465,
+};
+
+/** A provider that signs in to a mail server without the network, like the `imap` provider. */
+function createSignInProvider() {
+  return {
+    name: "imap",
+    channel: "email",
+    displayName: "Fake IMAP",
+    signIn: vi.fn(async (settings: unknown): Promise<AuthorisedAccount> => ({
+      providerAccountId: "mail.acme.com/me@acme.com",
+      label: (settings as { address: string }).address,
+      tokens: { accessToken: JSON.stringify(settings), refreshToken: null, expiresAt: null },
+      syncCursor: '{"uidValidity":"1","uid":10}',
+    })),
+    suggestSettings: async () => ({
+      imapHost: "mail.acme.com",
+      imapPort: 993 as const,
+      smtpHost: "mail.acme.com",
+      smtpPort: 465 as const,
+    }),
+    refresh: async (tokens: ProviderTokens) => tokens,
+    revoke: async () => {},
+  } satisfies ChannelProvider;
+}
+
 function createDirectProvider(): ChannelProvider {
   return {
     name: "mailpit",
@@ -100,6 +133,7 @@ describe("channel accounts API", () => {
   let app: ReturnType<typeof createApp>;
   let dependencies: ChannelAccountsDependencies;
   const fake = createFakeProvider();
+  const imap = createSignInProvider();
 
   const post = (path: string, payload: unknown) =>
     app.request(path, {
@@ -122,6 +156,13 @@ describe("channel accounts API", () => {
 
   const call = (cookie: string, method: string, path: string) =>
     app.request(path, { method, headers: { cookie } });
+
+  const signInTo = (cookie: string, provider: string, settings: unknown) =>
+    app.request(`${PATH}/${provider}/sign-in`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify(settings),
+    });
 
   /**
    * Starts a connection and returns the pending-connection cookie and the `state` value, as a
@@ -195,6 +236,7 @@ describe("channel accounts API", () => {
     dependencies = {
       providers: new Map<string, ChannelProvider>([
         ["google", fake.provider],
+        ["imap", imap],
         ["mailpit", createDirectProvider()],
       ]),
       encryptionKey: randomBytes(32),
@@ -211,6 +253,7 @@ describe("channel accounts API", () => {
         cookieSecret: COOKIE_SECRET,
         apiUrl: "http://localhost:3000",
         platformUrl: ORIGIN,
+        rateLimiter: createMemoryRateLimiter(),
       },
     });
   });
@@ -239,9 +282,118 @@ describe("channel accounts API", () => {
 
     expect(result.providers.map((provider) => provider.name).toSorted()).toEqual([
       "google",
+      "imap",
       "mailpit",
     ]);
+    expect(result.providers).toContainEqual(
+      expect.objectContaining({ name: "imap", connection: "sign-in" }),
+    );
+    expect(result.providers).toContainEqual(
+      expect.objectContaining({ name: "google", connection: "redirect" }),
+    );
     expect(result.accounts).toEqual([]);
+  });
+
+  describe("signing in to a mail server", () => {
+    it("saves the account with encrypted settings and the position the provider read", async () => {
+      const cookie = await signIn("imap-owner@example.com");
+
+      const response = await signInTo(cookie, "imap", IMAP_SETTINGS);
+
+      expect(response.status).toBe(201);
+      expect(imap.signIn).toHaveBeenLastCalledWith(IMAP_SETTINGS);
+
+      const { accounts } = await list(cookie);
+
+      expect(accounts).toEqual([
+        expect.objectContaining({ label: "me@acme.com", status: "active", usable: true }),
+      ]);
+
+      const [row] = await database.db
+        .select()
+        .from(channelAccounts)
+        .where(eq(channelAccounts.id, accounts[0]?.id ?? ""));
+
+      expect(row?.credentials).toMatch(/^v1\./);
+      expect(row?.credentials).not.toContain("app-password");
+      expect(row?.syncCursor).toBe('{"uidValidity":"1","uid":10}');
+    });
+
+    it("answers a failed sign-in with its reason and saves nothing", async () => {
+      const cookie = await signIn("imap-refused@example.com");
+
+      imap.signIn.mockRejectedValueOnce(new SignInError("authentication_failed", "refused"));
+
+      const response = await signInTo(cookie, "imap", IMAP_SETTINGS);
+
+      expect(response.status).toBe(422);
+      expect(await response.json()).toEqual({ error: "authentication_failed" });
+      expect((await list(cookie)).accounts).toEqual([]);
+    });
+
+    it("answers invalid settings with the message of each field, without signing in", async () => {
+      const cookie = await signIn("imap-invalid@example.com");
+
+      imap.signIn.mockClear();
+
+      const response = await signInTo(cookie, "imap", {
+        ...IMAP_SETTINGS,
+        address: "not an address",
+        imapPort: 110,
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        fieldErrors: {
+          address: ["Enter a valid email address"],
+          imapPort: ["Choose port 993 or 143"],
+        },
+      });
+      expect(imap.signIn).not.toHaveBeenCalled();
+    });
+
+    it("limits how often a user looks up server settings", async () => {
+      const cookie = await signIn("imap-lookup@example.com");
+      const lookup = () => call(cookie, "GET", `${PATH}/imap/settings?address=me%40acme.com`);
+
+      const first = await lookup();
+
+      expect(first.status).toBe(200);
+      expect(await first.json()).toEqual({
+        settings: expect.objectContaining({ imapHost: "mail.acme.com" }),
+      });
+
+      for (let attempt = 1; attempt < 20; attempt += 1) {
+        expect((await lookup()).status).toBe(200);
+      }
+
+      expect((await lookup()).status).toBe(429);
+    });
+
+    it("refuses a sixth attempt within fifteen minutes", async () => {
+      const cookie = await signIn("imap-guess@example.com");
+
+      imap.signIn.mockRejectedValue(new SignInError("authentication_failed", "refused"));
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        expect((await signInTo(cookie, "imap", IMAP_SETTINGS)).status).toBe(422);
+      }
+
+      const refused = await signInTo(cookie, "imap", IMAP_SETTINGS);
+
+      imap.signIn.mockReset();
+
+      expect(refused.status).toBe(429);
+      expect(refused.headers.get("retry-after")).toMatch(/^\d+$/);
+    });
+
+    it("keeps the sign-in route and the redirect routes to their own kind of provider", async () => {
+      const cookie = await signIn("imap-routes@example.com");
+
+      expect((await signInTo(cookie, "google", IMAP_SETTINGS)).status).toBe(404);
+      expect((await call(cookie, "POST", `${PATH}/imap/connect`)).status).toBe(404);
+      expect((await call(cookie, "GET", `${PATH}/imap/callback?code=c&state=s`)).status).toBe(404);
+    });
   });
 
   it("answers an unknown or disabled provider with not found", async () => {

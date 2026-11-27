@@ -1,11 +1,11 @@
-import type { ChannelProvider } from "./types";
+import type { RedirectProvider } from "./types";
 
 /**
  * The Mailpit provider for the `email` channel, for development and tests only (decision 0038).
  * Mailpit has no OAuth step and no credentials, so connecting creates the account at once and
  * identifies it by the sign-in address of the user.
  */
-export function createMailpitProvider(): ChannelProvider {
+export function createMailpitProvider(): RedirectProvider {
   return {
     name: "mailpit",
     channel: "email",
