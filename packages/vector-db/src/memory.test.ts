@@ -45,6 +45,20 @@ describe("createInMemoryVectorStore", () => {
     expect(results[0]?.metadata).toEqual({ userId: "u1", approved: true });
   });
 
+  it("matches any value of a list filter, and nothing for an empty list", async () => {
+    await store.upsert(COLLECTION, [
+      { id: "a", vector: [1, 0], metadata: { tag: "x" } },
+      { id: "b", vector: [1, 0], metadata: { tag: "y" } },
+      { id: "c", vector: [1, 0], metadata: { tag: "z" } },
+    ]);
+
+    const search = (tags: string[]) =>
+      store.search({ collection: COLLECTION, vector: [1, 0], limit: 10, filter: { tag: tags } });
+
+    expect((await search(["x", "z"])).map((result) => result.id).toSorted()).toEqual(["a", "c"]);
+    expect(await search([])).toEqual([]);
+  });
+
   it("treats records without metadata as having empty metadata", async () => {
     await store.upsert(COLLECTION, [{ id: "a", vector: [1, 0] }]);
 

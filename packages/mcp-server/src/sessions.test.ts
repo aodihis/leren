@@ -49,6 +49,7 @@ describe("MCP sessions", () => {
       role: "assistant",
       scopes: ["playbooks:read", "playbooks:write", "messages:read"],
       messageId: null,
+      playbookIds: null,
       name: null,
     });
   });
@@ -71,19 +72,71 @@ describe("MCP sessions", () => {
 
   it("refuses a scope outside the role", async () => {
     await expect(
-      mintSession(deps, { userId, role: "reply", messageId: "m1", scopes: ["playbooks:write"] }),
+      mintSession(deps, {
+        userId,
+        role: "reply",
+        messageId: "m1",
+        playbookIds: [],
+        scopes: ["playbooks:write"],
+      }),
     ).rejects.toThrow("not allowed");
   });
 
   it("requires a message id for the reply role and rejects one for the assistant", async () => {
-    await expect(mintSession(deps, { userId, role: "reply" })).rejects.toThrow("message id");
+    await expect(mintSession(deps, { userId, role: "reply", playbookIds: [] })).rejects.toThrow(
+      "message id",
+    );
     await expect(mintSession(deps, { userId, role: "assistant", messageId: "m1" })).rejects.toThrow(
       "message id",
     );
 
-    const minted = await mintSession(deps, { userId, role: "reply", messageId: "m1" });
+    const minted = await mintSession(deps, {
+      userId,
+      role: "reply",
+      messageId: "m1",
+      playbookIds: [],
+    });
 
     expect((await verifySession(deps, minted.token))?.messageId).toBe("m1");
+  });
+
+  it("rejects a reply session whose row holds no playbook ids", async () => {
+    const minted = await mintSession(deps, {
+      userId,
+      role: "reply",
+      messageId: "m1",
+      playbookIds: [],
+    });
+
+    await database.db
+      .update(mcpSessions)
+      .set({ playbookIds: null })
+      .where(eq(mcpSessions.id, minted.sessionId));
+
+    expect(await verifySession(deps, minted.token)).toBeNull();
+  });
+
+  it("requires playbook ids for the reply role and rejects them for the assistant", async () => {
+    const playbookId = "11111111-1111-4111-8111-111111111111";
+
+    await expect(mintSession(deps, { userId, role: "reply", messageId: "m1" })).rejects.toThrow(
+      "playbook ids",
+    );
+    await expect(
+      mintSession(deps, { userId, role: "assistant", playbookIds: [playbookId] }),
+    ).rejects.toThrow("playbook ids");
+
+    const reply = await mintSession(deps, {
+      userId,
+      role: "reply",
+      messageId: "m1",
+      playbookIds: [playbookId, playbookId],
+    });
+
+    const assistant = await mintSession(deps, { userId, role: "assistant" });
+
+    expect((await verifySession(deps, reply.token))?.playbookIds).toEqual([playbookId]);
+    expect((await verifySession(deps, assistant.token))?.playbookIds).toBeNull();
   });
 
   it("rejects a short signing secret", async () => {

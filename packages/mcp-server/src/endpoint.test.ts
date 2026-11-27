@@ -63,6 +63,10 @@ function toolNames(reply: Reply): string[] {
   return reply.body?.result?.tools?.map((tool) => tool.name) ?? [];
 }
 
+function matchedIds(result: { matches: { playbook: { id: string } }[] }): string[] {
+  return result.matches.map((match) => match.playbook.id).toSorted();
+}
+
 describe("MCP endpoint", () => {
   let database: TestDatabase;
   let clock: Date;
@@ -153,6 +157,30 @@ describe("MCP endpoint", () => {
     return minted.token;
   }
 
+  /** A token of a reply session that the gate allowed to read only the first user's playbook. */
+  function replyToken() {
+    return tokenFor({ role: "reply", messageId: "m1", playbookIds: [playbookId] });
+  }
+
+  /**
+   * Adds a second playbook of the first user with nearly the same text, as a playbook for another
+   * sender would have, and returns its id.
+   */
+  async function seedSimilarPlaybook() {
+    const [similar] = await database.db
+      .insert(playbooks)
+      .values({ userId, topic: "Opening hours", information: "We open at ten", timezone: "UTC" })
+      .returning();
+
+    const [vector] = await embedder.embed([toEmbeddingText(similar)]);
+
+    await store.upsert(KNOWLEDGE_COLLECTION, [
+      { id: similar.id, vector, metadata: toVectorMetadata(similar) },
+    ]);
+
+    return similar.id;
+  }
+
   async function rpc(token: string | null, method: string, params: object = {}): Promise<Reply> {
     const headers: Record<string, string> = {
       "content-type": "application/json",
@@ -225,7 +253,7 @@ describe("MCP endpoint", () => {
       const full = await rpc(await tokenFor(), "tools/list");
 
       const restricted = await rpc(
-        await tokenFor({ role: "reply", messageId: "m1" }),
+        await tokenFor({ role: "reply", messageId: "m1", playbookIds: [] }),
         "tools/list",
       );
 
@@ -333,7 +361,10 @@ describe("MCP endpoint", () => {
       const withMail = toolNames(await rpc(await tokenFor(), "tools/list"));
 
       const reply = toolNames(
-        await rpc(await tokenFor({ role: "reply", messageId: "m1" }), "tools/list"),
+        await rpc(
+          await tokenFor({ role: "reply", messageId: "m1", playbookIds: [] }),
+          "tools/list",
+        ),
       );
 
       const playbooksOnly = toolNames(
@@ -363,7 +394,7 @@ describe("MCP endpoint", () => {
     });
 
     it("rejects a write from a session without the write scope", async () => {
-      const token = await tokenFor({ role: "reply", messageId: "m1" });
+      const token = await tokenFor({ role: "reply", messageId: "m1", playbookIds: [] });
 
       const result = await call(token, "create_playbook", { topic: "T", information: "R" });
 
@@ -528,6 +559,40 @@ describe("MCP endpoint", () => {
       endpoint = createMcpEndpoint({ db: database.db, secret: SECRET, now: () => clock });
 
       expect(toolNames(await rpc(await tokenFor(), "tools/list"))).not.toContain("create_playbook");
+    });
+  });
+
+  describe("reply session", () => {
+    it("searches only the playbooks that the gate allowed", async () => {
+      const similarId = await seedSimilarPlaybook();
+      const query = { query: "Opening hours We open at" };
+      const assistant = parsed(await call(await tokenFor(), "search_playbooks", query));
+      const reply = parsed(await call(await replyToken(), "search_playbooks", query));
+
+      expect(matchedIds(assistant)).toEqual([playbookId, similarId].toSorted());
+      expect(matchedIds(reply)).toEqual([playbookId]);
+    });
+
+    it("reports a playbook that the gate did not allow as not found", async () => {
+      const similarId = await seedSimilarPlaybook();
+      const token = await replyToken();
+      const result = await call(token, "get_playbook", { playbookId: similarId });
+
+      const resource = await rpc(token, "resources/read", {
+        uri: `leren://playbooks/${similarId}`,
+      });
+
+      expect(result).toMatchObject({ isError: true, data: "Not found" });
+      expect(resource.body?.error).toBeDefined();
+      expect(JSON.stringify(resource.body)).not.toContain("We open at ten");
+    });
+
+    it("lists only the playbooks that the gate allowed", async () => {
+      await seedSimilarPlaybook();
+
+      const list = parsed(await call(await replyToken(), "list_playbooks"));
+
+      expect(list.playbooks.map((playbook: { id: string }) => playbook.id)).toEqual([playbookId]);
     });
   });
 

@@ -12,11 +12,17 @@ export type VectorRecord = {
   metadata?: VectorMetadata;
 };
 
+/**
+ * A search filter. A record matches when, for every key, its metadata equals the value, or equals
+ * one of the values of a list. An empty list matches no record.
+ */
+export type VectorFilter = Record<string, string | number | boolean | readonly string[]>;
+
 export type SearchQuery = {
   collection: string;
   vector: number[];
   limit: number;
-  filter?: VectorMetadata;
+  filter?: VectorFilter;
 };
 
 export type SearchResult = {
@@ -35,10 +41,7 @@ export type CollectionConfig = {
   dimensions: number;
 };
 
-/**
- * Operations every backend supports. Record ids are UUID strings. A filter
- * matches records whose metadata equals every given key and value.
- */
+/** Operations every backend supports. Record ids are UUID strings. */
 export interface VectorStore {
   ensureCollection(config: CollectionConfig): Promise<void>;
   upsert(collection: string, records: VectorRecord[]): Promise<void>;

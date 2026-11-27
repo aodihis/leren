@@ -133,6 +133,29 @@ describe("knowledge retrieval", () => {
     expect(await search("opening hours")).toEqual({ status: "no_reliable_result" });
   });
 
+  it("returns only the listed playbooks when the query names them", async () => {
+    const allowed = await createIndexedPlaybook();
+
+    await createIndexedPlaybook({ information: "We open at ten." });
+
+    const result = await searchKnowledge(
+      dependencies,
+      { userId, text: "opening hours", playbookIds: [allowed.id] },
+      { now: NOW },
+    );
+
+    const none = await searchKnowledge(
+      dependencies,
+      { userId, text: "opening hours", playbookIds: [] },
+      { now: NOW },
+    );
+
+    expect(result.status === "found" && result.matches.map((match) => match.playbook.id)).toEqual([
+      allowed.id,
+    ]);
+    expect(none).toEqual({ status: "no_reliable_result" });
+  });
+
   it("never returns the knowledge of another user", async () => {
     const other = await createUser();
 
