@@ -120,14 +120,23 @@ export function collectPlaybooks(messages: readonly Message[]): Playbook[] {
 }
 
 /**
- * Whether `search_playbooks` failed during an agent run. Its only argument is a free-text query, so
- * a failed search is a server, authorization or connection problem and not an answer without a
- * playbook, and the caller must not record it as an escalation. An error of `get_playbook` is not
- * counted, because the server also reports an unknown or malformed id that the model passed as an
- * error, and the agent can read that error and carry on.
+ * The start of the error that the MCP server returns when the arguments of a tool call do not match
+ * the tool's input schema.
+ */
+const INPUT_VALIDATION_ERROR = "Input validation error";
+
+/**
+ * Whether `search_playbooks` failed during an agent run for a reason other than the model's own
+ * arguments. Such a failure is a server, authorization or connection problem and not an answer
+ * without a playbook, so the caller must not record it as an escalation. A query that the server
+ * rejects, such as an empty one or one longer than 2000 characters, and every error of
+ * `get_playbook`, such as an unknown id, are caused by the model, which can read the error and
+ * carry on, so they are not counted.
  */
 export function playbookSearchFailed(messages: readonly Message[]): boolean {
   return toolOutputs(messages, ["search_playbooks"]).some(
-    (output) => output.type === "error-text" || output.type === "error-json",
+    (output) =>
+      (output.type === "error-text" || output.type === "error-json") &&
+      !JSON.stringify(output.value).includes(INPUT_VALIDATION_ERROR),
   );
 }
