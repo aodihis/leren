@@ -32,7 +32,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   denied: "Access was not granted, so no account was connected.",
   invalid_state: "The connection expired or did not match. Try connecting again.",
   conflict: "That account is already connected to another user.",
-  limit: "You already have an email account. Disconnect it before you connect another.",
+  limit: "You can connect at most 10 email accounts. Disconnect one before you connect another.",
   authentication_failed:
     "The mail server refused the user name or password. If your account uses two-step sign-in, use an app password.",
   server_unreachable: "The mail server could not be reached. Check the server names and ports.",

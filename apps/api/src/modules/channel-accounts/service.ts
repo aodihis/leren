@@ -11,8 +11,11 @@ import type { Db } from "@leren/db";
 import type { Logger } from "@leren/logger";
 import { and, asc, eq } from "drizzle-orm";
 
-/** How many accounts a user may have on a channel in the first version (decision 0021). */
-const ACCOUNT_LIMIT_PER_CHANNEL: Readonly<Record<string, number>> = { email: 1 };
+/** How many email accounts a user may have (decision 0065). */
+export const EMAIL_ACCOUNT_LIMIT = 10;
+
+/** How many accounts a user may have on a channel. A channel that is not listed has no limit. */
+const ACCOUNT_LIMIT_PER_CHANNEL: Readonly<Record<string, number>> = { email: EMAIL_ACCOUNT_LIMIT };
 
 const POSTGRES_UNIQUE_VIOLATION = "23505";
 

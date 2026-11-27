@@ -54,8 +54,9 @@ async function deleteSkipped(db: Db, messageId: string): Promise<GateOutcome> {
  *
  * The playbooks considered are the user's, are usable at `now` according to `isKnowledgeUsable`,
  * and name the channel account that the message arrived on. An account that was deleted or revoked
- * has no playbooks to consider. A playbook whose stored email settings are invalid is not
- * evaluated.
+ * has no playbooks to consider. A message sent from any of the user's own accounts on the channel
+ * is never handled, so two mailboxes of one user cannot answer each other without end
+ * (decision 0065). A playbook whose stored email settings are invalid is not evaluated.
  */
 export async function gateMessage(
   { db, publishProcess }: EmailGateDependencies,
@@ -70,16 +71,25 @@ export async function gateMessage(
 
   const { channelAccountId } = message;
 
-  const [account] = channelAccountId
-    ? await db
-        .select({ label: channelAccounts.label, status: channelAccounts.status })
-        .from(channelAccounts)
-        .where(
-          and(eq(channelAccounts.id, channelAccountId), eq(channelAccounts.userId, message.userId)),
-        )
-    : [];
+  const ownAccounts = await db
+    .select({
+      id: channelAccounts.id,
+      label: channelAccounts.label,
+      status: channelAccounts.status,
+    })
+    .from(channelAccounts)
+    .where(
+      and(eq(channelAccounts.userId, message.userId), eq(channelAccounts.channel, message.channel)),
+    );
+
+  const account = ownAccounts.find((candidate) => candidate.id === channelAccountId);
+  const sender = message.fromAddress.toLowerCase();
 
   if (!channelAccountId || !account || account.status !== "active") {
+    return deleteSkipped(db, messageId);
+  }
+
+  if (ownAccounts.some((candidate) => candidate.label.toLowerCase() === sender)) {
     return deleteSkipped(db, messageId);
   }
 

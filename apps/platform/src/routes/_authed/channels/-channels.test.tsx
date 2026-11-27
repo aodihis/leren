@@ -174,7 +174,7 @@ describe("channels route", () => {
 
     expect(
       await screen.findByText(
-        "You already have an email account. Disconnect it before you connect another.",
+        "You can connect at most 10 email accounts. Disconnect one before you connect another.",
       ),
     ).toBeTruthy();
   });
