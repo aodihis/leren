@@ -1,8 +1,9 @@
 # 0039. The email record, the reply mode and the gate
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-22
 - Affects: packages/db, packages/inbox, packages/auto-reply, apps/api, apps/worker, apps/platform, docs/overview/README.md, docs/plans/0001-auto-reply-roadmap.md
+- Superseded by: [0064](0064-skipped-emails-are-not-kept.md)
 
 ## Context
 

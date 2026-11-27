@@ -10,7 +10,12 @@ export {
 
 export type { EmailReceivedMessage, InboundEmail, RecordResult } from "./record";
 
-export { canTransition, redactMessageText, transitionMessage } from "./status";
+export {
+  canTransition,
+  deleteReceivedMessage,
+  redactMessageText,
+  transitionMessage,
+} from "./status";
 
 export type { MessageStatus } from "./status";
 

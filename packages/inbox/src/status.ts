@@ -6,12 +6,13 @@ import { and, eq, inArray } from "drizzle-orm";
 export type MessageStatus = (typeof messages.$inferSelect)["status"];
 
 /**
- * The statuses that a message may move to from each status (decisions 0039 and 0046). A status that
- * maps to an empty list is final. A status only moves forward, so no path leads back to an earlier
- * one. A reply that is ready, `drafted`, is then sent or fails to be delivered.
+ * The statuses that a message may move to from each status (decisions 0039, 0046 and 0064). A
+ * status that maps to an empty list is final. A status only moves forward, so no path leads back to
+ * an earlier one. A reply that is ready, `drafted`, is then sent or fails to be delivered. A
+ * `received` message that the gate skips is deleted, so it never becomes `not_applicable`.
  */
 const TRANSITIONS: Record<MessageStatus, readonly MessageStatus[]> = {
-  received: ["not_applicable", "queued", "failed"],
+  received: ["queued", "failed"],
   queued: ["processing", "failed"],
   processing: ["drafted", "sent", "escalated", "not_applicable", "failed"],
   not_applicable: [],
@@ -66,6 +67,20 @@ export function canTransition(from: MessageStatus, to: MessageStatus): boolean {
 /** Returns the statuses from which a message may move to `to`. */
 function statusesBefore(to: MessageStatus): MessageStatus[] {
   return (Object.keys(TRANSITIONS) as MessageStatus[]).filter((from) => canTransition(from, to));
+}
+
+/**
+ * Deletes a message that the gate skips (decision 0064), but only while its stored status is
+ * `received`. The check and the delete are one conditional statement, so a record that another
+ * worker has already queued is never deleted. Returns whether the record was deleted.
+ */
+export async function deleteReceivedMessage(db: Db, messageId: string): Promise<boolean> {
+  const deleted = await db
+    .delete(messages)
+    .where(and(eq(messages.id, messageId), eq(messages.status, "received")))
+    .returning({ id: messages.id });
+
+  return deleted.length > 0;
 }
 
 /**
