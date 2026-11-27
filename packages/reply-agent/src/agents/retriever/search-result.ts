@@ -89,12 +89,12 @@ export function mergePlaybooks(
   return [...byId.values()];
 }
 
-/** The outputs of the playbook tools in the messages of an agent run, in order. */
-function playbookOutputs(messages: readonly Message[]) {
+/** The outputs of the named tools in the messages of an agent run, in order. */
+function toolOutputs(messages: readonly Message[], tools: readonly string[]) {
   return messages.flatMap((message) =>
     message.role === "tool"
       ? message.content.flatMap((part) =>
-          part.type === "tool-result" && PLAYBOOK_TOOLS.some((name) => part.toolName.endsWith(name))
+          part.type === "tool-result" && tools.some((name) => part.toolName.endsWith(name))
             ? [part.output]
             : [],
         )
@@ -110,7 +110,7 @@ function playbookOutputs(messages: readonly Message[]) {
 export function collectPlaybooks(messages: readonly Message[]): Playbook[] {
   const found: Playbook[] = [];
 
-  for (const output of playbookOutputs(messages)) {
+  for (const output of toolOutputs(messages, PLAYBOOK_TOOLS)) {
     if (output.type === "text" || output.type === "json" || output.type === "content") {
       walk(output.value, found, 0);
     }
@@ -120,11 +120,14 @@ export function collectPlaybooks(messages: readonly Message[]): Playbook[] {
 }
 
 /**
- * Whether a playbook tool failed during an agent run. A failed call is a server or authorization
- * problem and not an answer without a playbook, so the caller must not record it as an escalation.
+ * Whether `search_playbooks` failed during an agent run. Its only argument is a free-text query, so
+ * a failed search is a server, authorization or connection problem and not an answer without a
+ * playbook, and the caller must not record it as an escalation. An error of `get_playbook` is not
+ * counted, because the server also reports an unknown or malformed id that the model passed as an
+ * error, and the agent can read that error and carry on.
  */
-export function playbookToolFailed(messages: readonly Message[]): boolean {
-  return playbookOutputs(messages).some(
+export function playbookSearchFailed(messages: readonly Message[]): boolean {
+  return toolOutputs(messages, ["search_playbooks"]).some(
     (output) => output.type === "error-text" || output.type === "error-json",
   );
 }

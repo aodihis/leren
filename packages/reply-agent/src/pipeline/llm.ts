@@ -1,5 +1,9 @@
-import { generateCompletion } from "@anvia/core";
-import type { CompletionModel } from "@anvia/core";
+import { REASONING_EFFORT_CONTROL_ID, generateCompletion } from "@anvia/core";
+import type {
+  CompletionControlValues,
+  CompletionModel,
+  CompletionModelControls,
+} from "@anvia/core";
 import type { z } from "zod";
 
 /** The result of reading a model's text as JSON that matches a schema. */
@@ -69,7 +73,24 @@ export interface GenerateJsonOptions<Value> {
   readonly schema: z.ZodType<Value>;
   /** The most tokens that the model may write. */
   readonly maxTokens?: number | undefined;
+  /** Values for the controls that the model declares, such as its reasoning effort. */
+  readonly controls?: CompletionControlValues<CompletionModelControls> | undefined;
   readonly abortSignal?: AbortSignal | undefined;
+}
+
+/**
+ * The lowest reasoning effort that the model accepts, as a control value, or `undefined` for a
+ * model without a reasoning effort control. A reasoning model counts its reasoning against the
+ * output token limit of a call, so every stage of the pipeline runs it at its lowest effort to keep
+ * room for the answer within the limits of decision 0066. The adapter lists the efforts of a model
+ * from the lowest to the highest.
+ */
+export function lowestReasoningEffort(
+  model: CompletionModel,
+): CompletionControlValues<CompletionModelControls> | undefined {
+  const lowest = model.controls?.[REASONING_EFFORT_CONTROL_ID]?.options[0];
+
+  return lowest === undefined ? undefined : { [REASONING_EFFORT_CONTROL_ID]: lowest };
 }
 
 /**
@@ -85,6 +106,7 @@ export async function generateJson<Value>(options: GenerateJsonOptions<Value>): 
     instructions: options.instructions,
     prompt: options.prompt,
     maxTokens: options.maxTokens,
+    controls: options.controls,
     abortSignal: options.abortSignal,
   });
 

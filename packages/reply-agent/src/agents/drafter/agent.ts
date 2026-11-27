@@ -10,7 +10,7 @@ const MAX_TURNS = 6;
 /** Everything one Reply Agent run needs. */
 export interface RunAgentOptions extends Pick<
   CreateAgentOptions,
-  "model" | "observer" | "tools" | "memory" | "maxTokens"
+  "model" | "observer" | "tools" | "memory" | "maxTokens" | "controls"
 > {
   readonly instructions: string;
   readonly prompt: AgentPrompt;
@@ -45,6 +45,7 @@ export async function generateReply(options: RunAgentOptions): Promise<ReplyRun>
       id: AGENT_ID,
       maxTurns: MAX_TURNS,
       maxTokens: options.maxTokens,
+      controls: options.controls,
       model: options.model,
       instructions: options.instructions,
       observer: options.observer,

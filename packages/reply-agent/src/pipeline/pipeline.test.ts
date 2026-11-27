@@ -1,7 +1,7 @@
 import { MaxTurnsError } from "@anvia/core";
 import type { Message } from "@anvia/core";
 import { createFakeModel } from "@leren/agents/testing";
-import type { FakeStep } from "@leren/agents/testing";
+import type { FakeModel, FakeStep } from "@leren/agents/testing";
 import { createNoopObserver } from "@leren/observability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReplyRun, RunAgentOptions } from "../agents/drafter/agent";
@@ -136,6 +136,20 @@ function setup(options: Setup) {
   return { deps, models };
 }
 
+/** The fake model with a reasoning effort control, as the adapter declares it for a reasoning model. */
+function reasoning(model: FakeModel): FakeModel {
+  return {
+    ...model,
+    controls: {
+      reasoningEffort: {
+        type: "select",
+        label: "Reasoning effort",
+        options: ["minimal", "low", "medium", "high"],
+      },
+    },
+  };
+}
+
 /** The prompt of the agent run at `index`. */
 function agentPrompt(index: number): string {
   return JSON.stringify(generateReply.mock.calls[index]?.[0].prompt);
@@ -187,6 +201,33 @@ describe("runReplyPipeline", () => {
     );
     expect(models.draft.requests[0]?.maxTokens).toBe(1200);
     expect(models.judge.requests.map((request) => request.maxTokens)).toEqual([800, 800]);
+    expect(models.triage.requests[0]?.controls).toBeUndefined();
+  });
+
+  it("runs a reasoning model at its lowest reasoning effort in every stage", async () => {
+    const { deps, models } = setup({
+      style: [styledStep],
+      judge: [passContent, passStyle],
+    });
+
+    await runReplyPipeline(
+      {
+        ...deps,
+        models: {
+          triage: reasoning(models.triage),
+          draft: reasoning(models.draft),
+          judge: reasoning(models.judge),
+        },
+      },
+      { ...input, replyInstructions: "You are Erin." },
+    );
+
+    const lowest = { reasoningEffort: "minimal" };
+
+    expect(models.triage.requests[0]?.controls).toEqual(lowest);
+    expect(generateReply).toHaveBeenCalledWith(expect.objectContaining({ controls: lowest }));
+    expect(models.draft.requests[0]?.controls).toEqual(lowest);
+    expect(models.judge.requests.map((request) => request.controls)).toEqual([lowest, lowest]);
   });
 
   it.each([
@@ -315,7 +356,33 @@ describe("runReplyPipeline", () => {
 
       const { deps } = setup({ runs: [failedSearch], judge: [] });
 
-      await expect(runReplyPipeline(deps, input)).rejects.toThrow("playbook tool");
+      await expect(runReplyPipeline(deps, input)).rejects.toThrow("playbook search");
+    });
+
+    it("answers when the agent recovers from a get_playbook error for an unknown id", async () => {
+      const recovered: ReplyRun = {
+        output: JSON.stringify(answered),
+        messages: [
+          ...searched([playbook]),
+          {
+            role: "tool",
+            content: [
+              {
+                type: "tool-result",
+                toolCallId: "c2",
+                toolName: "get_playbook",
+                output: { type: "error-text", value: "Not found" },
+              },
+            ],
+          },
+        ],
+      };
+
+      const { deps } = setup({ runs: [recovered] });
+
+      const result = await runReplyPipeline(deps, input);
+
+      expect(result).toMatchObject({ outcome: "answer", citations: ["p1"] });
     });
 
     it("drops playbooks that the gate did not name, and escalates when none is left", async () => {

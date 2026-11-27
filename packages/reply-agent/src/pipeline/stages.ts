@@ -5,7 +5,12 @@ import type { Observer } from "@leren/observability";
 import { generateReply } from "../agents/drafter/agent";
 import type { ReplyRun } from "../agents/drafter/agent";
 import { checkDraft, checkOutput } from "./guardrails";
-import { InvalidModelOutputError, generateJson, parseJsonOutput } from "./llm";
+import {
+  InvalidModelOutputError,
+  generateJson,
+  lowestReasoningEffort,
+  parseJsonOutput,
+} from "./llm";
 import {
   buildAnswerInstructions,
   buildAnswerPrompt,
@@ -20,7 +25,7 @@ import {
   collectPlaybooks,
   keepAllowed,
   mergePlaybooks,
-  playbookToolFailed,
+  playbookSearchFailed,
 } from "../agents/retriever/search-result";
 import type { Playbook } from "../agents/retriever/types";
 import {
@@ -57,7 +62,10 @@ export interface ReplyPipelineDeps {
   readonly abortSignal?: AbortSignal | undefined;
 }
 
-/** Asks one of the completion stages its question and reads the answer as `schema`. */
+/**
+ * Asks one of the completion stages its question and reads the answer as `schema`. A reasoning
+ * model runs at its lowest reasoning effort.
+ */
 function ask<Value>(
   deps: ReplyPipelineDeps,
   stage: Pick<
@@ -66,7 +74,12 @@ function ask<Value>(
   >,
   prompt: string,
 ): Promise<Value> {
-  return generateJson({ ...stage, prompt, abortSignal: deps.abortSignal });
+  return generateJson({
+    ...stage,
+    prompt,
+    controls: lowestReasoningEffort(stage.model),
+    abortSignal: deps.abortSignal,
+  });
 }
 
 /** Classifies an email. */
@@ -178,7 +191,7 @@ function describeVerdict(failed: readonly string[], feedback: string): string[] 
  * Abstention is decided in code: an answer for which the agent found no allowed playbook ends the
  * loop with a failure, so a reply is never built on nothing. A judge answer that cannot be read
  * also ends the loop with a failure, so an unchecked draft is never accepted. A failure of a model
- * call or of a playbook tool is thrown, so that the queue retries the message.
+ * call or of a playbook search is thrown, so that the queue retries the message.
  */
 export async function answerAndEvaluate(
   deps: ReplyPipelineDeps,
@@ -193,12 +206,12 @@ export async function answerAndEvaluate(
   /**
    * Adds the allowed playbooks that the searches of a run returned, also of a run that used all its
    * turns, so that a later attempt is shown them and does not have to search again. Throws when a
-   * playbook tool failed, so that a server or authorization problem is retried by the queue and is
-   * not recorded as an escalation.
+   * playbook search failed, so that a server or authorization problem is retried by the queue and
+   * is not recorded as an escalation.
    */
   const remember = (messages: readonly Message[]) => {
-    if (playbookToolFailed(messages)) {
-      throw new Error("A playbook tool of the answering agent failed.");
+    if (playbookSearchFailed(messages)) {
+      throw new Error("A playbook search of the answering agent failed.");
     }
 
     known = mergePlaybooks(known, keepAllowed(collectPlaybooks(messages), deps.allowedPlaybookIds));
@@ -229,6 +242,7 @@ export async function answerAndEvaluate(
         observer: deps.observer,
         mcp: deps.mcp,
         maxTokens: MAX_OUTPUT_TOKENS.answer,
+        controls: lowestReasoningEffort(deps.models.draft),
         abortSignal: deps.abortSignal,
       });
     } catch (error) {
