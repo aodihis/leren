@@ -327,9 +327,7 @@ export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
                         <FormLabel>Replies</FormLabel>
                         <FormControl>
                           <NativeSelect className="w-full" {...field}>
-                            <NativeSelectOption value="draft">
-                              Save as a draft for me to approve
-                            </NativeSelectOption>
+                            <NativeSelectOption value="draft">Save as draft</NativeSelectOption>
                             <NativeSelectOption value="send">
                               Send without approval
                             </NativeSelectOption>
