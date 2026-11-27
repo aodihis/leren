@@ -1,4 +1,9 @@
-import { DeliveryNotSentError, DeliveryRejectedError, getAccessToken } from "@leren/channels";
+import {
+  DeliveryNotSentError,
+  DeliveryRejectedError,
+  getAccessToken,
+  InvalidGrantError,
+} from "@leren/channels";
 import type * as Channels from "@leren/channels";
 import type { ChannelAccountsDependencies, EmailSender, OutboundReply } from "@leren/channels";
 import { channelAccounts, messages, replyDecisions, users } from "@leren/db";
@@ -153,7 +158,20 @@ describe("deliverReply", () => {
     accountId = account?.id ?? "";
   });
 
-  beforeEach(() => {
+  const accountStatus = async () => {
+    const [row] = await database.db
+      .select({ status: channelAccounts.status })
+      .from(channelAccounts)
+      .where(eq(channelAccounts.id, accountId));
+
+    return row?.status;
+  };
+
+  beforeEach(async () => {
+    await database.db
+      .update(channelAccounts)
+      .set({ status: "active" })
+      .where(eq(channelAccounts.id, accountId));
     vi.mocked(getAccessToken).mockResolvedValue("token");
     sender.readReplyContext.mockClear();
     sender.createDraft.mockClear();
@@ -200,10 +218,16 @@ describe("deliverReply", () => {
 
       expect(await run()).toBe("delivered");
 
+      const [original] = await database.db
+        .select({ providerMessageId: messages.providerMessageId })
+        .from(messages)
+        .where(eq(messages.id, messageId));
+
       const reply = {
         to: "sender@example.com",
         subject: "Re: Deadline",
         body: "The deadline is Friday.",
+        providerMessageId: original?.providerMessageId,
         threadId: "thread-1",
         messageId: `<leren-${messageId}@leren.local>`,
         inReplyTo: "<original@example.com>",
@@ -330,6 +354,35 @@ describe("deliverReply", () => {
 
       expect(await run()).toBe("delivered");
       expect(await decision()).toMatchObject({ deliveryState: "completed", deliveryAttempts: 2 });
+    });
+
+    it("makes the account revoked and fails the delivery when the mailbox refuses the credentials during the call", async () => {
+      await insertReply({ mode: "send" });
+      sender.sendReply.mockRejectedValueOnce(
+        new InvalidGrantError("The server refused the password"),
+      );
+
+      expect(await run()).toBe("refused");
+
+      expect(await decision()).toMatchObject({
+        deliveryState: "failed",
+        deliveryError: DELIVERY_UNAVAILABLE,
+      });
+      expect(await status()).toEqual({ status: "failed", reason: DELIVERY_UNAVAILABLE });
+      expect(await accountStatus()).toBe("revoked");
+    });
+
+    it("makes the account revoked without a call when the mailbox refuses the credentials while the original is read", async () => {
+      await insertReply({ mode: "draft" });
+      sender.readReplyContext.mockRejectedValueOnce(
+        new InvalidGrantError("The server refused the password"),
+      );
+
+      expect(await run()).toBe("refused");
+
+      expect(await status()).toEqual({ status: "failed", reason: DELIVERY_UNAVAILABLE });
+      expect(await accountStatus()).toBe("revoked");
+      expect(sender.createDraft).not.toHaveBeenCalled();
     });
 
     it("fails the delivery and the message when the provider refuses the reply", async () => {

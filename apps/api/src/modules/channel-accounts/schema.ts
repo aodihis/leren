@@ -15,6 +15,9 @@ export const callbackQuerySchema = z.object({
   error: z.string().max(200).optional(),
 });
 
+/** The address whose server settings are suggested. */
+export const settingsQuerySchema = z.object({ address: z.email().max(320) });
+
 /** The reasons that a connection can fail, which the callback reports to the platform. */
 export type ConnectionErrorCode =
   | "denied"

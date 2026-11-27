@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { encryptCredentials } from "@leren/channels";
+import { encryptCredentials, InvalidGrantError } from "@leren/channels";
 import type { ChannelProvider, EmailProvider, FetchResult } from "@leren/channels";
 import { channelAccounts, users } from "@leren/db";
 import { createTestDatabase } from "@leren/db/testing";
@@ -175,6 +175,22 @@ describe("the email poll", () => {
     fetchNewMail.mockRejectedValue(new Error("Gmail is unavailable"));
 
     await expect(pollAccount(enabled(), accountId)).rejects.toThrow("Gmail is unavailable");
+    expect(recordEmail).not.toHaveBeenCalled();
+    expect(await cursorOf()).toBe("100");
+  });
+
+  it("makes the account revoked and keeps the cursor when the mailbox refuses the credentials", async () => {
+    await setAccount({ syncCursor: "100" });
+    fetchNewMail.mockRejectedValue(new InvalidGrantError("The IMAP server refused the password"));
+
+    expect(await pollAccount(enabled(), accountId)).toEqual({ kind: "revoked" });
+
+    const [row] = await database.db
+      .select({ status: channelAccounts.status })
+      .from(channelAccounts)
+      .where(eq(channelAccounts.id, accountId));
+
+    expect(row?.status).toBe("revoked");
     expect(recordEmail).not.toHaveBeenCalled();
     expect(await cursorOf()).toBe("100");
   });

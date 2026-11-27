@@ -1,6 +1,6 @@
 import { channelAccounts } from "@leren/db";
 import type { Db } from "@leren/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { decryptCredentials, encryptCredentials } from "./crypto";
@@ -109,14 +109,57 @@ export async function getAccessToken(
     return refreshed.accessToken;
   } catch (error) {
     if (error instanceof InvalidGrantError) {
-      await db
-        .update(channelAccounts)
-        .set({ status: "revoked", updatedAt: new Date() })
-        .where(eq(channelAccounts.id, row.id));
+      await markAccountRevoked(db, row);
 
       return null;
     }
 
     throw error;
   }
+}
+
+/**
+ * Runs a provider call that uses the credentials of `account`. When the mailbox refuses them, the
+ * call throws `InvalidGrantError`, the account becomes `revoked` and the result says so, because
+ * nothing can be done for the account until it is connected again. Any other error is thrown.
+ */
+export async function revokeOnRefusedCredentials<T>(
+  db: Db,
+  account: Pick<AccountRow, "id" | "credentials">,
+  call: () => Promise<T>,
+): Promise<{ revoked: false; value: T } | { revoked: true }> {
+  try {
+    return { revoked: false, value: await call() };
+  } catch (error) {
+    if (error instanceof InvalidGrantError) {
+      await markAccountRevoked(db, account);
+
+      return { revoked: true };
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Makes an account `revoked` because the credentials that `account` holds stopped working
+ * (decision 0062). Only connecting the account again makes it active. The account is changed only
+ * while it still holds those credentials, so a connection that replaced them in the meantime stays
+ * active.
+ */
+export async function markAccountRevoked(
+  db: Db,
+  account: Pick<AccountRow, "id" | "credentials">,
+): Promise<void> {
+  await db
+    .update(channelAccounts)
+    .set({ status: "revoked", updatedAt: new Date() })
+    .where(
+      and(
+        eq(channelAccounts.id, account.id),
+        account.credentials === null
+          ? isNull(channelAccounts.credentials)
+          : eq(channelAccounts.credentials, account.credentials),
+      ),
+    );
 }

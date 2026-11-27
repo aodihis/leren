@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { DeliveryNotSentError, DeliveryRejectedError } from "./types";
+import { deliveryRequest } from "./delivery-request";
+import { headerMap, htmlToText, parseAddresses, readMailFlags } from "./mail-format";
 import type {
   DeliveryReceipt,
   FetchedEmail,
@@ -13,8 +14,6 @@ const API_URL = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 /** Labels of mail that the account itself wrote, which the listener never ingests. */
 const OWN_MAIL_LABELS = ["SENT", "DRAFT"];
-
-const AUTOMATIC_PRECEDENCE = new Set(["bulk", "list", "junk"]);
 
 const profileSchema = z.object({ historyId: z.string().min(1) });
 
@@ -80,22 +79,6 @@ function decodeBase64Url(data: string): string {
   return Buffer.from(data, "base64url").toString("utf8");
 }
 
-/** Converts HTML to plain text by dropping scripts and styles, breaking lines and removing tags. */
-function htmlToText(html: string): string {
-  return html
-    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
-    .replace(/<br\s*\/?>|<\/(p|div|tr|li|h[1-6])>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 function findPart(part: Part, mimeType: string): string | undefined {
   if (part.mimeType === mimeType && part.body?.data) {
     return decodeBase64Url(part.body.data);
@@ -126,37 +109,11 @@ function extractBody(payload: Part): string {
 }
 
 /**
- * Returns one address for each mailbox in a header such as `Ana <ana@example.com>, bo@example.com`.
- * A mailbox is split from the next at a comma that is outside a quoted display name. Its address is
- * the one in angle brackets when it has one, and the bare address otherwise. Quoted strings are
- * removed first, so an address written inside a display name, with or without angle brackets, is
- * never taken for the address of the mailbox.
- */
-function parseAddresses(value: string | undefined): string[] {
-  if (!value) {
-    return [];
-  }
-
-  return (value.match(/(?:"(?:[^"\\]|\\.)*"|[^,"])+/g) ?? []).flatMap((mailbox) => {
-    const unquoted = mailbox.replace(/"(?:[^"\\]|\\.)*"/g, "");
-
-    const address =
-      /<([^<>\s]+@[^<>\s]+)>/.exec(unquoted)?.[1] ?? /[^\s<>"]+@[^\s<>"]+/.exec(unquoted)?.[0];
-
-    return address ? [address.toLowerCase()] : [];
-  });
-}
-
-/**
  * Converts a Gmail message to an email. A message is a reply when it names the message it answers,
  * and it is bulk when its headers say it was sent to a list or by a program.
  */
 export function parseGmailMessage(message: GmailMessage): FetchedEmail {
-  const headers = new Map(
-    (message.payload.headers ?? []).map((header) => [header.name.toLowerCase(), header.value]),
-  );
-
-  const autoSubmitted = headers.get("auto-submitted")?.trim().toLowerCase();
+  const headers = headerMap(message.payload.headers ?? []);
 
   return {
     providerMessageId: message.id,
@@ -166,11 +123,7 @@ export function parseGmailMessage(message: GmailMessage): FetchedEmail {
     cc: parseAddresses(headers.get("cc")),
     subject: headers.get("subject") ?? "",
     body: extractBody(message.payload),
-    isReply: headers.has("in-reply-to") || headers.has("references"),
-    isBulk:
-      headers.has("list-unsubscribe") ||
-      AUTOMATIC_PRECEDENCE.has(headers.get("precedence")?.trim().toLowerCase() ?? "") ||
-      (autoSubmitted !== undefined && autoSubmitted !== "no"),
+    ...readMailFlags(headers),
     receivedAt: new Date(Number(message.internalDate)),
   };
 }
@@ -294,8 +247,6 @@ const sentSchema = z.object({ id: z.string().min(1) });
 
 const draftSchema = z.object({ id: z.string().min(1) });
 
-const NOT_REACHED_CODES = new Set(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"]);
-
 const HEADER_VALUE = /^[ -~]*$/;
 
 /** Removes line breaks, so a value can never end a header or start another one. */
@@ -362,22 +313,13 @@ export async function readGmailReplyContext(
       ),
     );
 
-  const headers = new Map(
-    (message.payload.headers ?? []).map((header) => [header.name.toLowerCase(), header.value]),
-  );
+  const headers = headerMap(message.payload.headers ?? []);
 
   return {
     messageId: headers.get("message-id")?.trim() ?? null,
     references: headers.get("references")?.trim() ?? null,
     replyTo: parseAddresses(headers.get("reply-to"))[0] ?? null,
   };
-}
-
-/** Reads the error code that the network layer attached to a failed request, if any. */
-function networkCode(error: unknown): unknown {
-  return error instanceof Error && error.cause instanceof Error
-    ? (error.cause as { code?: unknown }).code
-    : undefined;
 }
 
 const rateLimitErrorSchema = z.object({
@@ -406,47 +348,18 @@ async function postGmail(
   path: string,
   body: unknown,
 ): Promise<unknown> {
-  let response: Response;
-
-  try {
-    response = await send(`${API_URL}${path}`, {
+  const response = await deliveryRequest(
+    send,
+    `${API_URL}${path}`,
+    {
       method: "POST",
       headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
       body: JSON.stringify(body),
-    });
-  } catch (error) {
-    const code = networkCode(error);
+    },
+    { service: "Gmail", label: path, isRateLimit },
+  );
 
-    if (typeof code === "string" && NOT_REACHED_CODES.has(code)) {
-      throw new DeliveryNotSentError(`Gmail was not reached: ${code}`);
-    }
-
-    throw error;
-  }
-
-  if (response.ok) {
-    return response.json();
-  }
-
-  const message = `Gmail request ${path} failed with status ${response.status}`;
-
-  if (response.status === 429 || response.status === 401) {
-    throw new DeliveryNotSentError(message);
-  }
-
-  if (response.status === 403) {
-    const answer: unknown = await response.json().catch(() => undefined);
-
-    throw isRateLimit(answer)
-      ? new DeliveryNotSentError(message)
-      : new DeliveryRejectedError("forbidden", message);
-  }
-
-  if (response.status >= 400 && response.status < 500) {
-    throw new DeliveryRejectedError("rejected", message);
-  }
-
-  throw new Error(message);
+  return response.json();
 }
 
 /** Creates a draft in the mailbox and returns its id with the whole answer of Gmail. */

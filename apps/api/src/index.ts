@@ -125,6 +125,7 @@ const app = createApp({
     cookieSecret: config.BETTER_AUTH_SECRET,
     apiUrl: config.API_URL,
     platformUrl: config.PLATFORM_URL,
+    rateLimiter,
   },
   connectors: {
     ...connectorDependencies,

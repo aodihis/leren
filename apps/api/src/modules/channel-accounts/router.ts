@@ -1,9 +1,12 @@
 import { randomBytes } from "node:crypto";
 
+import { imapSettingsInputSchema, isSignInProvider, SignInError } from "@leren/channels";
 import type { ChannelAccountsDependencies } from "@leren/channels";
 import type { Db } from "@leren/db";
 import type { Logger } from "@leren/logger";
+import type { RateLimitRule, RateLimiter } from "@leren/rate-limit";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
 import { z } from "zod";
 
@@ -12,7 +15,12 @@ import { validate } from "../../validation";
 import { requireUser } from "../auth/middleware";
 import type { AuthVariables } from "../auth/middleware";
 import type { Auth } from "../auth/service";
-import { callbackQuerySchema, channelAccountParamsSchema, providerParamsSchema } from "./schema";
+import {
+  callbackQuerySchema,
+  channelAccountParamsSchema,
+  providerParamsSchema,
+  settingsQuerySchema,
+} from "./schema";
 import type { ConnectionErrorCode } from "./schema";
 import {
   disconnectChannelAccount,
@@ -34,14 +42,28 @@ const pendingConnectionSchema = z.object({
 });
 
 /**
+ * The most times that one user may try to sign in to a mail server, so the product cannot be used
+ * to guess passwords (decision 0063).
+ */
+export const SIGN_IN_RULE: RateLimitRule = { limit: 5, windowSeconds: 15 * 60 };
+
+/**
+ * The most server settings that one user may look up. Each lookup makes requests to hosts that the
+ * user chose, so it is limited like a sign-in (decision 0063).
+ */
+export const SETTINGS_RULE: RateLimitRule = { limit: 20, windowSeconds: 15 * 60 };
+
+/**
  * What the router needs beyond the account functions. `cookieSecret` signs the cookie that holds
  * a pending connection. `apiUrl` is the origin that providers redirect back to and `platformUrl`
- * is where the callback sends the browser afterwards.
+ * is where the callback sends the browser afterwards. `rateLimiter` limits sign-ins to mail
+ * servers and lookups of their settings. Without it, neither is limited.
  */
 export type ChannelAccountsRouterDependencies = ChannelAccountsDependencies & {
   cookieSecret: string;
   apiUrl: string;
   platformUrl: string;
+  rateLimiter?: RateLimiter | undefined;
 };
 
 /**
@@ -67,6 +89,11 @@ export const NO_CHANNEL_PROVIDERS: ChannelAccountsRouterDependencies = {
  * `state` equals the query's and the session's user is the cookie's user. The cookie is cleared on
  * every callback, so a `state` value is used once. The cookie is `SameSite=Lax` because the
  * provider's redirect is a cross-site navigation. Tokens are never logged.
+ *
+ * A provider that signs in to a mail server is connected with `POST /:provider/sign-in` instead,
+ * and its connect and callback routes answer with not found. The `imap` provider is the only one,
+ * so the route validates its settings and answers invalid ones with `fieldErrors`. The settings
+ * hold a password, so they are never logged, and a failed sign-in is answered with its reason only.
  */
 export function createChannelAccountsRouter({
   auth,
@@ -89,6 +116,39 @@ export function createChannelAccountsRouter({
 
   const failure = (code: ConnectionErrorCode) => backToPlatform({ error: code });
 
+  /**
+   * Counts one request of `userId` against `rule`. A request over the limit sets `Retry-After`.
+   * The limit protects hosts and passwords, so it fails closed: when the counter store fails, the
+   * request is `unavailable` and an error is logged.
+   */
+  const checkLimit = async (
+    c: Context,
+    action: string,
+    userId: string,
+    rule: RateLimitRule,
+  ): Promise<"allowed" | "limited" | "unavailable"> => {
+    if (!dependencies.rateLimiter) {
+      return "allowed";
+    }
+
+    try {
+      const result = await dependencies.rateLimiter.consume(`channel-${action}:${userId}`, rule);
+
+      if (!result.allowed) {
+        c.header("Retry-After", String(result.retryAfterSeconds));
+      }
+
+      return result.allowed ? "allowed" : "limited";
+    } catch (caught) {
+      logger.error("A channel account rate limit is unavailable, so the request was refused", {
+        action,
+        error: caught,
+      });
+
+      return "unavailable";
+    }
+  };
+
   return new Hono<{ Variables: AuthVariables }>()
     .use("/api/channel-accounts/*", requireUser(auth))
     .use("/api/channel-accounts", requireUser(auth))
@@ -99,10 +159,88 @@ export function createChannelAccountsRouter({
         name: provider.name,
         channel: provider.channel,
         displayName: provider.displayName,
+        connection: isSignInProvider(provider) ? ("sign-in" as const) : ("redirect" as const),
       }));
 
       return c.json({ providers, accounts }, 200);
     })
+    .get(
+      "/api/channel-accounts/:provider/settings",
+      validate("param", providerParamsSchema),
+      validate("query", settingsQuerySchema),
+      async (c) => {
+        const provider = dependencies.providers.get(c.req.valid("param").provider);
+
+        if (!provider || !isSignInProvider(provider) || !provider.suggestSettings) {
+          return c.json({ error: "Not found" }, 404);
+        }
+
+        const limit = await checkLimit(c, "settings", c.get("userId"), SETTINGS_RULE);
+
+        if (limit === "limited") {
+          return c.json({ error: "too_many_attempts" as const }, 429);
+        }
+
+        if (limit === "unavailable") {
+          return c.json({ error: "unavailable" as const }, 503);
+        }
+
+        return c.json(
+          { settings: await provider.suggestSettings(c.req.valid("query").address) },
+          200,
+        );
+      },
+    )
+    .post(
+      "/api/channel-accounts/:provider/sign-in",
+      validate("param", providerParamsSchema),
+      validate("json", imapSettingsInputSchema),
+      async (c) => {
+        const provider = dependencies.providers.get(c.req.valid("param").provider);
+        const userId = c.get("userId");
+
+        if (!provider || !isSignInProvider(provider)) {
+          return c.json({ error: "Not found" }, 404);
+        }
+
+        const limit = await checkLimit(c, "sign-in", userId, SIGN_IN_RULE);
+
+        if (limit === "limited") {
+          return c.json({ error: "too_many_attempts" as const }, 429);
+        }
+
+        if (limit === "unavailable") {
+          return c.json({ error: "unavailable" as const }, 503);
+        }
+
+        let authorised;
+
+        try {
+          authorised = await provider.signIn(c.req.valid("json"));
+        } catch (caught) {
+          if (caught instanceof z.ZodError) {
+            return c.json({ error: "invalid_settings" as const }, 400);
+          }
+
+          if (caught instanceof SignInError) {
+            return c.json({ error: caught.reason }, 422);
+          }
+
+          logger.error("Signing in to a mail server failed", {
+            provider: provider.name,
+            error: caught instanceof Error ? caught.name : "unknown",
+          });
+
+          return c.json({ error: "failed" as const }, 502);
+        }
+
+        const result = await saveAuthorisedAccount(db, dependencies, userId, provider, authorised);
+
+        return result.status === "saved"
+          ? c.json({ status: "connected" as const, account: result.account }, 201)
+          : c.json({ error: result.status }, 409);
+      },
+    )
     .post(
       "/api/channel-accounts/:provider/connect",
       validate("param", providerParamsSchema),
@@ -111,7 +249,7 @@ export function createChannelAccountsRouter({
         const userId = c.get("userId");
         const userEmail = provider ? await getUserEmail(db, userId) : null;
 
-        if (!provider || !userEmail) {
+        if (!provider || isSignInProvider(provider) || !userEmail) {
           return c.json({ error: "Not found" }, 404);
         }
 
@@ -163,7 +301,7 @@ export function createChannelAccountsRouter({
       async (c) => {
         const provider = dependencies.providers.get(c.req.valid("param").provider);
 
-        if (!provider) {
+        if (!provider || isSignInProvider(provider)) {
           return c.json({ error: "Not found" }, 404);
         }
 

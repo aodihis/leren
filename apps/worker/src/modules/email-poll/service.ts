@@ -1,4 +1,4 @@
-import { getAccessToken, isEmailProvider } from "@leren/channels";
+import { getAccessToken, isEmailProvider, revokeOnRefusedCredentials } from "@leren/channels";
 import type { ChannelAccountsDependencies } from "@leren/channels";
 import { channelAccounts } from "@leren/db";
 import type { Db } from "@leren/db";
@@ -19,12 +19,14 @@ export type EmailPollDependencies = {
  * nothing. `gap` is true when the poll had a cursor that the provider could no longer resume from,
  * so mail that arrived since then was not ingested. `skipped` means that the account cannot be
  * polled: it is gone, revoked, has a provider that is disabled or cannot read a mailbox, or has no
- * usable credentials.
+ * usable credentials. `revoked` means that the mailbox refused the stored credentials during this
+ * poll, so the account was made `revoked` (decision 0062).
  */
 export type PollOutcome =
   | { kind: "ingested"; count: number; unreadable: string[] }
   | { kind: "baseline"; gap: boolean }
-  | { kind: "skipped" };
+  | { kind: "skipped" }
+  | { kind: "revoked" };
 
 /**
  * Returns the ids of the accounts that the listener polls: the active accounts whose provider is
@@ -77,7 +79,15 @@ export async function pollAccount(
     return { kind: "skipped" };
   }
 
-  const result = await provider.fetchNewMail(accessToken, account.syncCursor);
+  const fetched = await revokeOnRefusedCredentials(db, account, () =>
+    provider.fetchNewMail(accessToken, account.syncCursor),
+  );
+
+  if (fetched.revoked) {
+    return { kind: "revoked" };
+  }
+
+  const result = fetched.value;
 
   for (const email of result.emails) {
     await recordEmail({
