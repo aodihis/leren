@@ -25,8 +25,9 @@ describe("truncate", () => {
 describe("canTransition", () => {
   it.each([
     ["received", "queued", true],
-    ["received", "not_applicable", true],
+    ["received", "not_applicable", false],
     ["queued", "processing", true],
+    ["processing", "not_applicable", true],
     ["processing", "drafted", true],
     ["drafted", "sent", true],
     ["drafted", "failed", true],

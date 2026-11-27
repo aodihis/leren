@@ -16,7 +16,7 @@ You can also ask the assistant chat to look up, suggest or change playbooks. It 
 
 | Status           | Meaning                                                              |
 | ---------------- | -------------------------------------------------------------------- |
-| `not_applicable` | No active playbook handles it, so Leren left it alone.               |
+| `not_applicable` | Leren decided it needs no reply, so it left it alone.                |
 | `drafted`        | A reply waits as a draft in your mailbox. Edit it and send it.       |
 | `sent`           | A playbook in `send` mode replied without asking you.                |
 | `escalated`      | Leren could not answer reliably. The reason is shown. You answer it. |

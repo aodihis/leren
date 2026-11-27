@@ -94,9 +94,9 @@ Email listener ─▶ message record (status: received) ─▶ [email.received]
                                 │
                                 ▼
                        Gate (worker, code only)
-                         - duplicates are one record, by provider message id
+                         - duplicates of a kept record are one record, by provider message id
                          - find the user's active playbooks for the account
-                         - none handles it: status "not applicable", with the reason, and stop
+                         - none handles it: delete the record and stop
                          - otherwise status "queued"
                                 │
                                 ▼
@@ -136,14 +136,14 @@ input guardrail ─▶ triage ─▶ retrieve ─▶ route ─▶ draft ─▶ e
 
 ## Message records
 
-Every received email has one record, so the user can see in the dashboard what arrived and where it stands. A record holds the channel, the provider and the provider's message and thread ids, the sender, the recipients, the subject, a body that is cut at 20,000 characters and the time it was received. When processing ends, the email addresses and phone numbers in the subject and the body are replaced with `[redacted]`, and the addresses of the sender and the recipients are kept (decision 0059). It holds no attachments, headers or credentials.
+Every email that a playbook handles has one record, so the user can see in the dashboard what arrived and where it stands. The record of an email that no playbook handles is deleted by the gate (decision 0064). A record holds the channel, the provider and the provider's message and thread ids, the sender, the recipients, the subject, a body that is cut at 20,000 characters and the time it was received. When processing ends, the email addresses and phone numbers in the subject and the body are replaced with `[redacted]`, and the addresses of the sender and the recipients are kept (decision 0059). It holds no attachments, headers or credentials.
 
 The status is updated as the message passes through the pipeline, and it only moves forward.
 
 | Status           | Meaning                                                |
 | ---------------- | ------------------------------------------------------ |
 | `received`       | The email is recorded and waits for the gate.          |
-| `not_applicable` | No playbook handles it. The reason is stored with it.  |
+| `not_applicable` | The pipeline found that it does not apply.             |
 | `queued`         | The gate passed it to the pipeline.                    |
 | `processing`     | The pipeline is working on it.                         |
 | `drafted`        | A reply is ready. In draft mode it is in the mailbox.  |
@@ -159,7 +159,7 @@ The **Processed emails** page of the platform shows these records: a list with a
 
 ## Dashboard and playbook report
 
-The overview of the platform shows how many emails arrived in the last 30 days, how many the assistant answered, escalated or ignored, and the latest failures, which are emails that failed or whose reply could not be delivered. Each count links to the matching Processed emails list. `GET /api/dashboard/overview` returns the counts and takes `days`, from 1 to 365.
+The overview of the platform shows how many emails that a playbook handles arrived in the last 30 days, how many the assistant answered, escalated or ignored, and the latest failures, which are emails that failed or whose reply could not be delivered. Each count links to the matching Processed emails list. `GET /api/dashboard/overview` returns the counts and takes `days`, from 1 to 365.
 
 A playbook whose period has ended has a report: the emails it was used for during the period, grouped by outcome and by delivery state, and how many replies cite it. `GET /api/dashboard/playbooks/:id/report` answers `409` with `period_not_ended` while the period is open or has no end:
 
