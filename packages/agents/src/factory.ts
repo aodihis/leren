@@ -7,12 +7,13 @@ import type { Observer } from "@leren/observability";
  *
  * The fields come from Anvia's `AgentOptions`. The instructions and the turn limit are required
  * here, and the observer replaces Anvia's observability options. `maxTokens` limits the tokens
- * that the model writes in each turn.
+ * that the model writes in each turn, and `controls` sets the model's declared controls, such as
+ * its reasoning effort, for each turn.
  */
 export type CreateAgentOptions = Required<Pick<AgentOptions, "instructions" | "maxTurns">> &
   Pick<
     AgentOptions,
-    "id" | "model" | "mcpServers" | "tools" | "memory" | "skills" | "maxTokens"
+    "id" | "model" | "mcpServers" | "tools" | "memory" | "skills" | "maxTokens" | "controls"
   > & {
     readonly observer: Observer;
   };
@@ -30,6 +31,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     instructions: options.instructions,
     maxTurns: options.maxTurns,
     maxTokens: options.maxTokens,
+    controls: options.controls,
     mcpServers: options.mcpServers,
     tools: options.tools,
     memory: options.memory,

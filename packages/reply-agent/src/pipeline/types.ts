@@ -16,7 +16,8 @@ export const MAX_BODY_LENGTH = 3000;
 /**
  * The most tokens that each model call of a stage may write (decision 0066). The limit of the
  * answering agent applies to each of its turns. A reasoning model counts its reasoning against the
- * limit as well. An answer that is cut off is not valid JSON, so the stage treats it as unreadable.
+ * limit as well, so every stage runs it at its lowest reasoning effort. An answer that is cut off is
+ * not valid JSON, so the stage treats it as unreadable.
  */
 export const MAX_OUTPUT_TOKENS = {
   triage: 600,
