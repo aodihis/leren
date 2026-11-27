@@ -1,4 +1,10 @@
-import type { SearchResult, VectorMetadata, VectorRecord, VectorStore } from "./types";
+import type {
+  SearchResult,
+  VectorFilter,
+  VectorMetadata,
+  VectorRecord,
+  VectorStore,
+} from "./types";
 
 type Collection = {
   dimensions: number;
@@ -24,14 +30,20 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-function matchesFilter(metadata: VectorMetadata, filter: VectorMetadata): boolean {
-  return Object.entries(filter).every(([key, value]) => metadata[key] === value);
+function matchesFilter(metadata: VectorMetadata, filter: VectorFilter): boolean {
+  return Object.entries(filter).every(([key, value]) => {
+    const actual = metadata[key];
+
+    return Array.isArray(value)
+      ? typeof actual === "string" && value.includes(actual)
+      : actual === value;
+  });
 }
 
 /**
  * Creates a `VectorStore` that keeps every collection in memory, for tests.
  *
- * It follows the behavior of the Qdrant store: cosine similarity, exact-match metadata filters,
+ * It follows the behavior of the Qdrant store: cosine similarity, metadata filters by value or list,
  * upsert by id, and an error when a collection does not exist. It also rejects vectors whose
  * length differs from the collection's dimensions, as Qdrant does.
  */

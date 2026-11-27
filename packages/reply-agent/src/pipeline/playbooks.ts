@@ -1,6 +1,18 @@
 import type { Message } from "@anvia/core";
-import { playbookSchema } from "./types";
-import type { Playbook } from "./types";
+import { z } from "zod";
+
+/**
+ * A playbook that a playbook tool returned. Only the fields that the stages read are required, and
+ * the rest of the view is kept as it arrived.
+ */
+const playbookSchema = z.looseObject({
+  id: z.string().min(1),
+  topic: z.string(),
+  information: z.string(),
+  instruction: z.string().optional(),
+});
+
+export type Playbook = z.infer<typeof playbookSchema>;
 
 const MAX_DEPTH = 8;
 
@@ -50,15 +62,6 @@ function walk(value: unknown, found: Playbook[], depth: number): void {
   for (const child of Object.values(value)) {
     walk(child, found, depth + 1);
   }
-}
-
-/** Returns the playbooks inside a tool result, in order, without repeats. */
-export function readPlaybooks(value: unknown): Playbook[] {
-  const found: Playbook[] = [];
-
-  walk(value, found, 0);
-
-  return mergePlaybooks([], found);
 }
 
 /**

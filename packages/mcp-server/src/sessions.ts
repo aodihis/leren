@@ -28,6 +28,11 @@ export type McpSession = {
   role: ClientRole;
   scopes: readonly Scope[];
   messageId: string | null;
+  /**
+   * The only playbooks that a reply session can read: the ones that the email gate allowed for its
+   * message. It is null for every other role, whose sessions can read all of the user's playbooks.
+   */
+  playbookIds: readonly string[] | null;
   /** The label of an access token that a user created, and null for a session of a built-in agent. */
   name: string | null;
 };
@@ -39,6 +44,11 @@ export type MintSessionInput = {
   scopes?: readonly Scope[];
   /** The message a reply session is for. Required for the reply role and rejected for others. */
   messageId?: string;
+  /**
+   * The playbooks that the email gate allowed for the message of a reply session. Required for the
+   * reply role and rejected for others. An empty list lets the session read no playbook.
+   */
+  playbookIds?: readonly string[];
   /** A label that marks the session as an access token that the user created and can list. */
   name?: string;
   ttlSeconds?: number;
@@ -77,6 +87,10 @@ export async function mintSession(
     throw new Error("Only the reply role takes a message id, and it requires one");
   }
 
+  if ((input.role === "reply") !== (input.playbookIds !== undefined)) {
+    throw new Error("Only the reply role takes playbook ids, and it requires them");
+  }
+
   const key = signingKey(secret);
   const issuedAt = now();
 
@@ -91,6 +105,7 @@ export async function mintSession(
       role: input.role,
       scopes: [...scopes],
       messageId: input.messageId ?? null,
+      playbookIds: input.playbookIds ? [...new Set(input.playbookIds)] : null,
       name: input.name ?? null,
       expiresAt,
     })
@@ -110,7 +125,9 @@ export async function mintSession(
 /**
  * Returns the session a token stands for, or `null` for any reason it cannot be used: a bad
  * signature, an expired token, an unknown session, a session of another user, a revoked or expired
- * row, or a token that claims scopes the row does not grant. The caller cannot tell which.
+ * row, a token that claims scopes the row does not grant, or a reply session without the list of
+ * playbooks it may read. The caller cannot tell which. The last check makes a reply session fail
+ * closed, so it never reads every playbook of the user.
  */
 export async function verifySession(
   { db, secret, now = () => new Date() }: SessionDependencies,
@@ -142,6 +159,10 @@ export async function verifySession(
     return null;
   }
 
+  if ((row.role === "reply") !== (row.playbookIds !== null)) {
+    return null;
+  }
+
   const claimed = Array.isArray(payload.scopes) ? payload.scopes : [];
   const granted = row.scopes.filter(isScope);
 
@@ -155,6 +176,7 @@ export async function verifySession(
     role: row.role,
     scopes: granted,
     messageId: row.messageId,
+    playbookIds: row.playbookIds,
     name: row.name,
   };
 }

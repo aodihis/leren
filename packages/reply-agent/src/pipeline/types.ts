@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Playbook } from "../agents/retriever/types";
+import type { Playbook } from "./playbooks";
 
 /** The most revisions of a content draft that the content judge may ask for (decision 0066). */
 export const MAX_REVISIONS = 2;

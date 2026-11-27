@@ -1,7 +1,7 @@
 import type { Harness } from "@leren/agents";
 import { PROMPT_CANARY } from "./guardrails";
 import { MAX_INSTRUCTIONS_LENGTH } from "./types";
-import type { Playbook } from "../agents/retriever/types";
+import type { Playbook } from "./playbooks";
 import type { Category } from "./types";
 
 /** The fixed prompts of the reply pipeline, which the harness config names. */

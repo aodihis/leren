@@ -1,7 +1,7 @@
 import { playbooks } from "@leren/db";
 import type { Db } from "@leren/db";
 import type { Embedder } from "@leren/embedder";
-import type { VectorStore } from "@leren/vector-db";
+import type { VectorFilter, VectorStore } from "@leren/vector-db";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { KNOWLEDGE_COLLECTION } from "./indexing";
@@ -33,11 +33,13 @@ export type KnowledgeSearchDependencies = {
 
 /**
  * What a search is for. `userId` is mandatory, so a search can never read the playbooks of another
- * user.
+ * user. `playbookIds`, when it is a list, limits the search to those playbooks inside the index, so
+ * the other playbooks of the user never take a place among the candidates.
  */
 export type KnowledgeSearchQuery = {
   userId: string;
   text: string;
+  playbookIds?: readonly string[] | null;
 };
 
 export type KnowledgeSearchOptions = {
@@ -82,7 +84,7 @@ export async function searchKnowledge(
     limit = KNOWLEDGE_SEARCH_LIMIT,
   } = options;
 
-  if (!query.text.trim()) {
+  if (!query.text.trim() || query.playbookIds?.length === 0) {
     return NO_RELIABLE_RESULT;
   }
 
@@ -90,10 +92,14 @@ export async function searchKnowledge(
 
   const [vector] = await embedder.embed([query.text], { signal: options.signal });
 
-  const filter: Pick<KnowledgeVectorMetadata, "userId" | "type"> = {
+  const filter: VectorFilter = {
     userId: query.userId,
-    type: "knowledge",
+    type: "knowledge" satisfies KnowledgeVectorMetadata["type"],
   };
+
+  if (query.playbookIds) {
+    filter.playbookId = query.playbookIds;
+  }
 
   const candidates = (
     await store.search({

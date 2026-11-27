@@ -22,7 +22,15 @@ function createLogger() {
 }
 
 function session(userId: string, name: string | null = "Agent"): McpSession {
-  return { id: `session-${userId}`, userId, role: "assistant", scopes: [], messageId: null, name };
+  return {
+    id: `session-${userId}`,
+    userId,
+    role: "assistant",
+    scopes: [],
+    messageId: null,
+    playbookIds: null,
+    name,
+  };
 }
 
 describe("MCP rate limit", () => {
