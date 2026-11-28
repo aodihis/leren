@@ -159,14 +159,38 @@ async function findOwnedPlaybook(db: Db, userId: string, playbookId: string) {
   return playbook;
 }
 
-const playbookIdArgs = z.object({ playbookId: z.uuid() });
-
-const listPlaybooksArgs = z.object({
-  enabled: z.boolean().optional(),
-  usableOnly: z.boolean().optional(),
+const playbookIdArgs = z.object({
+  playbookId: z
+    .uuid()
+    .describe(
+      "The id of the playbook, copied from the id field of a list_playbooks result. A topic is not an id. To find a playbook by its topic, call list_playbooks without filters.",
+    ),
 });
 
-const searchPlaybooksArgs = z.object({ query: z.string().min(1).max(2000) });
+const listPlaybooksArgs = z.object({
+  enabled: z
+    .boolean()
+    .optional()
+    .describe(
+      "true lists only the enabled playbooks and false only the disabled ones. Leave it out to list every playbook, such as when looking for a playbook by its topic.",
+    ),
+  usableOnly: z
+    .boolean()
+    .optional()
+    .describe(
+      "true lists only the playbooks that can be used in a reply now. Leave it out to also list the disabled and expired ones.",
+    ),
+});
+
+const searchPlaybooksArgs = z.object({
+  query: z
+    .string()
+    .min(1)
+    .max(2000)
+    .describe(
+      "The text of an incoming message, to test whether the enabled playbooks that are valid now cover it. It does not find a playbook by its topic or id.",
+    ),
+});
 
 type RunTool = (tool: string, body: () => Promise<ToolOutcome>) => Promise<CallToolResult>;
 
@@ -280,7 +304,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
       "list_playbooks",
       {
         description:
-          "List the user's playbooks with their conditions, optionally only the enabled or only the disabled ones, or only the playbooks that are usable now.",
+          "List the user's playbooks with their conditions, optionally only the enabled or only the disabled ones, or only the playbooks that are usable now. Without a filter it lists every playbook, which is how to find a playbook by its topic.",
         inputSchema: listPlaybooksArgs,
       },
       (args) =>
@@ -334,7 +358,11 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
 
     server.registerTool(
       "get_playbook",
-      { description: "Get one playbook of the user.", inputSchema: playbookIdArgs },
+      {
+        description:
+          "Get one playbook of the user by its id. The id comes from a tool result, such as list_playbooks. A topic is not an id.",
+        inputSchema: playbookIdArgs,
+      },
       ({ playbookId }) =>
         run("get_playbook", async () => {
           const playbook = canRead(playbookId)
@@ -378,7 +406,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
       "search_playbooks",
       {
         description:
-          "Find the enabled playbooks that are valid now and match a text. Returns no matches when nothing is reliably close.",
+          "Find the enabled playbooks that are valid now and match a text. Returns no matches when nothing is reliably close. It tests whether a text is covered. It is not a lookup by topic, because it leaves out disabled and expired playbooks.",
         inputSchema: searchPlaybooksArgs,
       },
       ({ query }) =>

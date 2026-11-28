@@ -41,4 +41,4 @@ When only one field is missing, ask for it in one short sentence. Do not guess a
 
 ## Present and confirm
 
-Show each draft with its topic, information and period, and one line with the defaults that apply. Say how many playbooks you made. Do not call `create_playbook` until the user clearly confirms the exact content.
+Start with the source that you read, for example "From your Notion page Holiday list 2026:". Show each draft with its topic, information and period, and one line with the defaults that apply. Say how many playbooks you made. Do not call `create_playbook` until the user clearly confirms the exact content.

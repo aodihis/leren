@@ -1,4 +1,4 @@
-export { createAssistantAgent, runAgent } from "./agent";
+export { ASSISTANT_REASONING_EFFORT, createAssistantAgent, runAgent } from "./agent";
 
 export { allowedTools } from "./utils/mcp";
 

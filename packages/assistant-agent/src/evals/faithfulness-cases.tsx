@@ -43,6 +43,7 @@ const THREE_PLAYBOOKS_CONTEXT = [
 
 const EMPTY_CONTEXT = [
   "The user has no playbooks. The list_playbooks tool returns an empty list and search_playbooks finds nothing.",
+  "Playbooks are the only source of the user's policies, so the assistant has no information about any policy of the user, such as a refund policy.",
 ];
 
 const HOLIDAY_PAGE = {
@@ -52,7 +53,10 @@ const HOLIDAY_PAGE = {
     "Company holidays in 2026. 17 August 2026: Independence Day, the office is closed. 25 December 2026: Christmas Day, the office is closed. 29 December 2026: Company retreat day, the office is closed.",
 };
 
-const HOLIDAY_CONTEXT = `The Notion page '${HOLIDAY_PAGE.title}' says: ${HOLIDAY_PAGE.content}`;
+const HOLIDAY_CONTEXT = [
+  `The user's Notion page '${HOLIDAY_PAGE.title}' says: ${HOLIDAY_PAGE.content}`,
+  `The page '${HOLIDAY_PAGE.title}' lists three days on which the office is closed: 17 August 2026, Independence Day. 25 December 2026, Christmas Day. 29 December 2026, Company retreat day.`,
+];
 
 /**
  * Cases for whether what the agent says about the user's data is supported by what the tools
@@ -150,7 +154,7 @@ export const faithfulnessCases = defineEvalCases([
       playbooks: [],
       notion: [HOLIDAY_PAGE],
     },
-    retrievalContext: [HOLIDAY_CONTEXT],
+    retrievalContext: HOLIDAY_CONTEXT,
     metadata: {
       note: "Good case: the answer reports the dates and the reasons as the page gives them.",
     },
@@ -167,7 +171,7 @@ export const faithfulnessCases = defineEvalCases([
       playbooks: [],
       notion: [HOLIDAY_PAGE],
     },
-    retrievalContext: [HOLIDAY_CONTEXT, "The page says nothing about who covers the phones."],
+    retrievalContext: [...HOLIDAY_CONTEXT, "The page says nothing about who covers the phones."],
     metadata: {
       note: "Bad case: the page holds no information on phone cover, and the answer must not name anyone.",
     },

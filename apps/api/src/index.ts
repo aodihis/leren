@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { loadHarness, resolveEmbeddingModel } from "@leren/agents";
+import { ASSISTANT_REASONING_EFFORT } from "@leren/assistant-agent";
 import { createChannelProviders, parseEncryptionKey } from "@leren/channels";
 import { createConnectors } from "@leren/connectors";
 import { createDb } from "@leren/db";
@@ -89,13 +90,15 @@ function createSearchDependencies() {
 async function createAssistant() {
   try {
     const loaded = await loadHarness();
+    const { model, controls } = loaded.taskModel("assistant", ASSISTANT_REASONING_EFFORT);
 
     return createAgent({
       sessions: { db, secret: config.MCP_SESSION_SECRET },
       mcpUrl: `http://127.0.0.1:${config.PORT}/mcp`,
       logger,
       instructions: await loaded.readPrompt("assistant"),
-      model: loaded.createModel("assistant"),
+      model,
+      controls,
       observer,
       db,
       connectors: connectorDependencies,
