@@ -8,6 +8,7 @@ await runSuites({
     "drafter-content": () => import("./drafter/content"),
     "drafter-quality": () => import("./drafter/quality"),
     "pipeline-deterministic": () => import("./pipeline/deterministic"),
+    "pipeline-quality": () => import("./pipeline/quality"),
   },
   requested: process.argv.slice(2),
   close: closeObserver,

@@ -106,3 +106,17 @@ export const MEETING_KICKOFF = playbook({
   information:
     "The Atlas client kickoff is on Tuesday 25 August at 09:30 in Sentosa Hall, Bandung office.",
 });
+
+export const CANCEL_PAYMENT = playbook({
+  id: "pb-cancel-payment",
+  topic: "Cancelling a payment for the Atlas offsite",
+  information:
+    "To cancel a payment for the Atlas offsite, the sender cancels it at https://pay.example.com/cancel with the booking reference within 24 hours of paying. The money returns to the original card in 5 to 7 working days. There is no fee.",
+});
+
+export const CANCEL_RESERVATION = playbook({
+  id: "pb-cancel-reservation",
+  topic: "Cancelling a reservation for the Atlas offsite",
+  information:
+    "To cancel a room reservation for the Atlas offsite, the sender emails reservations@hotel.example with the booking reference at least 24 hours before check-in. A later cancellation costs one night's rate.",
+});
