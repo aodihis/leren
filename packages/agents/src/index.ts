@@ -1,6 +1,7 @@
 export {
   EMBEDDING_MODEL_ENV,
   MODEL_TASK_ENV,
+  REASONING_EFFORTS,
   defineHarnessConfig,
   resolveEmbeddingModel,
   resolveTaskModel,

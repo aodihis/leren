@@ -1,8 +1,10 @@
 /** The wire protocols an OpenAI-compatible endpoint can speak. */
 export type ModelApi = "responses" | "chat";
 
-/** The reasoning effort levels a model can be asked to use. */
-export type ReasoningEffort = "minimal" | "low" | "medium" | "high";
+/** The reasoning effort levels a model can be asked to use, from the lowest to the highest. */
+export const REASONING_EFFORTS = ["minimal", "low", "medium", "high"] as const;
+
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
 /**
  * One model the harness can run an agent on, together with the client that talks to it.
@@ -10,8 +12,10 @@ export type ReasoningEffort = "minimal" | "low" | "medium" | "high";
  * `modelId` is the identifier the provider expects. `apiKeyEnv` names the environment variable that
  * holds the credentials, so the config file never contains a secret. `baseUrl` selects the
  * endpoint of an OpenAI-compatible service and defaults to the provider's own. `api` selects the
- * wire protocol and defaults to `"responses"`. When `reasoningEfforts` is empty the model does not
- * support reasoning effort, and `defaultReasoningEffort` must be omitted.
+ * wire protocol and defaults to `"responses"`. `reasoningEfforts` lists the efforts that the model
+ * accepts, and a model with efforts must name its `defaultReasoningEffort`, which every call uses
+ * unless it asks for another listed effort. An empty list means that the model does not reason,
+ * and `defaultReasoningEffort` must be omitted.
  */
 export interface ModelDefinition {
   readonly provider: "openai";
@@ -118,12 +122,26 @@ export function resolveTaskModel(
     !env[variable] && fallbackVariable && env[fallbackVariable] ? fallbackVariable : variable;
 
   const key = env[source] || config.defaultModel;
+
+  return resolveModel(config, key, env, `${source}="${key}"`);
+}
+
+/**
+ * Resolves a model of the config by its key, with its API key from `env`. Throws when the key is
+ * not a model of the config, naming it as `label`, or when the model's API key is not set.
+ */
+export function resolveModel(
+  config: HarnessConfig,
+  key: string,
+  env: NodeJS.ProcessEnv = process.env,
+  label = `"${key}"`,
+): ResolvedModel {
   const definition = config.models[key];
 
   if (!definition) {
     const available = Object.keys(config.models).join(", ");
 
-    throw new Error(`${source}="${key}" is not a model in the harness. Available: ${available}`);
+    throw new Error(`${label} is not a model in the harness. Available: ${available}`);
   }
 
   const apiKey = env[definition.apiKeyEnv];

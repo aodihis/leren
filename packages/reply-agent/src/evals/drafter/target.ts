@@ -1,12 +1,12 @@
 import { MaxTurnsError, createTool } from "@anvia/core";
 import type { AnyTool, Message } from "@anvia/core";
 import type { EvalTarget } from "@anvia/core/evals";
-import { loadHarness } from "@leren/agents";
+import { loadHarness, resolveTaskModel } from "@leren/agents";
 import { z } from "zod";
 import { generateReply } from "../../agents/drafter/agent";
 import { allowedTools } from "../../agents/drafter/utils/mcp";
 import { prepareEmail, wrapUntrusted } from "../../pipeline/guardrails";
-import { lowestReasoningEffort, parseJsonOutput } from "../../pipeline/llm";
+import { parseJsonOutput } from "../../pipeline/llm";
 import { collectPlaybooks, keepAllowed } from "../../pipeline/playbooks";
 import type { Playbook } from "../../pipeline/playbooks";
 import {
@@ -157,7 +157,7 @@ function toolCallsOf(messages: readonly Message[]): ToolCall[] {
 }
 
 const harness = await loadHarness();
-const model = harness.createModel("reply");
+const drafter = harness.model(resolveTaskModel(harness.config, "reply").key);
 const prompts = await readReplyPrompts(harness);
 
 /**
@@ -198,11 +198,11 @@ export const target: EvalTarget<DrafterInput, DrafterOutput> = async (
         feedback: [],
         previousBody: undefined,
       }),
-      model,
+      model: drafter.model,
       observer,
       tools: offered.map(([, tool]) => tool),
       maxTokens: MAX_OUTPUT_TOKENS.answer,
-      controls: lowestReasoningEffort(model),
+      controls: drafter.controls,
       abortSignal: context?.signal,
     });
 

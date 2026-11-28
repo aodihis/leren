@@ -1,5 +1,7 @@
 import { MaxTurnsError, createTool } from "@anvia/core";
 import type { Message } from "@anvia/core";
+import { REASONING_EFFORTS } from "@leren/agents";
+import type { Harness, ReasoningEffort } from "@leren/agents";
 import { createFakeModel } from "@leren/agents/testing";
 import type { FakeModel, FakeStep } from "@leren/agents/testing";
 import { createNoopObserver } from "@leren/observability";
@@ -103,6 +105,43 @@ interface Setup {
   readonly judge?: FakeStep[];
   /** The agent runs in order. An error is thrown by that run. */
   readonly runs?: (ReplyRun | Error)[];
+  /** The default reasoning effort of every model in the harness config. */
+  readonly defaultEffort?: ReasoningEffort;
+}
+
+/**
+ * A harness that serves the fake models by their keys. Every model declares every reasoning effort,
+ * and is called with the effort that it is asked for or with the default of the setup.
+ */
+function fakeHarness(
+  models: Readonly<Record<string, FakeModel>>,
+  defaultEffort: ReasoningEffort | undefined,
+): Pick<Harness, "model"> {
+  return {
+    model: (key, reasoning) => {
+      const fake = models[key];
+
+      if (!fake) {
+        throw new Error(`Unknown model ${key}`);
+      }
+
+      const effort = reasoning ?? defaultEffort;
+
+      return {
+        model: {
+          ...fake,
+          controls: {
+            reasoningEffort: {
+              type: "select",
+              label: "Reasoning effort",
+              options: [...REASONING_EFFORTS],
+            },
+          },
+        },
+        controls: effort === undefined ? undefined : { reasoningEffort: effort },
+      };
+    },
+  };
 }
 
 function setup(options: Setup) {
@@ -123,7 +162,8 @@ function setup(options: Setup) {
   }
 
   const deps: ReplyPipelineDeps = {
-    models,
+    harness: fakeHarness(models, options.defaultEffort),
+    models: { triage: "triage", draft: "draft", judge: "judge" },
     prompts: {
       rules: "Be brief.",
       triage: "Triage.",
@@ -135,20 +175,6 @@ function setup(options: Setup) {
   };
 
   return { deps, models };
-}
-
-/** The fake model with a reasoning effort control, as the adapter declares it for a reasoning model. */
-function reasoning(model: FakeModel): FakeModel {
-  return {
-    ...model,
-    controls: {
-      reasoningEffort: {
-        type: "select",
-        label: "Reasoning effort",
-        options: ["minimal", "low", "medium", "high"],
-      },
-    },
-  };
 }
 
 /** The prompt of the agent run at `index`. */
@@ -210,8 +236,20 @@ describe("runReplyPipeline", () => {
       }),
     );
     expect(models.draft.requests[0]?.maxTokens).toBe(1200);
-    expect(models.judge.requests.map((request) => request.maxTokens)).toEqual([800, 800]);
-    expect(models.triage.requests[0]?.controls).toBeUndefined();
+    expect(models.judge.requests.map((request) => request.maxTokens)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it("asks triage for the minimal effort and sends no effort to a model without a default", async () => {
+    const { deps, models } = setup({});
+
+    await runReplyPipeline(deps, input);
+
+    expect(models.triage.requests[0]?.controls).toEqual({ reasoningEffort: "minimal" });
+    expect(models.judge.requests[0]?.controls).toBeUndefined();
+    expect(generateReply).toHaveBeenCalledWith(expect.objectContaining({ controls: undefined }));
   });
 
   it("gives the answering agent the extra tools of the dependencies", async () => {
@@ -231,30 +269,21 @@ describe("runReplyPipeline", () => {
     expect(generateReply).toHaveBeenCalledWith(expect.objectContaining({ tools }));
   });
 
-  it("runs a reasoning model at its lowest reasoning effort in every stage", async () => {
+  it("runs every stage but triage at the model's default effort", async () => {
     const { deps, models } = setup({
       style: [styledStep],
       judge: [passContent, passStyle],
+      defaultEffort: "medium",
     });
 
-    await runReplyPipeline(
-      {
-        ...deps,
-        models: {
-          triage: reasoning(models.triage),
-          draft: reasoning(models.draft),
-          judge: reasoning(models.judge),
-        },
-      },
-      { ...input, replyInstructions: "You are Erin." },
-    );
+    await runReplyPipeline(deps, { ...input, replyInstructions: "You are Erin." });
 
-    const lowest = { reasoningEffort: "minimal" };
+    const medium = { reasoningEffort: "medium" };
 
-    expect(models.triage.requests[0]?.controls).toEqual(lowest);
-    expect(generateReply).toHaveBeenCalledWith(expect.objectContaining({ controls: lowest }));
-    expect(models.draft.requests[0]?.controls).toEqual(lowest);
-    expect(models.judge.requests.map((request) => request.controls)).toEqual([lowest, lowest]);
+    expect(models.triage.requests[0]?.controls).toEqual({ reasoningEffort: "minimal" });
+    expect(generateReply).toHaveBeenCalledWith(expect.objectContaining({ controls: medium }));
+    expect(models.draft.requests[0]?.controls).toEqual(medium);
+    expect(models.judge.requests.map((request) => request.controls)).toEqual([medium, medium]);
   });
 
   it.each([

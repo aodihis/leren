@@ -6,6 +6,7 @@ import type { PipelineRunner } from "./service";
 
 /** What the pipeline runner needs from the process. It is built once and shared by every run. */
 export type PipelineRunnerOptions = {
+  harness: ReplyPipelineDeps["harness"];
   models: ReplyPipelineDeps["models"];
   /** The fixed prompts of the reply pipeline. */
   prompts: ReplyPipelineDeps["prompts"];
@@ -22,6 +23,7 @@ export function createPipelineRunner(options: PipelineRunnerOptions): PipelineRu
   return ({ input, allowedPlaybookIds, token, signal }) =>
     runReplyPipeline(
       {
+        harness: options.harness,
         models: options.models,
         prompts: options.prompts,
         observer: options.observer,

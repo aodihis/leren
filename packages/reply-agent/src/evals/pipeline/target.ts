@@ -1,7 +1,7 @@
 import { createTool } from "@anvia/core";
 import type { AnyTool } from "@anvia/core";
 import type { EvalTarget } from "@anvia/core/evals";
-import { loadHarness } from "@leren/agents";
+import { loadHarness, resolveTaskModel } from "@leren/agents";
 import { z } from "zod";
 import { allowedTools } from "../../agents/drafter/utils/mcp";
 import { runReplyPipeline } from "../../pipeline/pipeline";
@@ -78,9 +78,9 @@ function createFakePlaybookTools(playbooks: readonly Playbook[]): Record<string,
 const harness = await loadHarness();
 
 const models = {
-  triage: harness.createModel("replyTriage"),
-  draft: harness.createModel("reply"),
-  judge: harness.createModel("replyJudge"),
+  triage: resolveTaskModel(harness.config, "replyTriage").key,
+  draft: resolveTaskModel(harness.config, "reply").key,
+  judge: resolveTaskModel(harness.config, "replyJudge").key,
 };
 
 const prompts = await readReplyPrompts(harness);
@@ -101,6 +101,7 @@ export const target: EvalTarget<PipelineCaseInput, PipelineCaseOutput> = async (
 
   const result = await runReplyPipeline(
     {
+      harness,
       models,
       prompts,
       observer,

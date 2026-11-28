@@ -1,8 +1,9 @@
 # 0067. The reply stages run a reasoning model at its lowest reasoning effort
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-27
 - Affects: packages/reply-agent, packages/agents, harness.config.ts
+- Superseded by: [0069](0069-reasoning-effort-from-the-harness-config.md)
 
 ## Context
 

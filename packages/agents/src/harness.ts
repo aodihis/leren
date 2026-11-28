@@ -2,9 +2,10 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { REASONING_EFFORT_CONTROL_ID } from "@anvia/core";
 import type { CompletionModel } from "@anvia/core";
-import { resolveTaskModel } from "./config";
-import type { AgentName, HarnessConfig, ModelTask } from "./config";
+import { resolveModel, resolveTaskModel } from "./config";
+import type { AgentName, HarnessConfig, ModelTask, ReasoningEffort } from "./config";
 import { createModel } from "./model";
 
 const CONFIG_FILE = "harness.config.ts";
@@ -21,6 +22,18 @@ export interface Harness {
   readPrompt(agent: AgentName): Promise<string>;
   /** Builds the model that `task` runs on, as selected by its environment variable. */
   createModel(task: ModelTask): CompletionModel;
+  /**
+   * Builds the model of the config with the key `key`, and the controls to call it with. The call
+   * uses `reasoning` when the model lists it, and otherwise the model's default effort, so a model
+   * is never asked for an effort that it does not accept. A model without efforts gets no controls.
+   */
+  model(key: string, reasoning?: ReasoningEffort): HarnessModel;
+}
+
+/** A model of the harness and the control values to call it with. */
+export interface HarnessModel {
+  readonly model: CompletionModel;
+  readonly controls: { readonly [REASONING_EFFORT_CONTROL_ID]: ReasoningEffort } | undefined;
 }
 
 /** Where to look for the config file, and which environment holds the API keys. */
@@ -69,6 +82,10 @@ export function validateHarnessConfig(config: HarnessConfig): void {
     if (effort !== undefined && !model.reasoningEfforts.includes(effort)) {
       throw new Error(`The default reasoning effort of "${name}" is not one of its efforts.`);
     }
+
+    if (effort === undefined && model.reasoningEfforts.length > 0) {
+      throw new Error(`"${name}" lists reasoning efforts but has no default reasoning effort.`);
+    }
   }
 }
 
@@ -103,20 +120,47 @@ export async function loadHarness(options: LoadHarnessOptions = {}): Promise<Har
 
   validateHarnessConfig(config);
 
+  /** The models that were built, by key and requested effort, so a model is built only once. */
+  const built = new Map<string, HarnessModel>();
+
+  const model = (key: string, reasoning?: ReasoningEffort): HarnessModel => {
+    const cacheKey = `${key}:${reasoning ?? ""}`;
+    const cached = built.get(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
+    const { definition, apiKey } = resolveModel(config, key, env);
+    const efforts = definition.reasoningEfforts;
+
+    const effort =
+      reasoning !== undefined && efforts.includes(reasoning)
+        ? reasoning
+        : definition.defaultReasoningEffort;
+
+    const result = {
+      model: createModel({
+        apiKey,
+        modelId: definition.modelId,
+        baseUrl: definition.baseUrl,
+        api: definition.api,
+        reasoningEfforts: efforts,
+      }),
+      controls: effort === undefined ? undefined : { [REASONING_EFFORT_CONTROL_ID]: effort },
+    };
+
+    built.set(cacheKey, result);
+
+    return result;
+  };
+
   return {
     config,
     rootDir,
     pluginsDir: resolve(rootDir, config.pluginsDir),
     readPrompt: (agent) => readFile(resolve(rootDir, config.prompts[agent]), "utf8"),
-    createModel(task) {
-      const { definition, apiKey } = resolveTaskModel(config, task, env);
-
-      return createModel({
-        apiKey,
-        modelId: definition.modelId,
-        baseUrl: definition.baseUrl,
-        api: definition.api,
-      });
-    },
+    createModel: (task) => model(resolveTaskModel(config, task, env).key).model,
+    model,
   };
 }

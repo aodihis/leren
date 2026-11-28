@@ -24,6 +24,17 @@ const CONFIG = `export default {
       maxOutputTokens: 100,
       reasoningEfforts: [],
     },
+    thinker: {
+      provider: "openai",
+      modelId: "thinker-1",
+      apiKeyEnv: "TEST_KEY",
+      baseUrl: "https://gateway.test/v1",
+      api: "chat",
+      contextWindow: 1000,
+      maxOutputTokens: 100,
+      reasoningEfforts: ["minimal", "low"],
+      defaultReasoningEffort: "low",
+    },
   },
   defaultModel: "small",
   pluginsDir: "plugins",
@@ -65,6 +76,19 @@ describe("loadHarness", () => {
     expect(harness.createModel("reply")).toBeDefined();
   });
 
+  it("calls a model with the effort it is asked for when it lists it, and else with its default", async () => {
+    const harness = await loadHarness({ startDir: paths.root, env: { TEST_KEY: "key" } });
+    const minimal = harness.model("thinker", "minimal");
+
+    expect(minimal.model.controls?.reasoningEffort?.options).toEqual(["minimal", "low"]);
+    expect(minimal.controls).toEqual({ reasoningEffort: "minimal" });
+    expect(harness.model("thinker").controls).toEqual({ reasoningEffort: "low" });
+    expect(harness.model("thinker", "high").controls).toEqual({ reasoningEffort: "low" });
+    expect(harness.model("small", "minimal").controls).toBeUndefined();
+    expect(harness.model("thinker", "minimal")).toBe(minimal);
+    expect(() => harness.model("other")).toThrow('"other" is not a model in the harness');
+  });
+
   it("reports a missing API key and an unknown model", async () => {
     const missingKey = await loadHarness({ startDir: paths.root, env: {} });
 
@@ -93,5 +117,16 @@ describe("loadHarness", () => {
     );
 
     await expect(loadHarness({ startDir: paths.root })).rejects.toThrow("reasoning effort");
+  });
+
+  it("rejects a model that lists reasoning efforts without a default", async () => {
+    await writeFile(
+      join(paths.root, "harness.config.ts"),
+      CONFIG.replace('      defaultReasoningEffort: "low",\n', ""),
+    );
+
+    await expect(loadHarness({ startDir: paths.root })).rejects.toThrow(
+      '"thinker" lists reasoning efforts but has no default reasoning effort.',
+    );
   });
 });

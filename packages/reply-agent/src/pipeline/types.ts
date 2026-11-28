@@ -14,16 +14,16 @@ export const MAX_QUESTIONS = 5;
 export const MAX_BODY_LENGTH = 3000;
 
 /**
- * The most tokens that each model call of a stage may write (decision 0066). The limit of the
- * answering agent applies to each of its turns. A reasoning model counts its reasoning against the
- * limit as well, so every stage runs it at its lowest reasoning effort (decision 0067). An answer
- * that is cut off is not valid JSON, so the stage treats it as unreadable.
+ * The most tokens that each model call of a stage may write (decision 0066). The limit of
+ * the answering agent applies to each of its turns. A reasoning model counts its reasoning against
+ * the limit as well, so its effort must leave room for the answer. The judges have no limit, so
+ * that their reasoning cannot cut off a verdict (decision 0069). An answer that is cut off is not
+ * valid JSON, so the stage treats it as unreadable.
  */
 export const MAX_OUTPUT_TOKENS = {
   triage: 600,
   answer: 1500,
   style: 1200,
-  judge: 800,
 } as const;
 
 /** The longest reply instructions, in characters, that the pipeline passes to the drafter. */
