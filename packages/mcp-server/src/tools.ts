@@ -250,6 +250,14 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
   const holds = (scope: Scope) => session.scopes.includes(scope);
 
   /**
+   * Whether the session may read a playbook. A reply session reads only the playbooks that the
+   * email gate allowed for its message, and every other playbook is reported as not found, so the
+   * model of the run never sees a playbook that was meant for another sender.
+   */
+  const canRead = (playbookId: string) =>
+    session.playbookIds === null || session.playbookIds.includes(playbookId);
+
+  /**
    * Runs a tool body, audits it and shapes the result. A body that throws is audited as
    * `unavailable` and reports a generic error, so internals are not exposed to the model.
    */
@@ -289,6 +297,9 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
               and(
                 eq(playbooks.userId, session.userId),
                 args.enabled === undefined ? undefined : eq(playbooks.enabled, args.enabled),
+                session.playbookIds === null
+                  ? undefined
+                  : inArray(playbooks.id, [...session.playbookIds]),
               ),
             )
             .orderBy(desc(playbooks.createdAt));
@@ -329,7 +340,9 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
       { description: "Get one playbook of the user.", inputSchema: playbookIdArgs },
       ({ playbookId }) =>
         run("get_playbook", async () => {
-          const playbook = await findOwnedPlaybook(db, session.userId, playbookId);
+          const playbook = canRead(playbookId)
+            ? await findOwnedPlaybook(db, session.userId, playbookId)
+            : undefined;
 
           if (!playbook) {
             return notFound({ playbookId });
@@ -383,7 +396,7 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
 
           const result = await searchKnowledge(
             { db, ...deps.search },
-            { userId: session.userId, text: query },
+            { userId: session.userId, text: query, playbookIds: session.playbookIds },
             { now },
           );
 
@@ -426,9 +439,10 @@ export function createMcpServer(session: McpSession, deps: McpToolDependencies):
       async (uri, variables) => {
         const id = String(variables.id);
 
-        const playbook = z.uuid().safeParse(id).success
-          ? await findOwnedPlaybook(db, session.userId, id)
-          : undefined;
+        const playbook =
+          z.uuid().safeParse(id).success && canRead(id)
+            ? await findOwnedPlaybook(db, session.userId, id)
+            : undefined;
 
         await writeAudit(db, session, "resource:playbook", playbook ? "ok" : "not_found", {
           playbookId: id,

@@ -21,13 +21,8 @@ import {
   defaultInstructions,
 } from "./prompts";
 import type { ReplyPrompts } from "./prompts";
-import {
-  collectPlaybooks,
-  keepAllowed,
-  mergePlaybooks,
-  playbookSearchFailed,
-} from "../agents/retriever/search-result";
-import type { Playbook } from "../agents/retriever/types";
+import { collectPlaybooks, keepAllowed, mergePlaybooks, playbookSearchFailed } from "./playbooks";
+import type { Playbook } from "./playbooks";
 import {
   CONTENT_CRITERIA,
   MAX_OUTPUT_TOKENS,

@@ -5,7 +5,7 @@ import type { FakeModel, FakeStep } from "@leren/agents/testing";
 import { createNoopObserver } from "@leren/observability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReplyRun, RunAgentOptions } from "../agents/drafter/agent";
-import type { Playbook } from "../agents/retriever/types";
+import type { Playbook } from "./playbooks";
 import type { ReplyPipelineDeps } from "./stages";
 
 const { generateReply } = vi.hoisted(() => ({

@@ -371,9 +371,10 @@ export const mcpClientRoleEnum = pgEnum("mcp_client_role", ["assistant", "reply"
 /**
  * MCP sessions. The id is the `jti` of the signed token, so a token is valid only while its row
  * exists, has not expired and is not revoked. `scopes` is the set granted at minting time and
- * `messageId` is set only for a reply session. `name` is set only for an access token that the user
- * created in the dashboard, and is null for the short-lived sessions that the built-in agents open.
- * A session is removed with its user.
+ * `messageId` and `playbookIds` are set only for a reply session: `playbookIds` holds the playbooks
+ * that the email gate allowed for that message, and the session can read no other playbook. `name`
+ * is set only for an access token that the user created in the dashboard, and is null for the
+ * short-lived sessions that the built-in agents open. A session is removed with its user.
  */
 export const mcpSessions = pgTable(
   "mcp_sessions",
@@ -385,6 +386,7 @@ export const mcpSessions = pgTable(
     role: mcpClientRoleEnum("role").notNull(),
     scopes: text("scopes").array().notNull(),
     messageId: text("message_id"),
+    playbookIds: uuid("playbook_ids").array(),
     name: text("name"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),

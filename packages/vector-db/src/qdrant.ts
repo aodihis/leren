@@ -104,7 +104,7 @@ export function createQdrantStore(url: string, apiKey?: string): VectorStore {
     async search({ collection, vector, limit, filter }) {
       const must = Object.entries(filter ?? {}).map(([key, value]) => ({
         key,
-        match: { value },
+        match: Array.isArray(value) ? { any: [...value] } : { value },
       }));
 
       const { points } = await client.query(collection, {

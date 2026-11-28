@@ -4,8 +4,8 @@ import { checkOutput, prepareEmail, wrapUntrusted } from "./guardrails";
 import type { PreparedEmail } from "./guardrails";
 import { answerAndEvaluate, needsStyle, styleAndEvaluate, triage } from "./stages";
 import type { ReplyPipelineDeps } from "./stages";
-import { keepAllowed } from "../agents/retriever/search-result";
-import type { Playbook } from "../agents/retriever/types";
+import { keepAllowed } from "./playbooks";
+import type { Playbook } from "./playbooks";
 import { MAX_QUESTIONS, MIN_TRIAGE_CONFIDENCE, pipelineInputSchema } from "./types";
 import type { Draft, Evaluation, Outcome, PipelineInput, ReplyResult, Triage } from "./types";
 

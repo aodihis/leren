@@ -4,7 +4,9 @@ import { closeObserver } from "./observer";
 /** Runs the named reply evals, or all of them. */
 await runSuites({
   suites: {
-    recall: () => import("./recall/recall"),
+    "drafter-tool-calls": () => import("./drafter/tool-calls"),
+    "drafter-content": () => import("./drafter/content"),
+    "drafter-quality": () => import("./drafter/quality"),
   },
   requested: process.argv.slice(2),
   close: closeObserver,

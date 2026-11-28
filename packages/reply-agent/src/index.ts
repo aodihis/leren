@@ -18,4 +18,4 @@ export type {
   Verdict,
 } from "./pipeline";
 
-export type { Playbook } from "./agents/retriever";
+export type { Playbook } from "./pipeline/playbooks";

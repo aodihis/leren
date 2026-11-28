@@ -74,7 +74,7 @@ describe("the reply session", () => {
     await database.drop();
   });
 
-  it("binds the session to the owner of the message and to the message", async () => {
+  it("binds the session to the owner, the message and the playbooks of the job", async () => {
     const minted = await openReplySession(deps(), job(ownPlaybookId));
     const session = await verifySession(deps(), minted.token);
 
@@ -83,6 +83,7 @@ describe("the reply session", () => {
       role: "reply",
       messageId,
       scopes: ["playbooks:read"],
+      playbookIds: [ownPlaybookId],
     });
     expect(minted.expiresAt.getTime() - NOW.getTime()).toBe(REPLY_SESSION_TTL_SECONDS * 1000);
   });
