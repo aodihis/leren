@@ -6,6 +6,7 @@ import type {
   Message,
 } from "@anvia/core";
 import { runAgent } from "@leren/assistant-agent";
+import type { AssistantAgentOptions } from "@leren/assistant-agent";
 import { listConnectorSessions } from "@leren/connectors";
 import type { ConnectorsDependencies } from "@leren/connectors";
 import type { Db } from "@leren/db";
@@ -31,6 +32,7 @@ export type AgentOptions = {
   mcpUrl: string;
   instructions: string;
   model: CompletionModel;
+  controls?: AssistantAgentOptions["controls"];
   observer: Observer;
   logger: Logger;
   db: Db;
@@ -60,6 +62,7 @@ export function createAgent(options: AgentOptions): Agent {
       yield* runAgent({
         instructions: options.instructions,
         model: options.model,
+        controls: options.controls,
         observer: options.observer,
         messages: input.messages,
         memory: input.memory,

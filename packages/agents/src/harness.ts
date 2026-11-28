@@ -22,6 +22,8 @@ export interface Harness {
   readPrompt(agent: AgentName): Promise<string>;
   /** Builds the model that `task` runs on, as selected by its environment variable. */
   createModel(task: ModelTask): CompletionModel;
+  /** Builds the model that `task` runs on and the controls to call it with, as `model` does. */
+  taskModel(task: ModelTask, reasoning?: ReasoningEffort): HarnessModel;
   /**
    * Builds the model with the key `key` and the controls to call it with. It uses `reasoning` when
    * the model lists it and the model's default effort otherwise, so a model is never asked for an
@@ -155,12 +157,16 @@ export async function loadHarness(options: LoadHarnessOptions = {}): Promise<Har
     return result;
   };
 
+  const taskModel = (task: ModelTask, reasoning?: ReasoningEffort): HarnessModel =>
+    model(resolveTaskModel(config, task, env).key, reasoning);
+
   return {
     config,
     rootDir,
     pluginsDir: resolve(rootDir, config.pluginsDir),
     readPrompt: (agent) => readFile(resolve(rootDir, config.prompts[agent]), "utf8"),
-    createModel: (task) => model(resolveTaskModel(config, task, env).key).model,
+    createModel: (task) => taskModel(task).model,
+    taskModel,
     model,
   };
 }

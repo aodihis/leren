@@ -9,7 +9,7 @@ import type {
   UserMessage,
 } from "@anvia/core";
 import { createAgent } from "@leren/agents";
-import type { CreateAgentOptions, McpOptions } from "@leren/agents";
+import type { CreateAgentOptions, McpOptions, ReasoningEffort } from "@leren/agents";
 import { tools } from "./tools";
 import { connectAssistantMcp, connectExternalMcpServers } from "./utils/mcp";
 import type { ExternalMcpServer } from "./utils/mcp";
@@ -18,10 +18,16 @@ const AGENT_ID = "assistant";
 const MAX_TURNS = 75;
 const SKILLS_DIR = fileURLToPath(new URL("../skills", import.meta.url));
 
+/**
+ * The reasoning effort that the Assistant Agent asks its model for. A model that does not list it
+ * runs at its default effort from the harness config.
+ */
+export const ASSISTANT_REASONING_EFFORT: ReasoningEffort = "minimal";
+
 /** Everything needed to build the Assistant Agent. */
 export interface AssistantAgentOptions extends Pick<
   CreateAgentOptions,
-  "model" | "observer" | "tools" | "memory"
+  "model" | "observer" | "tools" | "memory" | "controls"
 > {
   readonly instructions: string;
   readonly mcp?: McpOptions | undefined;
@@ -74,6 +80,7 @@ export async function createAssistantAgent(
       id: AGENT_ID,
       maxTurns: MAX_TURNS,
       model: options.model,
+      controls: options.controls,
       instructions: options.instructions,
       observer: options.observer,
       mcpServers: [...(connection?.servers ?? []), ...(external?.servers ?? [])],

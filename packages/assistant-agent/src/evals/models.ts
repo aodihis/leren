@@ -1,15 +1,17 @@
 import type { CompletionModel } from "@anvia/core";
 import { loadHarness } from "@leren/agents";
+import type { HarnessModel } from "@leren/agents";
 import { getJudgeModel as selectJudgeModel } from "@leren/evals";
+import { ASSISTANT_REASONING_EFFORT } from "../agent";
 
 /**
- * Builds the model that the Assistant Agent runs on during an eval. It is the model that
- * `ASSISTANT_MODEL` selects, so an eval measures the model that the product uses.
+ * Builds the model that the Assistant Agent runs on during an eval and the controls to call it
+ * with. They are the ones the product uses, so an eval measures the product's model and effort.
  */
-export async function getAgentModel(): Promise<CompletionModel> {
+export async function getAgentModel(): Promise<HarnessModel> {
   const harness = await loadHarness();
 
-  return harness.createModel("assistant");
+  return harness.taskModel("assistant", ASSISTANT_REASONING_EFFORT);
 }
 
 /** Reads the system prompt that the product gives the Assistant Agent. */

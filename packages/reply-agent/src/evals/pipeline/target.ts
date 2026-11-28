@@ -48,7 +48,7 @@ function createFakePlaybookTools(playbooks: readonly Playbook[]): Record<string,
     search_playbooks: createTool({
       name: "search_playbooks",
       description:
-        "Find the enabled playbooks that are valid now and match a text. Returns no matches when nothing is reliably close.",
+        "Find the enabled playbooks that are valid now and match a text. Returns no matches when nothing is reliably close. It tests whether a text is covered. It is not a lookup by topic, because it leaves out disabled and expired playbooks.",
       inputSchema: z.object({ query: z.string().min(1).max(2000) }),
       handler: () =>
         playbooks.length === 0
@@ -60,8 +60,15 @@ function createFakePlaybookTools(playbooks: readonly Playbook[]): Record<string,
     }),
     get_playbook: createTool({
       name: "get_playbook",
-      description: "Get one playbook of the user.",
-      inputSchema: z.object({ playbookId: z.string() }),
+      description:
+        "Get one playbook of the user by its id. The id comes from a tool result, such as list_playbooks or search_playbooks. A topic is not an id.",
+      inputSchema: z.object({
+        playbookId: z
+          .string()
+          .describe(
+            "The id of the playbook, copied from the id field of a tool result, such as list_playbooks or search_playbooks. A topic is not an id.",
+          ),
+      }),
       handler: ({ playbookId }) => {
         const item = playbooks.find((entry) => entry.id === playbookId);
 

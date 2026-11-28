@@ -106,7 +106,10 @@ describe("API entry point", () => {
     mocks.parseEncryptionKey.mockReturnValue(Buffer.alloc(32));
     mocks.loadHarness.mockResolvedValue({
       readPrompt: async () => "You are the assistant.",
-      createModel: () => ({}),
+      taskModel: (task: string, reasoning: string) => ({
+        model: {},
+        controls: { task, reasoning },
+      }),
     });
     mocks.resolveEmbeddingModel.mockReturnValue({
       apiKey: "key",
@@ -137,7 +140,10 @@ describe("API entry point", () => {
       channelAccounts: { encryptionKey: Buffer.alloc(32), platformUrl: "http://app.test" },
     });
     expect(mocks.createAgent).toHaveBeenCalledWith(
-      expect.objectContaining({ mcpUrl: "http://127.0.0.1:3000/mcp" }),
+      expect.objectContaining({
+        mcpUrl: "http://127.0.0.1:3000/mcp",
+        controls: { task: "assistant", reasoning: "minimal" },
+      }),
     );
     expect(mocks.serve).toHaveBeenCalledWith(
       expect.objectContaining({ port: 3000 }),

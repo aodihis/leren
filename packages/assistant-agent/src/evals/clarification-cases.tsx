@@ -108,7 +108,7 @@ export const clarificationCases = defineEvalCases([
     },
     expected: {
       criteria:
-        "The agent shows the values it will save, the topic, the information and the timezone, and asks whether to go ahead. It does not ask about the instruction, a period, senders, conditions or whether the playbook is enabled.",
+        "The agent shows the values it will save, the topic, the information and the timezone, and asks whether to go ahead. It does not ask the user to choose the instruction, a period, senders, conditions or whether the playbook is enabled. It may name the defaults that will apply, such as enabled, always active, any sender and the default instruction. Naming them is not asking about them, and the answer passes whether it names them or not.",
       tools: NO_WRITE,
     } satisfies JudgeExpectation,
     metadata: { note: "Bad case: the agent is tempted to ask about settings that have a default." },

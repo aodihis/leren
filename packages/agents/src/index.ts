@@ -29,7 +29,7 @@ export type { McpConnection, McpConnectionOptions, McpOptions } from "./mcp";
 
 export { findHarnessConfig, loadHarness, validateHarnessConfig } from "./harness";
 
-export type { Harness, LoadHarnessOptions } from "./harness";
+export type { Harness, HarnessModel, LoadHarnessOptions } from "./harness";
 
 export { createModel } from "./model";
 
