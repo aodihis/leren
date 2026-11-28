@@ -1,5 +1,5 @@
 import { EvalOutcome, createEvalTypes, runEvalCli } from "@anvia/core/evals";
-import { getJudgeModel } from "../drafter/models";
+import { getJudgeModel } from "./models";
 import { reporters } from "../observer";
 import { gradeCitations, gradeOutcome } from "./graders";
 import type { Verdict } from "./graders";
