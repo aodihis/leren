@@ -90,8 +90,14 @@ function createFakeMcpTools(playbooks: readonly Playbook[]): Record<string, AnyT
     get_playbook: createTool({
       name: "get_playbook",
       description:
-        "Get one playbook of the user by its id. The id comes from a tool result, such as list_playbooks. A topic is not an id.",
-      inputSchema: z.object({ playbookId: z.string() }),
+        "Get one playbook of the user by its id. The id comes from a tool result, such as list_playbooks or search_playbooks. A topic is not an id.",
+      inputSchema: z.object({
+        playbookId: z
+          .string()
+          .describe(
+            "The id of the playbook, copied from the id field of a tool result, such as list_playbooks or search_playbooks. A topic is not an id.",
+          ),
+      }),
       handler: ({ playbookId }) => {
         const item = playbooks.find((entry) => entry.id === playbookId);
 

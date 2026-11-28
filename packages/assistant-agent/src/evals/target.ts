@@ -371,12 +371,12 @@ function createFakePlaybookTools(
     createTool({
       name: "get_playbook",
       description:
-        "Get one playbook of the user by its id. The id comes from a tool result, such as list_playbooks. A topic is not an id.",
+        "Get one playbook of the user by its id. The id comes from a tool result, such as list_playbooks or search_playbooks. A topic is not an id.",
       inputSchema: z.object({
         playbookId: z
           .string()
           .describe(
-            "The id of the playbook, copied from the id field of a list_playbooks result. A topic is not an id. To find a playbook by its topic, call list_playbooks without filters.",
+            "The id of the playbook, copied from the id field of a tool result, such as list_playbooks or search_playbooks. A topic is not an id.",
           ),
       }),
       handler: ({ playbookId }) => toView(find(playbookId)),
