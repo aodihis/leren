@@ -68,13 +68,14 @@ function ask<Value>(
   deps: ReplyPipelineDeps,
   stage: Pick<
     Parameters<typeof generateJson<Value>>[0],
-    "model" | "reasoning" | "instructions" | "schema" | "maxTokens"
+    "id" | "model" | "reasoning" | "instructions" | "schema" | "maxTokens"
   >,
   prompt: string,
 ): Promise<Value> {
   return generateJson({
     ...stage,
     harness: deps.harness,
+    observer: deps.observer,
     prompt,
     abortSignal: deps.abortSignal,
   });
@@ -88,6 +89,7 @@ export function triage(deps: ReplyPipelineDeps, email: string): Promise<Triage> 
   return ask(
     deps,
     {
+      id: "reply-triage",
       model: deps.models.triage,
       reasoning: "minimal",
       instructions: deps.prompts.triage,
@@ -110,6 +112,7 @@ function judgeContent(
   return ask(
     deps,
     {
+      id: "reply-content-judge",
       model: deps.models.judge,
       instructions: deps.prompts.judge,
       schema: contentVerdictSchema,
@@ -129,6 +132,7 @@ function judgeStyle(
   return ask(
     deps,
     {
+      id: "reply-style-judge",
       model: deps.models.judge,
       instructions: deps.prompts.styleJudge,
       schema: styleVerdictSchema,
@@ -388,6 +392,7 @@ export async function styleAndEvaluate(
     const answer = await ask(
       deps,
       {
+        id: "reply-style",
         model: deps.models.draft,
         instructions: buildStyleInstructions(deps.prompts.style),
         schema: styleSchema,

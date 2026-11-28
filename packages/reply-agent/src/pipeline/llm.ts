@@ -1,5 +1,6 @@
-import { generateCompletion } from "@anvia/core";
+import { createAgent } from "@leren/agents";
 import type { Harness, ReasoningEffort } from "@leren/agents";
+import type { Observer } from "@leren/observability";
 import type { z } from "zod";
 
 /** The result of reading a model's text as JSON that matches a schema. */
@@ -63,7 +64,10 @@ export class InvalidModelOutputError extends Error {
 
 /** What `generateJson` needs to ask a model one question. */
 export interface GenerateJsonOptions<Value> {
+  /** The id that names the call in traces, such as `reply-triage`. */
+  readonly id: string;
   readonly harness: Pick<Harness, "model">;
+  readonly observer: Observer;
   /** The key of the model in the harness config. */
   readonly model: string;
   /**
@@ -80,22 +84,32 @@ export interface GenerateJsonOptions<Value> {
 }
 
 /**
- * Asks a model one question with a single tool-free completion and returns the answer as a
- * validated object. The instructions ask for JSON, which is parsed here, so any model works without
- * structured output. Throws `InvalidModelOutputError` when the answer is invalid or cut off at the
- * token limit.
+ * Asks a model one question with a traced single-turn agent without tools and returns the answer
+ * as a validated object. The answer is parsed here as JSON, so any model works without structured
+ * output. Throws `InvalidModelOutputError` when the answer is invalid or cut off at the token
+ * limit.
  */
 export async function generateJson<Value>(options: GenerateJsonOptions<Value>): Promise<Value> {
   const { model, controls } = options.harness.model(options.model, options.reasoning);
 
-  const response = await generateCompletion({
+  const agent = createAgent({
+    id: options.id,
     model,
     instructions: options.instructions,
-    prompt: options.prompt,
+    maxTurns: 1,
     maxTokens: options.maxTokens,
     controls,
+    observer: options.observer,
+  });
+
+  const response = await agent.generate({
+    prompt: options.prompt,
     abortSignal: options.abortSignal,
   });
+
+  if (response.type !== "response") {
+    throw new InvalidModelOutputError(`The model stopped without an answer: ${response.type}.`);
+  }
 
   if (response.finishReason === "length") {
     throw new InvalidModelOutputError(
