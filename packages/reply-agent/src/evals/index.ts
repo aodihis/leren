@@ -6,6 +6,7 @@ await runSuites({
   suites: {
     "drafter-tool-calls": () => import("./drafter/tool-calls"),
     "drafter-content": () => import("./drafter/content"),
+    "drafter-quality": () => import("./drafter/quality"),
   },
   requested: process.argv.slice(2),
   close: closeObserver,

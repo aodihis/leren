@@ -15,8 +15,7 @@ export const DEADLINE = playbook({
 export const DEADLINE_FIXED = playbook({
   id: "pb-deadline-fixed",
   topic: "Project Atlas deadline changes",
-  information:
-    "The Atlas deadline of Friday 28 November is fixed and cannot be changed. This applies to requests from Budi Santoso <budi@client.example>.",
+  information: "The Atlas deadline of Friday 28 November is fixed and cannot be changed.",
 });
 
 export const DEADLINE_BUDI = playbook({
@@ -42,7 +41,7 @@ export const REFUND = playbook({
   id: "pb-refund",
   topic: "Refund policy",
   information:
-    "Refunds are possible within 30 days of purchase. Send the order number to the user.",
+    "Refunds are possible only within 30 days of purchase. The sender must send the order number with the refund request.",
   instruction: "Never promise a refund after 30 days.",
 });
 
@@ -71,6 +70,27 @@ export const OFFICE = playbook({
   id: "pb-office",
   topic: "Office closure",
   information: "The office is closed on Monday 1 December for the company retreat.",
+});
+
+export const INVOICE_CORRECTION = playbook({
+  id: "pb-invoice-correction",
+  topic: "Invoice corrections",
+  information:
+    "To correct an invoice, the sender submits the correction form at https://portal.example.com/invoices with the invoice number.",
+});
+
+export const PRICING_BASIC = playbook({
+  id: "pb-pricing-basic",
+  topic: "Atlas Basic plan",
+  information:
+    "The Atlas Basic plan costs USD 20 per user per month, includes 5 projects and email support.",
+});
+
+export const PRICING_PRO = playbook({
+  id: "pb-pricing-pro",
+  topic: "Atlas Pro plan",
+  information:
+    "The Atlas Pro plan costs USD 45 per user per month, includes unlimited projects and phone support.",
 });
 
 export const MEETING_DESIGN = playbook({

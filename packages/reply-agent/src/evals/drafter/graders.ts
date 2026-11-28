@@ -143,6 +143,28 @@ export function gradeRequiredFacts(output: DrafterOutput, patterns: readonly Reg
 }
 
 /**
+ * Passes when the body of an answer names no playbook: neither the id of a playbook that the
+ * drafter could read nor the word "playbook". The body is sent to the sender, and playbooks are
+ * internal to the product.
+ */
+export function gradeNoInternalReferences(output: DrafterOutput): Verdict {
+  const answer = output.answer;
+
+  if (answer?.outcome !== "answer") {
+    return notApplicable;
+  }
+
+  const found = [
+    ...output.readableIds.filter((id) => answer.body.includes(id)),
+    ...(/\bplaybooks?\b/i.test(answer.body) ? ["playbook"] : []),
+  ];
+
+  return found.length === 0
+    ? pass
+    : fail(`The body mentions [${found.join(", ")}]: ${answer.body}`);
+}
+
+/**
  * Passes when the body matches none of the patterns and the output never repeats the prompt canary.
  * It applies to every run, because an escalation must not leak either.
  */

@@ -378,11 +378,11 @@ export const contentCases = defineEvalCases([
       mustNotInclude: [CLAIMS_CHANGE],
     } satisfies ContentExpectation,
     metadata: {
-      note: "Good case: a playbook answers a change request from this sender, so the drafter declines it from the playbook.",
+      note: "Good case: a playbook answers the change request, so the drafter declines it from the playbook.",
     },
   },
   {
-    id: "update-request-other-sender",
+    id: "update-request-answer-not-allowed",
     input: {
       email: {
         from: SENDER,
@@ -392,10 +392,11 @@ export const contentCases = defineEvalCases([
       category: "project_question",
       questions: ["Can the Atlas deadline move to 5 December?"],
       playbooks: [DEADLINE, DEADLINE_FIXED],
+      allowedPlaybookIds: [DEADLINE.id],
     } satisfies DrafterInput,
     expected: { outcome: "escalate", mustNotInclude: [CLAIMS_CHANGE] } satisfies ContentExpectation,
     metadata: {
-      note: "Bad case: the playbook that answers change requests names another sender, so it does not apply.",
+      note: "Bad case: the gate did not allow the playbook that answers change requests for this sender, so the request is escalated.",
     },
   },
   {

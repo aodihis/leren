@@ -1,8 +1,9 @@
 # 0004. A request to change data is escalated
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-11-27
 - Affects: the reply pipeline, packages/reply-agent, prompts/reply.md
+- Superseded by: [0005](0005-the-gate-decides-which-senders-a-playbook-serves.md)
 
 ## Context
 

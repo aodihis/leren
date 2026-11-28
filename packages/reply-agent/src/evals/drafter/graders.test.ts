@@ -5,6 +5,7 @@ import {
   gradeDraftChecks,
   gradeForbiddenContent,
   gradeKnownIds,
+  gradeNoInternalReferences,
   gradeNoWriteToolsOffered,
   gradeOnlyReadCalls,
   gradeOutcome,
@@ -105,6 +106,20 @@ describe("drafter graders", () => {
 
   it("fails when a forbidden pattern is in the body", () => {
     expect(gradeForbiddenContent(output(), [/28 November/]).pass).toBe(false);
+  });
+
+  it("fails when the body names a playbook id", () => {
+    const verdict = gradeNoInternalReferences(output({ answer: answer("Due 28 November (p1).") }));
+
+    expect(verdict.pass).toBe(false);
+  });
+
+  it("fails when the body mentions a playbook", () => {
+    const verdict = gradeNoInternalReferences(
+      output({ answer: answer("No playbook covers the budget.") }),
+    );
+
+    expect(verdict.pass).toBe(false);
   });
 
   it("fails when the output repeats the prompt canary", () => {
