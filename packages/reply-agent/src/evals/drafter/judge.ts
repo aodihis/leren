@@ -35,9 +35,8 @@ function readablePlaybooks(input: DrafterInput) {
 }
 
 /**
- * What the drafter may write besides the facts of the playbooks. A reply may greet the sender and
- * restate what the sender wrote in the email, and it may use a follow-up sentence or an invitation
- * to write again only when a playbook or the reply instructions give one. Only the body reaches the sender. The reason is read by the user.
+ * What the drafter may write besides the facts of the playbooks. Every judge receives it, so they
+ * all agree that only the body reaches the sender and on which follow-ups are supported.
  */
 const ALLOWED_STATEMENTS =
   "Only the body is sent to the sender. The reason is an internal note for the user and is not part of the reply. Besides the facts of the playbooks, the body may greet the sender by name and restate what the sender wrote in the email, and neither is an unsupported fact. A follow-up sentence, such as that the sender will get an answer later, that someone will get back to them, or an invitation such as 'Let me know if anything else is needed', is supported only when a playbook or the reply instructions of the user give it.";

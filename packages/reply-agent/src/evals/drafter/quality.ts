@@ -23,6 +23,12 @@ const only = process.env.EVAL_CASES?.split(",")
   .map((id) => id.trim())
   .filter(Boolean);
 
+const unknown = only?.filter((id) => !qualityCases.some((testCase) => testCase.id === id)) ?? [];
+
+if (unknown.length > 0) {
+  throw new Error(`Unknown eval cases: ${unknown.join(", ")}`);
+}
+
 await runEvalCli({
   name: "drafter-quality",
   cases: only?.length
