@@ -61,12 +61,9 @@ function toStreamEvent(part: AssistantContentPart): CompletionModelStreamEvent |
 }
 
 /**
- * Creates a model that replays `steps` in order, one per model call, through either
- * `completion` or `streamCompletion`.
- *
- * It makes no network calls, so tests can check agent behavior such as the turn limit, tool use
- * and abstention deterministically. Calling it after the script ends throws, which makes an
- * unexpected extra turn fail the test.
+ * Creates a model that replays `steps` in order, one per call to `completion` or
+ * `streamCompletion`. It makes no network calls. A call after the last step throws, so an
+ * unexpected extra turn fails the test.
  */
 export function createFakeModel(steps: readonly FakeStep[]): FakeModel {
   const requests: CompletionRequest[] = [];

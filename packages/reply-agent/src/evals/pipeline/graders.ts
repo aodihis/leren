@@ -207,10 +207,9 @@ export function gradeEscalation(output: PipelineCaseOutput): Verdict {
 }
 
 /**
- * Passes when the stages ran as the pipeline defines. A run that triage ends, because the email
- * does not address the user or because triage is not confident, runs no later stage. An answer
- * has a content draft that the content judge passed, within the revision limit. When the case
- * names it, the style stage was skipped, or ran and its styled reply was accepted.
+ * Passes when the stages ran as the pipeline defines. A run that triage ends runs no later stage.
+ * An answer has a content draft that the content judge passed within the revision limit. When the
+ * case names it, the style stage was skipped, or its styled reply was accepted.
  */
 export function gradeSteps(
   output: PipelineCaseOutput,

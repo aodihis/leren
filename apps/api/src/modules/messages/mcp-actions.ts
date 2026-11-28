@@ -60,12 +60,9 @@ function toView(summary: MessageSummary, platformUrl: string | undefined) {
 }
 
 /**
- * Builds the tools that let an MCP client read the user's processed mail: the list of messages
- * with how each one ended, and one message with its body and the decision of the pipeline. Both
- * read through the same service as the web API and are scoped to the session's user. The mail is
- * the text of other people, so every field that holds it is named with the prefix `untrusted`, and
- * a client treats those fields as data and never as instructions. The tools never return a delivery
- * request or response.
+ * Builds the MCP tools that read the user's processed mail through the web API's service, scoped to
+ * the session's user. Every field that holds mail text is prefixed `untrusted`, so a client treats
+ * it as data and never as instructions. Delivery requests and responses are never returned.
  */
 export function createMessageMcpActions(db: Db, platformUrl?: string): McpReadActions {
   return {

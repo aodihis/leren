@@ -20,11 +20,10 @@ export function tokenExpiry(seconds: number | undefined): string | null {
 const tokenErrorSchema = z.object({ error: z.string() });
 
 /**
- * Posts a form to the token endpoint of a provider and returns its answer. An answer whose error is
- * one of `revokedErrors` throws `InvalidGrantError`, because the grant is no longer honoured and
- * only a new connection can replace it. Some providers report an error with a success status, so
- * the error is read from every answer. Any other failure throws a plain error, which a retry may
- * fix.
+ * Posts a form to a provider's token endpoint and returns its answer. An error in `revokedErrors`
+ * throws `InvalidGrantError`, because only a new connection can replace the grant. Some providers
+ * report errors with a success status, so every answer is checked. Any other failure throws a
+ * retryable plain error.
  */
 export async function requestOAuthTokens(
   send: typeof fetch,

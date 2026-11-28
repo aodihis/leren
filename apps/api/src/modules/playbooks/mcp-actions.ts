@@ -134,13 +134,10 @@ function describeAccountProblem(
 }
 
 /**
- * Names the account for every entry that has none, when the playbook is on. An entry takes the
- * only active account that the user has on its channel. An entry that names an account that is not
- * active is not replaced silently: the result is the message that lists the active accounts. The
- * exception is an account that the playbook already names, in `kept`, which may have been revoked
- * after the playbook was saved and stays so that the playbook can still be edited. The same message
- * tells the assistant what to do when the user has none or has several. A playbook that is off keeps
- * its entries as they are.
+ * Names the account for every entry of an enabled playbook that has none, using the user's only
+ * active account on that channel. An inactive account is never replaced silently, except one the
+ * playbook already names, in `kept`. Otherwise the result is a message that lists the active
+ * accounts.
  */
 async function resolveAccounts(
   db: Db,
@@ -304,13 +301,9 @@ function withUrl<T extends { id: string }>(playbook: T, platformUrl: string | un
 }
 
 /**
- * Builds the tools that let the Assistant Agent create and change playbooks on behalf of the
- * session's user. Each tool validates the complete result with the same schema as the web API and
- * calls the same service, so a playbook saved here is the same as one saved in the interface. The
- * assistant asks for the user's confirmation in the conversation before it calls a write tool, and
- * nothing in code enforces that (decision 0036). `requestIndex` asks for the vector index of a
- * written playbook to be updated, as the web API does. A saved playbook carries `url`, its page in
- * the web application at `platformUrl`, so the assistant can link to what it saved.
+ * Builds the MCP tools that let the Assistant Agent create and change the user's playbooks. They
+ * validate with the web API's schema and call its service, so both save the same playbook. The
+ * confirmation the assistant asks for is not enforced in code (decision 0036).
  */
 export function createPlaybookMcpActions(
   db: Db,

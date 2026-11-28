@@ -21,16 +21,9 @@ export type ReplySessionDependencies = {
 };
 
 /**
- * Opens the MCP session for the reply run of one message (decision 0042). The user comes from the
- * message record and never from the job: the token is bound to the owner of the record, to the
- * message id and to the read-only scopes of the reply role. It reads only the playbooks of the job,
- * which the gate allowed for the message, so the answering agent never sees a playbook whose
- * conditions exclude the sender.
- *
- * Throws when the record does not exist, or when a playbook of the job belongs to another user, because
- * such a job was not produced by the gate and must not run. The error is not retried. A playbook
- * that no longer exists is not an error: the user may have deleted it after the gate queued the
- * message, and the pipeline escalates when no playbook is left to use.
+ * Opens the MCP session for the reply run of one message, bound to the record's owner, the message
+ * and the reply role's read-only scopes. It reads only the job's playbooks. It throws, without
+ * retry, when the record is missing or a playbook has another owner. Deleted playbooks are skipped.
  */
 export async function openReplySession(
   { db, secret, now }: ReplySessionDependencies,

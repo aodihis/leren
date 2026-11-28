@@ -15,10 +15,9 @@ export interface McpConnectionOptions {
   readonly approvalTools?: readonly string[] | undefined;
   readonly abortSignal?: McpConnectOptions["abortSignal"];
   /**
-   * Whether the library refuses URLs that resolve to loopback or private addresses. It defaults
-   * to `strict`. Only the address of Leren's own MCP endpoint, which comes from deployment
-   * configuration, may use `disabled`. A server that a user or an administrator supplies must
-   * keep `strict`, so that it cannot be used to reach internal services.
+   * Whether URLs that resolve to loopback or private addresses are refused. It defaults to
+   * `strict`. Only Leren's own MCP endpoint, which comes from deployment configuration, may use
+   * `disabled`. A server that a user or an administrator supplies must stay `strict`.
    */
   readonly ssrfProtection?: "strict" | "disabled" | undefined;
   /** The client name that identifies this connection to the server. It defaults to `leren`. */

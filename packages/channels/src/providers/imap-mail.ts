@@ -52,9 +52,9 @@ export function mailboxIdentity(settings: ImapSettings): string {
 }
 
 /**
- * Builds the provider message id: the mailbox identity, the `UIDVALIDITY` of the inbox and the UID,
- * joined by colons (decision 0063). A UID is unique only within one inbox, and stored messages are
- * not keyed by account, so the mailbox identity keeps the ids of two mailboxes of one user apart.
+ * Builds the provider message id from the mailbox identity, the inbox's `UIDVALIDITY` and the UID
+ * (decision 0063). A UID is unique only within one inbox, and stored messages are not keyed by
+ * account, so the mailbox identity keeps the ids of a user's mailboxes apart.
  */
 function encodeMessageId(mailbox: string, uidValidity: string, uid: number): string {
   return `${mailbox}:${uidValidity}:${uid}`;
@@ -80,10 +80,9 @@ function notSent(error: unknown): DeliveryNotSentError {
 }
 
 /**
- * Runs a step that signs in or prepares a session. A refused password throws `InvalidGrantError`,
- * so the account becomes `revoked`. Any other failure is thrown as `otherwise` returns it: as it is
- * for a poll, which is then retried, and as `DeliveryNotSentError` for a delivery, because nothing
- * was handed over yet.
+ * Runs a step that signs in or prepares a session, before anything is handed over. A refused
+ * password throws `InvalidGrantError`, so the account becomes `revoked`. Any other failure is
+ * thrown as `otherwise` maps it.
  */
 async function beforeHandover<T>(
   step: () => Promise<T>,
@@ -159,11 +158,10 @@ async function toEmail(
 }
 
 /**
- * Reads new mail from the inbox of an IMAP mailbox (decision 0063). The inbox is opened read-only
- * and messages are fetched without setting `\Seen`. A poll reads at most `MAX_UIDS_PER_POLL` UIDs
- * after the cursor, oldest first, and the cursor moves to the last UID of that range, so the next
- * poll continues where this one stopped. A changed `UIDVALIDITY` returns a baseline at the current
- * position. A message whose source is missing or cannot be parsed is reported in `unreadable`.
+ * Reads new mail from an IMAP inbox (decision 0063), opened read-only so that no message is marked
+ * `\Seen`. A poll reads at most `MAX_UIDS_PER_POLL` UIDs after the cursor, oldest first, and
+ * advances the cursor past them. A changed `UIDVALIDITY` returns a baseline. Unparseable messages
+ * are reported in `unreadable`.
  */
 export async function fetchNewImapMail(
   servers: MailServers,
@@ -342,10 +340,9 @@ export async function createImapDraft(
 }
 
 /**
- * Hands the reply to SMTP. A numeric reply code from the server means it answered: a `4xx` code is
- * a temporary refusal, so nothing was sent, and a `5xx` code is a refusal that a retry cannot fix.
- * Any other failure happened while the message may have been handed over, so its outcome is
- * unknown.
+ * Hands the reply to SMTP. A `4xx` reply code is a temporary refusal, so nothing was sent, and a
+ * `5xx` code is a refusal that a retry cannot fix. Any other failure may have happened after the
+ * handover, so its outcome is unknown.
  */
 async function submit(
   session: SmtpSession,

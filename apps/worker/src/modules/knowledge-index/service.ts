@@ -36,11 +36,9 @@ export type DriftRepair = {
 };
 
 /**
- * Makes the vector index match the current state of one playbook. The vector id is the playbook
- * id, so a playbook has at most one vector. An indexable playbook is embedded and upserted, and
- * any other state, including a deleted row, removes the vector. The function reads the row and
- * never trusts a message about what changed, so running it again or out of order leaves the same
- * result.
+ * Makes the vector index match the current state of one playbook, whose id is also its single
+ * vector's id. An indexable playbook is embedded and upserted, and any other state removes the
+ * vector. It reads the row instead of trusting the message, so repeated or reordered runs agree.
  */
 export async function syncPlaybook(
   { db, store, embedder }: KnowledgeIndexDependencies,

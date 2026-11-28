@@ -33,14 +33,10 @@ export type RabbitMqQueueOptions = {
 };
 
 /**
- * Connects to RabbitMQ and returns a `QueueClient` backed by durable queues.
- *
- * Each queue `q` has a dead-letter queue `q.dlq` and one retry queue per backoff delay, named
- * `q.retry.<delay>`. A retry queue holds a failed message until its time to live expires and then
- * routes it back to `q`. Messages are persistent and publishes wait for the broker to confirm
- * them. A delivery is acknowledged only after its retry or dead-letter copy is confirmed, so a
- * crash redelivers the message instead of losing it. Changing the backoff of an existing queue
- * creates new retry queues and leaves the old ones to drain.
+ * Connects to RabbitMQ and returns a `QueueClient` backed by durable queues. Each queue `q` has a
+ * dead-letter queue `q.dlq` and a retry queue `q.retry.<delay>` per backoff delay. A delivery is
+ * acknowledged only after its retry or dead-letter copy is confirmed, so a crash never loses a
+ * message.
  */
 export async function createRabbitMqQueue(options: RabbitMqQueueOptions): Promise<QueueClient> {
   const reportError = options.onError ?? ((error: Error) => console.error(error));

@@ -50,9 +50,9 @@ export function parseJsonOutput<Value>(
 }
 
 /**
- * Thrown when a model answered but its answer cannot be read as the expected JSON. It is the only
- * failure of a model call that is about the content of the answer. Every other error, such as an
- * abort or a provider failure, is a failure of the call and may succeed on a retry.
+ * Thrown when a model answered but its answer is not the expected JSON. It is the only model call
+ * failure about the answer's content. Every other error, such as an abort or a provider failure, is
+ * a failure of the call that a retry may fix.
  */
 export class InvalidModelOutputError extends Error {
   constructor(message: string) {
@@ -80,11 +80,10 @@ export interface GenerateJsonOptions<Value> {
 }
 
 /**
- * Asks a model one question with a single completion, without tools, and returns its answer as a
- * validated object. A stage that only classifies or scores what it is given uses this and not an
- * agent. The model is told to answer in JSON by the instructions, and the text is parsed here, so
- * the helper works with every model, whether or not it supports structured output. Throws
- * `InvalidModelOutputError` when the answer is not valid or was cut off at the token limit.
+ * Asks a model one question with a single tool-free completion and returns the answer as a
+ * validated object. The instructions ask for JSON, which is parsed here, so any model works without
+ * structured output. Throws `InvalidModelOutputError` when the answer is invalid or cut off at the
+ * token limit.
  */
 export async function generateJson<Value>(options: GenerateJsonOptions<Value>): Promise<Value> {
   const { model, controls } = options.harness.model(options.model, options.reasoning);

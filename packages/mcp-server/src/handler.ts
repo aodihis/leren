@@ -64,10 +64,9 @@ function toolCallName(message: unknown): string | null {
 }
 
 /**
- * Returns one entry for each JSON-RPC message in the request: the tool name of a `tools/call`
- * and `null` for any other message. A batch has one entry for each of its messages, so a batch
- * cannot count as a single call. The body is read from a clone, so the SDK still receives the
- * original request.
+ * Returns one entry for each JSON-RPC message in the request: the tool name of a `tools/call`, or
+ * `null`. A batch has one entry per message, so it cannot count as a single call. The body is read
+ * from a clone, so the SDK still receives the original.
  */
 async function readToolCallNames(request: Request): Promise<(string | null)[]> {
   const body: unknown = await request
@@ -79,17 +78,10 @@ async function readToolCallNames(request: Request): Promise<(string | null)[]> {
 }
 
 /**
- * Creates the fetch handler of the MCP endpoint. Every request must carry a bearer token that
- * `verifySession` accepts, and the server that answers it is built for that session alone, so one
- * request can never act for another user. A request without a valid token receives `401` before
- * any MCP processing. A `tools/call` that ends without running a tool body, because the tool is
- * not granted or its arguments fail validation, is audited here with the outcome `rejected`, so
- * denied and invalid calls appear in the log without their arguments.
- *
- * When the rate limit refuses a verified session, the request receives `429`, or `503` when the
- * limit could not be checked, with `Retry-After` and before any MCP processing. The limit is
- * checked once for each message of a batch. A refused call is not audited, so a flood of refused
- * calls cannot grow the audit log.
+ * Creates the MCP endpoint's fetch handler. Each request needs a bearer token that `verifySession`
+ * accepts and gets a server built for that session alone. Invalid tokens get `401`, and
+ * rate-limited calls get `429` or `503`. Calls the SDK rejects are audited as `rejected`;
+ * rate-limited calls are not.
  */
 export function createMcpEndpoint(deps: McpEndpointDependencies) {
   const handler = createMcpHandler(({ authInfo }) => {

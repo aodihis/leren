@@ -11,10 +11,10 @@ export type DeliveryRequestOptions = {
 };
 
 /**
- * Makes one request of a delivery and returns the successful response (decision 0046). It throws
- * `DeliveryNotSentError` when the request is known not to have reached the provider or was refused
- * for credentials or a rate limit, `DeliveryRejectedError` when the provider refused it for another
- * reason, and a plain error when the outcome is not known.
+ * Makes one delivery request and returns the successful response (decision 0046). It throws
+ * `DeliveryNotSentError` when the request did not reach the provider or was refused for credentials
+ * or a rate limit, `DeliveryRejectedError` for any other refusal, and a plain error when the
+ * outcome is unknown.
  */
 export async function deliveryRequest(
   send: typeof fetch,

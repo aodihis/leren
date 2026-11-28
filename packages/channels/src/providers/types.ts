@@ -15,11 +15,10 @@ export type ProviderTokens = {
 };
 
 /**
- * An account that a provider has identified. `providerAccountId` is stable for the life of the
- * account, so it is never an address that can change. `tokens` is null for a provider that has no
- * credentials. `syncCursor` is the position of the mailbox at the moment of authorisation, so the
- * listener reads only mail that arrives afterwards. It is absent for a provider that cannot read
- * a mailbox, or that could not determine the position.
+ * An account that a provider has identified. `providerAccountId` never changes, so it is never an
+ * address. `tokens` is null for a provider without credentials. `syncCursor` is the mailbox
+ * position at authorisation, so only later mail is read, and it is absent when the provider cannot
+ * determine it.
  */
 export type AuthorisedAccount = {
   providerAccountId: string;
@@ -103,11 +102,10 @@ export class SignInError extends Error {
 }
 
 /**
- * A provider that connects an account by signing in to its mail server with settings and a
- * password that the user gives (decision 0062). `signIn` validates `settings` itself, throws
- * `SignInError` when the sign-in fails, and returns the account only after it succeeded.
- * `suggestSettings`, when the provider has it, suggests the servers of an address, or returns null
- * when it finds none.
+ * A provider that connects an account by signing in to its mail server with the user's settings and
+ * password (decision 0062). `signIn` validates `settings`, throws `SignInError` on failure, and
+ * returns the account only after success. The optional `suggestSettings` suggests an address's
+ * servers, or returns null.
  */
 export interface SignInProvider extends ProviderBase {
   signIn(settings: unknown): Promise<AuthorisedAccount>;
@@ -135,12 +133,9 @@ export type FetchedEmail = Omit<
 >;
 
 /**
- * What one read of a mailbox returns. `cursor` is the position to resume from, and it is opaque to
- * everything except the provider that made it. `baseline` is true when the provider could not
- * resume from the cursor it was given, because there was none or because it was too old. The
- * result then holds no emails, and `cursor` is the current position of the mailbox. `unreadable`
- * lists the ids of messages that could not be converted to an email, which a retry cannot fix, so
- * they are left out of `emails`.
+ * What one read of a mailbox returns. `cursor` is opaque to everything except the provider that
+ * made it. `baseline` means the given cursor was missing or too old, so there are no emails and
+ * `cursor` is the current position. `unreadable` lists messages that a retry cannot convert.
  */
 export type FetchResult = {
   emails: FetchedEmail[];
@@ -151,9 +146,9 @@ export type FetchResult = {
 
 /**
  * The capability of reading new mail from a mailbox (decision 0041). `fetchNewMail` returns the
- * emails that arrived after `cursor`, and it throws on any failure other than a message that no
- * longer exists, which it skips. With a null cursor it returns the current position and no emails.
- * It throws `InvalidGrantError` when the mailbox refuses the stored credentials.
+ * emails that arrived after `cursor`, or the current position for a null cursor. It skips messages
+ * that no longer exist, throws `InvalidGrantError` on refused credentials, and throws on any other
+ * failure.
  */
 export type MailReader = {
   fetchNewMail(accessToken: string, cursor: string | null): Promise<FetchResult>;
@@ -168,11 +163,9 @@ export function isEmailProvider(provider: ChannelProvider): provider is EmailPro
 }
 
 /**
- * A reply that a provider delivers (decision 0046). `providerMessageId` is the provider's id of the
- * original, `messageId` is the `Message-ID` header that the deliverer builds, `inReplyTo` and
- * `references` come from the headers of the original, and `threadId` puts the reply into the
- * conversation of the original. Each provider uses the fields that its API needs to join that
- * conversation. The reply has one recipient.
+ * A reply that a provider delivers to the single recipient (decision 0046). `providerMessageId`
+ * identifies the original, `messageId` is the reply's `Message-ID`, and `inReplyTo`, `references`
+ * and `threadId` thread it with the original. Each provider uses the fields that its API needs.
  */
 export type OutboundReply = {
   to: string;
@@ -229,11 +222,10 @@ export class DeliveryRejectedError extends Error {
 }
 
 /**
- * The capability of putting a reply into a mailbox (decision 0046). `readReplyContext` reads the
- * headers of the original, and `createDraft` and `sendReply` deliver the same reply. Delivery calls
- * throw `DeliveryNotSentError` or `DeliveryRejectedError` when the outcome is known, and any other
- * error when it is not. Any of them throws `InvalidGrantError` when the mailbox refuses the stored
- * credentials, which also means that nothing was delivered.
+ * The capability of putting a reply into a mailbox (decision 0046). Delivery calls throw
+ * `DeliveryNotSentError` or `DeliveryRejectedError` when the outcome is known, and any other error
+ * when it is not. `InvalidGrantError` means the mailbox refused the credentials and nothing was
+ * delivered.
  */
 export type MailDeliverer = {
   readReplyContext(accessToken: string, providerMessageId: string): Promise<ReplyContext>;

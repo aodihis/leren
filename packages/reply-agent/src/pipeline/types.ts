@@ -14,11 +14,9 @@ export const MAX_QUESTIONS = 5;
 export const MAX_BODY_LENGTH = 3000;
 
 /**
- * The most tokens that each model call of a stage may write (decision 0066). The limit of
- * the answering agent applies to each of its turns. A reasoning model counts its reasoning against
- * the limit as well, so its effort must leave room for the answer. The judges have no limit, so
- * that their reasoning cannot cut off a verdict (decision 0069). An answer that is cut off is not
- * valid JSON, so the stage treats it as unreadable.
+ * The most tokens that each model call of a stage may write (decision 0066), per turn for the
+ * answering agent. Reasoning counts against the limit, so the effort must leave room for the
+ * answer. Judges have no limit, so reasoning cannot cut off a verdict (decision 0069).
  */
 export const MAX_OUTPUT_TOKENS = {
   triage: 600,

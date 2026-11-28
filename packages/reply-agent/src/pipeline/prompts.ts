@@ -38,10 +38,10 @@ export function defaultInstructions(replyInstructions: string | undefined): stri
 }
 
 /**
- * Builds the instructions of the answering agent: the fixed rules first, then the answer format,
- * then the reply instructions of the user in their own tagged section, which cannot override the
- * rules. The agent follows what those instructions forbid, and the style stage applies their persona
- * and tone later. The canary lets the output guardrail see a draft that repeats the instructions.
+ * Builds the answering agent's instructions: the fixed rules, then the answer format, then the
+ * user's reply instructions in a tagged section that cannot override the rules. The style stage
+ * applies their persona and tone later. The canary lets the output guardrail detect a draft that
+ * repeats the instructions.
  */
 export function buildAnswerInstructions(
   rules: string,

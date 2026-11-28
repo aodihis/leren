@@ -4,10 +4,9 @@ import type { Logger } from "@leren/logger";
 import type { QueueClient } from "@leren/queue";
 
 /**
- * Creates the function that asks the worker to bring the vector index of one playbook up to date. The
- * message names the playbook and nothing else, so a lost or repeated message cannot leave outdated
- * content in the index. A failed publish is logged and never thrown, because the change is already
- * saved and the periodic drift check repairs a playbook whose message was lost.
+ * Creates the function that asks the worker to update the vector index of one playbook. The message
+ * names only the playbook, so a lost or repeated message cannot leave outdated content. A failed
+ * publish is logged, not thrown, and the periodic drift check repairs it.
  */
 export function createKnowledgeIndexRequester(queue: Pick<QueueClient, "publish">, logger: Logger) {
   return async (playbookId: string): Promise<void> => {

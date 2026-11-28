@@ -82,10 +82,9 @@ export const Route = createFileRoute("/_authed/emails/")({
 const TIME_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 /**
- * Lists what the assistant did with each email, newest first, with the sender, the subject, the
- * status, the outcome and the delivery state. The status filter and the page are in the address, so
- * a filtered view can be shared and survives a reload. The list is read only: a draft is acted on in
- * the mailbox (decision 0046).
+ * Lists what the assistant did with each email, newest first. The status filter and the page are in
+ * the address, so a filtered view survives a reload and can be shared. The list is read-only
+ * (decision 0046).
  */
 function EmailsPage() {
   const { messages, nextCursor } = Route.useLoaderData();

@@ -34,7 +34,7 @@ Constraints for working in this repository. Details live in `docs/`. This file d
 
 ## Comments and documentation
 
-- Functions, classes and files get a concise JSDoc block when they need one. The `no-inline-comments` lint rule rejects other comments, so put invariants in the JSDoc of the code they concern.
+- Functions, classes and files get a concise JSDoc block when they need one. The `no-inline-comments` lint rule rejects other comments, so put invariants in the JSDoc of the code they concern. The `max-jsdoc-words` lint rule limits a JSDoc description to 50 words.
 - The best comments state an invariant, show that the code upholds an invariant, or name an invariant the code relies on.
 - Do not write duplicate comments, overly long comments, or comments about things that are obvious from reading the code.
 - Prioritize readability over brevity. Reduce comments by omitting irrelevant information, not by compressing necessary information into fewer words.

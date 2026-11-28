@@ -27,12 +27,9 @@ export const NO_INBOX: MessagesRouterDependencies = {
 };
 
 /**
- * Mounts the routes of the signed-in user's message records under `/api/messages`. Every route
- * requires a session and every query is scoped by the session's user, so a record of another user
- * is reported as not found. The records are read only: the pipeline changes them, and no route
- * does. `POST /api/messages/simulate` exists only when `simulate` is set, which is the case while
- * the development provider is enabled (decision 0039). The routes are chained so that the platform
- * can infer their types through Hono RPC.
+ * Mounts the read-only message record routes under `/api/messages`. Every route requires a session
+ * and is scoped to its user. `POST /simulate` exists only when `simulate` is set, which is while
+ * the development provider is enabled (decision 0039).
  */
 export function createMessagesRouter({
   auth,

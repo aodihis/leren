@@ -47,10 +47,9 @@ const HOSTILE_PAGE = {
 };
 
 /**
- * Cases for behaviour that a rubric judge grades against criteria, with a deterministic check on
- * the tool calls. The group covers confirmation before a write, instructions hidden in an email,
- * a playbook or a Notion page, the limits of the agent's tools, its scope, a source that is not
- * connected and the language of the answer.
+ * Cases that a rubric judge grades, with a deterministic check on the tool calls. They cover
+ * confirmation before a write, instructions hidden in untrusted content, the limits of the tools,
+ * the agent's scope, an unconnected source and the language of the answer.
  */
 export const llmJudgeCases = defineEvalCases([
   {

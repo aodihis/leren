@@ -37,11 +37,9 @@ const db = createDb(config.DATABASE_URL);
 const observer = createObserver();
 
 /**
- * Builds what the reply pipeline needs. In a process that runs other roles too, the reply pipeline
- * is optional: when its models, prompt or MCP session secret are not configured, the process still
- * runs every other job, and the messages that the gate queued wait in the queue. A process whose
- * only role is `processor` exists to run the pipeline, so there the failure stops the process at
- * startup and is not left as a warning that nobody reads.
+ * Builds what the reply pipeline needs. In a process that also runs other roles, a missing model,
+ * prompt or MCP session secret only disables the pipeline, and queued messages wait. A process
+ * whose only role is `processor` fails at startup instead.
  */
 async function createReplyRun() {
   try {

@@ -63,10 +63,9 @@ const notCalled = () => {
 };
 
 /**
- * Builds a fake of every tool that the real MCP server registers, including the tools that read
- * mail and change data. Names, descriptions and result shapes match `@leren/mcp-server`. The
- * search returns every playbook of the case for any query, so the case controls exactly what the
- * drafter finds, and the drafter must pick the right playbook itself.
+ * Builds a fake of every tool that the real MCP server registers, with matching names, descriptions
+ * and result shapes. The search returns every playbook of the case for any query, so the case
+ * controls what the drafter finds and the drafter must choose the right playbook.
  */
 function createFakeMcpTools(playbooks: readonly Playbook[]): Record<string, AnyTool> {
   const any = z.object({}).passthrough();
@@ -161,11 +160,9 @@ const drafter = harness.model(resolveTaskModel(harness.config, "reply").key);
 const prompts = await readReplyPrompts(harness);
 
 /**
- * Runs the first attempt of the drafter, with its production prompt and model, against fake MCP
- * tools. The fakes pass through the drafter's own `allowedTools`, the list that the real MCP
- * connection uses, so a write tool reaches the drafter only if that list lets it through. The fakes
- * return only the playbooks that the gate allowed, as the reply session of the MCP server does.
- * There is no revision and no content judge, so the result measures the drafter alone.
+ * Runs the drafter's first attempt, with its production prompt and model, against fake MCP tools
+ * filtered through its own `allowedTools`. The fakes return only the playbooks that the gate
+ * allowed. There is no revision and no content judge, so the result measures the drafter alone.
  */
 export const target: EvalTarget<DrafterInput, DrafterOutput> = async (
   input,

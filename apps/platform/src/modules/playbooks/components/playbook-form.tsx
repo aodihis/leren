@@ -54,11 +54,9 @@ interface SwitchFieldProps {
 }
 
 /**
- * Maps the name of each request field that the API can reject to the form field that shows the
- * message and to the tab that holds that field, or `null` for a field in the sidebar, which is
- * visible on every tab. The API reports a nested validation failure under
- * its top-level key, so a failure under `conditions` is shown at the only nested field that the
- * user can get wrong, the sender allowlist.
+ * Maps each request field that the API can reject to the form field that shows its message and the
+ * tab that holds it, or `null` for the sidebar. The API reports nested failures under their
+ * top-level key, so `conditions` maps to the sender allowlist.
  */
 const ERROR_FIELDS = {
   topic: { field: "topic", tab: "knowledge" },
@@ -119,12 +117,9 @@ interface PlaybookFormProps {
 }
 
 /**
- * Creates a playbook, or replaces `playbook` when it is given, and returns to the playbook list
- * after a successful save. The Knowledge tab holds what the assistant may say and the Rules tab
- * holds the email conditions, while the sidebar holds whether the playbook is enabled and its
- * period. Everything belongs to one form that is saved as a whole from the header. The API
- * validates the request again, its field errors are shown next to the fields, and the form opens
- * the tab of the first field that was rejected.
+ * Creates a playbook, or replaces `playbook` when it is given, as one form saved from the header.
+ * The API's field errors are shown next to their fields, and the form opens the tab of the first
+ * rejected field.
  */
 export function PlaybookForm({ playbook, accounts = [] }: PlaybookFormProps) {
   const navigate = useNavigate();

@@ -1,5 +1,6 @@
 import { eslintCompatPlugin } from "@oxlint/plugins";
 
+import { maxJsdocWordsRule } from "./rules/max-jsdoc-words.ts";
 import { noArrayFilterMapRule } from "./rules/no-array-filter-map.ts";
 import { noChainedTypeAssertionsRule } from "./rules/no-chained-type-assertions.ts";
 import { noConditionalEmptyObjectSpreadRule } from "./rules/no-conditional-empty-object-spread.ts";
@@ -11,6 +12,7 @@ import { requireReadableSpacingRule } from "./rules/require-readable-spacing.ts"
 const antiSlopPlugin = eslintCompatPlugin({
   meta: { name: "rules" },
   rules: {
+    "max-jsdoc-words": maxJsdocWordsRule,
     "no-array-filter-map": noArrayFilterMapRule,
     "no-chained-type-assertions": noChainedTypeAssertionsRule,
     "no-conditional-empty-object-spread": noConditionalEmptyObjectSpreadRule,

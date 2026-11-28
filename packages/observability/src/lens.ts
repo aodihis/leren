@@ -3,14 +3,10 @@ import type { Environment, Observer } from "./observer";
 import { createNoopObserver } from "./noop";
 
 /**
- * Creates an observer backed by Anvia Lens, configured from `ANVIA_LENS_*` variables.
- *
- * Returns a no-op observer when none of the connection variables are set. A partial
- * configuration throws, so a misconfigured deployment fails at startup instead of silently
- * dropping traces. Payload capture is `full` (decision 0047): a trace holds the prompts, the replies
- * and the input and output of each pipeline stage, so the email, the playbooks and the reply can be
- * read in Lens. The redaction of the library is off unless it is asked for, so the client turns it on
- * for inputs and outputs. Its default patterns mask email addresses and phone numbers.
+ * Creates an observer backed by Anvia Lens, configured from `ANVIA_LENS_*` variables. It is a no-op
+ * when none are set, and a partial configuration throws at startup. Traces capture full payloads
+ * (decision 0047), so the library's redaction of email addresses and phone numbers is turned on for
+ * inputs and outputs.
  */
 export function createLensObserver(env: Environment): Observer {
   const client = new LensClient({

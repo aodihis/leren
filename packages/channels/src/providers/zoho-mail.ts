@@ -58,9 +58,9 @@ const headerSchema = z.object({
 const contentSchema = z.object({ data: z.object({ content: z.string().nullish() }) });
 
 /**
- * The position of the inbox: the account and the folder to read, the receive time of the newest
- * message seen, and the ids of the messages received at that time, because several messages can
- * share it. Zoho has no cursor of its own, so this one is built from the list of the inbox.
+ * The position of the inbox, built from its list because Zoho has no cursor: the account and
+ * folder, the receive time of the newest message seen, and the ids of every message received at
+ * that time, because several messages can share it.
  */
 const cursorSchema = z.object({
   accountId: z.string().min(1),
@@ -313,13 +313,9 @@ async function readEmail(
 }
 
 /**
- * Reads new mail from the inbox of a Zoho mailbox (decision 0061). Zoho has no history of changes,
- * so the adapter lists the inbox newest first until it reaches the position of the cursor, and
- * reads every message received after it. At most `MAX_PAGES` pages are read, and older new mail is
- * then a gap. Mail that arrives during the poll shifts the pages, so a message can be listed twice,
- * and it is read once. Without a usable cursor the result is the current position and no emails. A message
- * that was deleted after it was listed is skipped, and one that cannot be converted is reported in
- * `unreadable`.
+ * Reads new mail from a Zoho inbox (decision 0061). Zoho keeps no change history, so the inbox is
+ * listed newest first back to the cursor, for at most `MAX_PAGES` pages, and older mail is a gap. A
+ * message listed twice is read once, and a deleted one is skipped.
  */
 export async function fetchNewZohoMail(
   send: typeof fetch,

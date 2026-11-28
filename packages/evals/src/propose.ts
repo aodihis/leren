@@ -48,10 +48,9 @@ export interface ProposeOptions<Output = unknown> {
 }
 
 /**
- * Builds a draft for each case that failed, was invalid, errored, or had a draft that the
- * evaluator rejected. A case that passed cleanly yields nothing. An errored case is found through
- * its metrics, because the eval runner records every metric of a failed target as `invalid` with
- * the target error as the comment.
+ * Builds a draft for each case that failed, was invalid, errored, or had a draft that the evaluator
+ * rejected. An errored case is found through its metrics, because the eval runner records every
+ * metric of a failed target as `invalid`.
  */
 export function proposeCases<Output>(
   result: ProposalInput<Output>,

@@ -47,18 +47,10 @@ function textOf(content: Message["content"]): string | null {
 }
 
 /**
- * Mounts the routes of the signed-in user's assistant chat under `/api/assistant`. Every route
- * requires a session and every query is scoped by the session's user, so a conversation of another
- * user has no messages, which is the same as a conversation that does not exist yet.
- *
- * `POST /api/assistant/chat?sessionId=` speaks Anvia's client stream protocol, so the platform uses
- * `useChat` against it. The conversation is the agent's memory for that session id, which the
- * client chooses for a new conversation, so there is no other state to keep. The agent asks the
- * user to confirm in the conversation before it creates or changes anything.
- *
- * The response status is 200 before the agent runs, so a failed run is only visible in the stream.
- * Every failure of a run, whether thrown or reported as an `error` event, is logged here with the
- * user and the conversation.
+ * Mounts the assistant chat routes under `/api/assistant`. Every route requires a session and is
+ * scoped to its user. `POST /chat?sessionId=` speaks Anvia's client stream protocol, and the
+ * conversation is the agent's memory. The status is 200 before the agent runs, so every failed run
+ * is logged here.
  */
 export function createAssistantRouter({ auth, db, logger, agent }: AssistantRouterDependencies) {
   const running = new Set<string>();

@@ -50,10 +50,9 @@ async function waitFor(condition: () => Promise<boolean>): Promise<void> {
 }
 
 /**
- * Runs the indexing pipeline from the message to the search result against a real RabbitMQ
- * broker, a real Qdrant server and a real PostgreSQL database from `pnpm services:up`. The jobs
- * consume queues with unique names, so a worker running for development never takes their
- * messages, and the vectors go to a collection that only this run uses.
+ * Runs the indexing pipeline from the message to the search result against the real RabbitMQ,
+ * Qdrant and PostgreSQL services from `pnpm services:up`. Queue and collection names are unique to
+ * the run, so a development worker never takes its messages.
  */
 describe("knowledge indexing pipeline", () => {
   let database: TestDatabase;

@@ -15,16 +15,9 @@ const UNAVAILABLE_RETRY_SECONDS = 5;
 const WRITE_TOOL_NAMES: readonly string[] = Object.values(WRITE_TOOLS);
 
 /**
- * Builds the rate limit of the MCP endpoint. It limits each user and not each token or address, so
- * creating more tokens does not raise the limit and users behind one address do not share it. Only
- * access tokens that a user created are limited: the sessions of the built-in agents have no name
- * and pass, because the reply pipeline makes many calls for one user by design. This relies on no
- * HTTP route minting a session without a name, so only code inside the API and the worker can hold
- * an exempt session. A write is counted against both the request limit and the write limit.
- *
- * When the limiter fails, the call is refused as unavailable and an error is logged. The limit
- * protects the service from abuse, so it fails closed. The sessions of the built-in agents do not
- * use the limiter, so an outage of the counter store does not stop them.
+ * Builds the rate limit of the MCP endpoint. It counts calls per user, so more tokens do not raise
+ * the limit. Only named access tokens are limited, because the built-in agents' unnamed sessions
+ * make many calls by design. When the limiter fails, the call is refused.
  */
 export function createMcpRateLimit(limiter: RateLimiter, logger: Logger): McpRateLimit {
   return async ({ session, tool }) => {

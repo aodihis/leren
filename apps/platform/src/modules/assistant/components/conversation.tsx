@@ -66,12 +66,9 @@ interface ConversationProps {
 }
 
 /**
- * One conversation of the assistant chat, filling the page like a full-width chat: a welcome
- * screen with starter cards while it is empty, then the messages and the composer in one centred
- * column. It is driven by Anvia's `useChat` over the chat endpoint. Mount it with a new `key` for
- * each conversation, because the hook reads its initial messages once. The assistant asks for
- * confirmation in the conversation before it changes anything, so the user's answer is an
- * ordinary message.
+ * One full-page conversation of the assistant chat, driven by Anvia's `useChat`. It shows starter
+ * cards while empty. Mount it with a new `key` for each conversation, because the hook reads its
+ * initial messages only once.
  */
 export function Conversation({
   id,

@@ -36,9 +36,8 @@ We ship from Jakarta every Tuesday and Thursday, and orders above 300000 rupiah 
 
 /**
  * Cases for whether the agent gets the content and the arguments right. A judge compares the answer
- * with a reference that is known to be correct, and deterministic checks cover the tool calls, the
- * skills that were loaded and the arguments of the one write. The group covers a connected Notion
- * workspace, a long list of notes and the writes after a confirmation.
+ * with a known correct reference, and deterministic checks cover the tool calls, the loaded skills
+ * and the arguments of the one write.
  */
 export const correctnessCases = defineEvalCases([
   {

@@ -130,11 +130,9 @@ const INPUT_VALIDATION_ERROR = "Input validation error";
 
 /**
  * Whether `search_playbooks` failed during an agent run for a reason other than the model's own
- * arguments. Such a failure is a server, authorization or connection problem and not an answer
- * without a playbook, so the caller must not record it as an escalation. A query that the server
- * rejects, such as an empty one or one longer than 2000 characters, and every error of
- * `get_playbook`, such as an unknown id, are caused by the model, which can read the error and
- * carry on, so they are not counted.
+ * arguments, meaning a server, authorization or connection problem that must not be recorded as an
+ * escalation. Rejected queries and `get_playbook` errors are caused by the model, which can
+ * recover, so they are not counted.
  */
 export function playbookSearchFailed(messages: readonly Message[]): boolean {
   return toolOutputs(messages, ["search_playbooks"]).some(

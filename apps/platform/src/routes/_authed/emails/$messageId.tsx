@@ -73,10 +73,9 @@ function Json({ label, value }: { label: string; value: unknown }) {
 }
 
 /**
- * Shows one email and what the assistant did with it: the email, the reply, the playbooks that the
- * reply cites and why the pipeline ended as it did. The delivery record, with the request and the
- * answer of the provider, is in a panel beside them. The page has no action, because the user acts
- * on a draft in the mailbox (decision 0046).
+ * Shows one email, its reply, the playbooks the reply cites and why the pipeline ended as it did,
+ * with the delivery record beside them. The page has no actions, because the user acts on a draft
+ * in the mailbox (decision 0046).
  */
 function EmailPage() {
   const email = Route.useLoaderData();

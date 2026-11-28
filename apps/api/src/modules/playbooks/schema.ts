@@ -19,15 +19,10 @@ function isTimezone(timezone: string): boolean {
 }
 
 /**
- * The conditions of the `email` channel. A sender allowlist holds full addresses and `@domain`
- * entries. `channelAccountId` names the channel account that the playbook listens on, and null or
- * absent means none. A playbook that is enabled must name one, and a new or newly enabled playbook
- * must name an active one (decision 0044). The schema cannot check this, because it depends on the
- * stored state of the playbook and of the account, so the service enforces it for the web routes and
- * the assistant tools alike. The service also rejects an account that does not belong to the
- * playbook's owner or is on another channel (decision 0038). `replyMode` says what happens to a reply: `draft` saves
- * it for the user to approve and `send` sends it without approval. A request that leaves it out
- * gets `draft` (decision 0039).
+ * The conditions of the `email` channel. The sender allowlist holds full addresses and `@domain`
+ * entries. `channelAccountId` is the account the playbook listens on, and the service enforces its
+ * ownership and activity (decisions 0038 and 0044). `replyMode` is `draft` by default, or `send` to
+ * send without approval.
  */
 export const emailConditionsSchema = z.object({
   channel: z.literal("email").describe("The channel that these conditions are for."),
@@ -87,10 +82,9 @@ export type ReplyConditionsInput = z.infer<typeof replyConditionsSchema>;
 
 /**
  * The body of a request that creates or replaces a playbook. The bounds are ISO 8601 instants with
- * an offset, and a null bound is open. A playbook that ends before it starts is rejected.
- * `conditions` holds one entry for each channel that the playbook listens on. A disabled playbook
- * is never used. An empty `instruction` means that only the default instruction of the user applies
- * (decision 0051).
+ * an offset, a null bound is open, and the end may not precede the start. `conditions` holds one
+ * entry per channel. An empty `instruction` leaves only the user's default instruction (decision
+ * 0051).
  */
 export const playbookSchema = z
   .object({

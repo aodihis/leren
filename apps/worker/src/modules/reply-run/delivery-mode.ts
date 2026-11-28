@@ -11,13 +11,9 @@ const isPlaybookId = (id: string) => z.uuid().safeParse(id).success;
 const replyModeSchema = z.object({ replyMode: z.enum(["draft", "send"]) });
 
 /**
- * Chooses how a reply is delivered, from the reply mode of the playbooks that the run used, for the
- * channel account that the message arrived on (decision 0046). The reply is sent without approval
- * only when every one of those playbooks is in `send` mode. A playbook that is in `draft` mode, that
- * no longer exists, is disabled, or whose conditions do not name the account makes the reply a
- * draft, and so does a run that used no playbook, an id that is not the id of a playbook, and a
- * message whose account was deleted. The mode is read when the pipeline ends, so a change of mode
- * applies to the replies that are made after it.
+ * Chooses how a reply is delivered from the reply modes of the playbooks the run used, for the
+ * receiving account (decision 0046). The reply is sent only when every such playbook still exists,
+ * is enabled, names the account and is in `send` mode. Otherwise it is a draft.
  */
 export async function chooseDeliveryMode(
   db: Db,

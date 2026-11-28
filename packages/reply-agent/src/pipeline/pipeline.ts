@@ -55,12 +55,10 @@ function finish(state: State, outcome: Outcome, fields: Ending): State {
 }
 
 /**
- * Builds the reply pipeline (decision 0066). The stages run in order: input guardrail, triage, the
- * answering agent with its content evaluation and revisions, the style stage, and the output
- * guardrail. A stage that decides the outcome ends the run, and the later stages, including every
- * model call after it, are skipped. A run ends in `answer`, `escalate` or `ignore`, and any failure
- * of the checks of the content or of the output guardrail ends in `escalate`. A failure of the
- * style stage keeps the content draft. The caller saves the result and moves the message status.
+ * Builds the reply pipeline (decision 0066): input guardrail, triage, the answering agent with
+ * content evaluation and revisions, style, and output guardrail. A stage that decides the outcome
+ * skips the rest. A failed content or output check escalates, and a failed style stage keeps the
+ * content draft.
  */
 export function createReplyPipeline(deps: ReplyPipelineDeps) {
   return new Pipeline({

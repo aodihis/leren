@@ -1,11 +1,9 @@
 /**
  * Builds the production output of the API and the worker into `out/` (decision 0056).
  *
- * Each entry point becomes one ES module in `out/dist` that contains the workspace packages and
- * every dependency, so the output needs no `node_modules`. The files that the code reads at run
- * time keep the paths they have relative to a bundle in the source tree: `out/drizzle` holds the
- * migrations, `out/skills` the assistant skills, and `out/harness.config.js` with `out/prompts`
- * the harness. `HARNESS_CONFIG` points the process at the config file.
+ * Each entry point becomes one self-contained ES module in `out/dist`. Files read at run time, the
+ * migrations, skills and harness, keep their paths relative to the bundle. `HARNESS_CONFIG` points
+ * the process at the config file.
  */
 import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";

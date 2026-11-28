@@ -27,13 +27,9 @@ export interface ReplyRun {
 }
 
 /**
- * Runs the Reply Agent once and returns its text answer together with the messages of the run.
- *
- * The agent runs as one step of the email pipeline, so the caller needs the final answer, and the
- * tool results that the pipeline checks the answer against, and not the events. When `mcp` is
- * given, the MCP connection is opened for this run only and is always closed. The agent is limited
- * to 6 turns, so that it can search for every question of an email and still answer (decision
- * 0066).
+ * Runs the Reply Agent once and returns its text answer with the run's messages, which the pipeline
+ * checks the answer against. An MCP connection from `mcp` lives only for this run. The agent is
+ * limited to 6 turns, enough to search for every question of an email (decision 0066).
  */
 export async function generateReply(options: RunAgentOptions): Promise<ReplyRun> {
   const connection = options.mcp

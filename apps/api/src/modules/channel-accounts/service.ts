@@ -87,13 +87,9 @@ export async function getUserEmail(db: Db, userId: string): Promise<string | nul
 }
 
 /**
- * Saves an account that a provider has authorised for `userId`.
- *
- * The user's row is locked for the transaction, so two connections of one user cannot both pass
- * the account limit. An account that already belongs to this user has its label and credentials
- * replaced and becomes active again. An account of another user is a conflict, which the unique
- * index also enforces if two users connect it at once. The id of the account is the additional
- * authenticated data of its encrypted credentials.
+ * Saves an account that a provider has authorised for `userId`. Locking the user's row keeps
+ * concurrent connections within the account limit. Connecting an account again replaces its label
+ * and credentials and reactivates it, and an account of another user is a conflict.
  */
 export async function saveAuthorisedAccount(
   db: Db,
@@ -178,10 +174,9 @@ export async function saveAuthorisedAccount(
 }
 
 /**
- * Disconnects one of the user's accounts: revokes its tokens at the provider and deletes the row.
- * Returns `false` when the account does not exist or belongs to another user. The row is deleted
- * even when the provider is disabled, the tokens cannot be read or revoking them fails, so a user
- * can always remove an account. A failure is logged without the tokens.
+ * Disconnects one of the user's accounts by revoking its tokens at the provider and deleting the
+ * row. The row is deleted even when revoking fails, so a user can always remove an account. Returns
+ * `false` when the user has no such account.
  */
 export async function disconnectChannelAccount(
   db: Db,

@@ -150,11 +150,10 @@ export async function readGmailPosition(send: typeof fetch, accessToken: string)
 }
 
 /**
- * Reads new mail from a Gmail mailbox with the history API (decision 0041). The cursor is a
- * `historyId`. Without one, or when Gmail no longer holds the history from it, the result is the
- * current `historyId` and no emails. Every page of the history is read, mail that the account
- * itself wrote is left out, a message that was deleted after it arrived is skipped, and a message
- * that does not have the expected shape is reported in `unreadable`.
+ * Reads new mail from a Gmail mailbox through the history API, with a `historyId` as the cursor
+ * (decision 0041). Without a usable cursor, it returns the current `historyId` and no emails. Mail
+ * the account wrote and deleted messages are skipped, and malformed messages are reported in
+ * `unreadable`.
  */
 export async function fetchNewGmail(
   send: typeof fetch,

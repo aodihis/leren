@@ -123,11 +123,9 @@ export async function mintSession(
 }
 
 /**
- * Returns the session a token stands for, or `null` for any reason it cannot be used: a bad
- * signature, an expired token, an unknown session, a session of another user, a revoked or expired
- * row, a token that claims scopes the row does not grant, or a reply session without the list of
- * playbooks it may read. The caller cannot tell which. The last check makes a reply session fail
- * closed, so it never reads every playbook of the user.
+ * Returns the session a token stands for, or `null` whenever it cannot be used, without saying why.
+ * A reply session without its list of readable playbooks is rejected, so it fails closed and never
+ * reads every playbook of the user.
  */
 export async function verifySession(
   { db, secret, now = () => new Date() }: SessionDependencies,

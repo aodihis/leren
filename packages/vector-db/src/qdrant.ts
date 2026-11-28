@@ -28,13 +28,9 @@ function isNotReadyYet(error: unknown): boolean {
 }
 
 /**
- * Creates a `VectorStore` backed by Qdrant, using cosine distance.
- *
- * `ensureCollection` returns once Qdrant can describe the collection. A collection that another
- * caller is still creating already exists for `collectionExists` and for a conflicting create, but
- * Qdrant answers requests for it with HTTP 404 or 500 until its creation completes. Afterwards
- * every status except `red` accepts writes: `yellow` means the collection is optimizing and `grey`
- * means optimizations are pending after a restart, and only a write restarts them.
+ * Creates a `VectorStore` backed by Qdrant with cosine distance. `ensureCollection` returns only
+ * once Qdrant can describe the collection, because a collection still being created answers with
+ * HTTP 404 or 500. After that, every status except `red` accepts writes.
  */
 export function createQdrantStore(url: string, apiKey?: string): VectorStore {
   const client = new QdrantClient({ url, apiKey });

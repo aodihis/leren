@@ -77,14 +77,9 @@ export const Route = createFileRoute("/_authed")({
 });
 
 /**
- * The dashboard shell from the design system. The sidebar is expanded from 1024px, a rail of icons
- * from 768px, and a sheet behind a menu button below that. The sidebar and the content scroll
- * independently, so the page itself never scrolls. The wrapper around the page follows the page
- * that is on screen, not the one being loaded, so a page keeps its own wrapper until the next page
- * replaces it. The shell is positioned so that its
- * `overflow-hidden` also clips absolutely positioned descendants, such as the hidden inputs of
- * switches, which would otherwise extend the height of the document. Labels in the rail stay in the accessibility
- * tree because they are visually hidden, not removed.
+ * The dashboard shell from the design system, with an expanded sidebar from 1024px, an icon rail
+ * from 768px and a sheet below that. The sidebar and content scroll independently, so the page
+ * never does. The page wrapper follows the page on screen, not the one being loaded.
  */
 function AuthedLayout() {
   const requestedPathname = useLocation({ select: (location) => location.pathname });

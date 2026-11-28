@@ -21,9 +21,9 @@ async function waitFor(condition: () => boolean, timeoutMs = 5_000): Promise<voi
 }
 
 /**
- * Runs the behaviour every `QueueClient` must have. The RabbitMQ client and the in-memory fake
- * run the same cases, so the fake stays faithful to the real broker. Each case uses a queue name
- * of its own, so cases do not see each other's messages on a broker that keeps its queues.
+ * Runs the behaviour that every `QueueClient` must have. The RabbitMQ client and the in-memory fake
+ * run the same cases, so the fake stays faithful. Each case uses its own queue name, so cases never
+ * see each other's messages.
  */
 export function describeQueueContract(name: string, create: () => Promise<QueueClient>): void {
   describe(`${name} queue contract`, () => {

@@ -14,10 +14,9 @@ type EmbeddingsResponse = {
 };
 
 /**
- * Creates an `Embedder` for any endpoint that implements the OpenAI embeddings API. The endpoint
- * decides which service answers, so a compatible gateway needs no new implementation. A response
- * whose vectors do not match the requested count or `dimensions` is rejected, because a vector of
- * the wrong size cannot be stored in the collection.
+ * Creates an `Embedder` for any endpoint that implements the OpenAI embeddings API, so a compatible
+ * gateway needs no new implementation. A response whose vectors do not match the requested count or
+ * `dimensions` is rejected, because they could not be stored.
  */
 export function createOpenAiEmbedder(options: OpenAiEmbedderOptions): Embedder {
   const { baseUrl, apiKey, model, dimensions } = options;

@@ -269,10 +269,9 @@ function SignInForm({
 }
 
 /**
- * Connects and disconnects the user's channel accounts. Connecting an OAuth provider sends the
- * browser to the provider, which returns to the API and then to this page with `connected` or
- * `error` in the address. A provider without OAuth connects at once, and a provider that signs in
- * to a mail server opens a form.
+ * Connects and disconnects the user's channel accounts. An OAuth provider returns to this page with
+ * `connected` or `error` in the address. A provider without OAuth connects at once, and a mail
+ * server provider opens a sign-in form.
  */
 function ChannelsPage() {
   const { providers, accounts } = Route.useLoaderData();

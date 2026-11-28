@@ -48,10 +48,10 @@ export function readConnectorTokens(
 }
 
 /**
- * Returns a valid access token for a connection, or `null` when its connector is not enabled, it
- * is not active or it has no credentials. A token that has expired, or expires within a minute, is
- * refreshed and the new credentials are stored. When the authorization server rejects the refresh
- * token, the connection becomes `revoked` and the result is `null`. Other failures are thrown.
+ * Returns a valid access token for a connection, or `null` when its connector is disabled or it is
+ * inactive or has no credentials. A token that expires within a minute is refreshed and stored. A
+ * rejected refresh token makes the connection `revoked` and returns `null`. Other failures are
+ * thrown.
  */
 export async function getConnectorAccessToken(
   db: Db,
@@ -114,10 +114,9 @@ export async function getConnectorAccessToken(
 }
 
 /**
- * Returns the access token that a concurrent refresh stored while this one failed, or `null` when
- * the stored credentials are still the ones that were rejected. An authorization server that
- * rotates refresh tokens rejects the second of two refreshes that present the same token, and that
- * rejection must not revoke a connection that the first refresh has already renewed.
+ * Returns the access token that a concurrent refresh stored, or `null` when the stored credentials
+ * are still the rejected ones. A server that rotates refresh tokens rejects the second of two
+ * refreshes with the same token, and that must not revoke a connection the first has renewed.
  */
 async function replacedAccessToken(
   db: Db,
@@ -150,10 +149,9 @@ export type ConnectorSession = {
 };
 
 /**
- * Returns the sessions of the user's active connections whose connector is enabled. A user with no
- * connections gets an empty list, so no external server is registered for them. A connection whose
- * token cannot be obtained is left out and reported to `onError`, so one broken connection does not
- * stop the others or the run.
+ * Returns the sessions of the user's active connections whose connector is enabled. A connection
+ * whose token cannot be obtained is left out and reported to `onError`, so one broken connection
+ * does not stop the others or the run.
  */
 export async function listConnectorSessions(
   db: Db,

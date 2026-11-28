@@ -65,10 +65,9 @@ async function countDecisions(db: Db, where: SQL | undefined) {
 }
 
 /**
- * The counts of the messages that a user received inside a window (decision 0048). `total` counts
- * every message, `byStatus` groups them by their status, and `byOutcome` and `byDeliveryState`
- * group the messages that have a decision, so a value that no message has is absent. `failures` are
- * the newest messages whose status is `failed` or whose delivery failed.
+ * The counts of the messages that a user received inside a window (decision 0048), in total and
+ * grouped by status, outcome and delivery state. A value that no message has is absent. `failures`
+ * lists the newest failed messages and failed deliveries.
  */
 export async function getOverview(db: Db, userId: string, days: number, now = new Date()) {
   const since = new Date(now.getTime() - days * DAY_IN_MILLISECONDS);
@@ -117,12 +116,9 @@ export async function getOverview(db: Db, userId: string, days: number, now = ne
 }
 
 /**
- * The report of one playbook for its period (decision 0048). The status is `not_found` when the
- * user has no such playbook and `period_not_ended` when the playbook has no end or its end is after
- * `now`. Otherwise the report counts the decisions that used the playbook for messages received
- * between the start and the end of the period, grouped by outcome and by delivery state, and the
- * decisions whose reply cites the playbook. A playbook without a start is counted from the
- * beginning.
+ * The report of one playbook for its period (decision 0048): the decisions that used it, grouped by
+ * outcome and delivery state, and the replies that cite it. The status is `not_found` when the user
+ * has no such playbook and `period_not_ended` while its period has not ended.
  */
 export async function getPlaybookReport(db: Db, userId: string, id: string, now = new Date()) {
   const [playbook] = await db

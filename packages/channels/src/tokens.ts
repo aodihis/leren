@@ -55,11 +55,9 @@ export function readTokens(
 }
 
 /**
- * Returns a valid access token for one of the user's accounts, or `null` when the account does not
- * exist, belongs to another user, is not usable or has no credentials. A token that has expired, or
- * expires within a minute, is refreshed and the new credentials are stored. When the provider
- * rejects the refresh token, the account becomes `revoked` and the result is `null`. Other
- * failures are thrown, because they may succeed on a retry.
+ * Returns a valid access token for one of the user's accounts, or `null` when the user has no
+ * usable account with credentials. A token that expires within a minute is refreshed and stored. A
+ * rejected refresh token makes the account `revoked` and returns `null`. Other failures are thrown.
  */
 export async function getAccessToken(
   db: Db,

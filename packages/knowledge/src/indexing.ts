@@ -40,10 +40,9 @@ export type KnowledgeVectorMetadata = {
 };
 
 /**
- * Reports whether a playbook belongs in the vector index at `now`. A playbook is indexed when it is
- * enabled and its period has not ended. A playbook whose period has not started yet is
- * indexed, so that it is searchable from the moment the period opens, and retrieval applies
- * `isKnowledgeUsable` to decide whether it may be used.
+ * Reports whether a playbook belongs in the vector index at `now`: it is enabled and its period has
+ * not ended. A playbook whose period has not started is indexed, so it is searchable as soon as it
+ * opens, and retrieval applies `isKnowledgeUsable`.
  */
 export function isKnowledgeIndexable(playbook: KnowledgeUsability, now: Date): boolean {
   return playbook.enabled && (!playbook.endsAt || now <= playbook.endsAt);

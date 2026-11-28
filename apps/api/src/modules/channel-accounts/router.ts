@@ -54,10 +54,9 @@ export const SIGN_IN_RULE: RateLimitRule = { limit: 5, windowSeconds: 15 * 60 };
 export const SETTINGS_RULE: RateLimitRule = { limit: 20, windowSeconds: 15 * 60 };
 
 /**
- * What the router needs beyond the account functions. `cookieSecret` signs the cookie that holds
- * a pending connection. `apiUrl` is the origin that providers redirect back to and `platformUrl`
- * is where the callback sends the browser afterwards. `rateLimiter` limits sign-ins to mail
- * servers and lookups of their settings. Without it, neither is limited.
+ * What the router needs beyond the account functions. `cookieSecret` signs the pending-connection
+ * cookie, `apiUrl` is where providers redirect back to, and `platformUrl` is where the callback
+ * sends the browser. Without `rateLimiter`, sign-ins to mail servers are not limited.
  */
 export type ChannelAccountsRouterDependencies = ChannelAccountsDependencies & {
   cookieSecret: string;
@@ -79,21 +78,9 @@ export const NO_CHANNEL_PROVIDERS: ChannelAccountsRouterDependencies = {
 };
 
 /**
- * Mounts the routes of channel accounts under `/api/channel-accounts`. Every route, including the
- * provider callback, requires a session and is scoped to the signed-in user. A provider that is
- * unknown or not enabled is reported as not found.
- *
- * A connection is kept between the connect request and the callback in a signed, `httpOnly`
- * cookie that expires after ten minutes. It holds the random `state` value, the PKCE code verifier,
- * the user and the provider. The callback accepts a request only when the cookie is present, its
- * `state` equals the query's and the session's user is the cookie's user. The cookie is cleared on
- * every callback, so a `state` value is used once. The cookie is `SameSite=Lax` because the
- * provider's redirect is a cross-site navigation. Tokens are never logged.
- *
- * A provider that signs in to a mail server is connected with `POST /:provider/sign-in` instead,
- * and its connect and callback routes answer with not found. The `imap` provider is the only one,
- * so the route validates its settings and answers invalid ones with `fieldErrors`. The settings
- * hold a password, so they are never logged, and a failed sign-in is answered with its reason only.
+ * Mounts the channel account routes under `/api/channel-accounts`. Every route requires a session
+ * and is scoped to its user. The OAuth callback is accepted only with the signed, single-use cookie
+ * whose `state` and user match the request. Tokens and mail server passwords are never logged.
  */
 export function createChannelAccountsRouter({
   auth,
