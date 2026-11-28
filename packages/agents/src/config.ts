@@ -2,7 +2,7 @@
 export type ModelApi = "responses" | "chat";
 
 /** The reasoning effort levels a model can be asked to use, from the lowest to the highest. */
-export const REASONING_EFFORTS = ["minimal", "low", "medium", "high"] as const;
+export const REASONING_EFFORTS = ["minimal", "low", "medium", "high", "max"] as const;
 
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 

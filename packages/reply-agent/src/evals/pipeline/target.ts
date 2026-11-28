@@ -25,6 +25,11 @@ export type PipelineCaseInput = {
    * means that every playbook of the case is allowed.
    */
   allowedPlaybookIds?: readonly string[];
+  /**
+   * The search score of each playbook, by id, which orders the matches from highest to lowest as a
+   * vector search ranks them. A playbook without a score gets 0.8. Unset keeps the order of the case.
+   */
+  ranking?: Readonly<Record<string, number>>;
 };
 
 /** What one pipeline run produced, with the ids of the playbooks that the tools could return. */
@@ -38,12 +43,22 @@ function toView(item: Playbook) {
   return { ...item, enabled: true, usable: true, periodStatus: "active" };
 }
 
+/** The search matches of a case, ordered by their scores from highest to lowest. */
+function rank(playbooks: readonly Playbook[], ranking: PipelineCaseInput["ranking"]) {
+  return playbooks
+    .map((item) => ({ score: ranking?.[item.id] ?? 0.8, playbook: toView(item) }))
+    .toSorted((first, second) => second.score - first.score);
+}
+
 /**
  * Builds fakes of the playbook tools of the MCP server, with the same names, descriptions and
- * result shapes. The search returns every readable playbook of the case for any query, so the case
- * controls exactly what the answering agent finds.
+ * result shapes. The search returns every readable playbook of the case for any query, in the order
+ * of the case's ranking, so the case controls exactly what the answering agent finds.
  */
-function createFakePlaybookTools(playbooks: readonly Playbook[]): Record<string, AnyTool> {
+function createFakePlaybookTools(
+  playbooks: readonly Playbook[],
+  ranking: PipelineCaseInput["ranking"],
+): Record<string, AnyTool> {
   return {
     search_playbooks: createTool({
       name: "search_playbooks",
@@ -55,7 +70,7 @@ function createFakePlaybookTools(playbooks: readonly Playbook[]): Record<string,
           ? { status: "no_reliable_result", matches: [] }
           : {
               status: "found",
-              matches: playbooks.map((item) => ({ score: 0.8, playbook: toView(item) })),
+              matches: rank(playbooks, ranking),
             },
     }),
     get_playbook: createTool({
@@ -113,8 +128,8 @@ export const target: EvalTarget<PipelineCaseInput, PipelineCaseOutput> = async (
       prompts,
       observer,
       allowedPlaybookIds: allowed,
-      tools: Object.entries(createFakePlaybookTools(readable)).flatMap(([name, tool]) =>
-        names.includes(name) ? [tool] : [],
+      tools: Object.entries(createFakePlaybookTools(readable, input.ranking)).flatMap(
+        ([name, tool]) => (names.includes(name) ? [tool] : []),
       ),
       abortSignal: context?.signal,
     },
