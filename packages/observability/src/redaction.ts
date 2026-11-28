@@ -21,14 +21,10 @@ const DIAL_PHONE = new RegExp(
 );
 
 /**
- * Replaces email addresses and phone numbers in `text` with `[redacted]`, and keeps every other run
- * of digits. A phone number is recognised only by its form: a leading `+` and country code, an area
- * code in parentheses, or a local number with a leading zero and separators. Order numbers, invoice
- * numbers, dates, times and amounts therefore stay readable.
- *
- * It is used where the text is stored and read again later, so that the text keeps the details that
- * explain a decision. A bare run of digits is not treated as a phone number, so a number written
- * without any of these forms is kept. The input is not modified.
+ * Replaces email addresses and phone numbers in `text` with `[redacted]`. A phone number is
+ * recognised only by its form: a leading `+` and country code, an area code in parentheses, or a
+ * leading zero with separators. Other digits, such as order numbers, dates and amounts, stay
+ * readable.
  */
 export function redactContactDetails(text: string): string {
   return text.replace(EMAIL, "[redacted]").replace(DIAL_PHONE, "[redacted]");

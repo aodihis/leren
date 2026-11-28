@@ -40,11 +40,9 @@ function whenIdle(subscription: Subscription): Promise<void> {
 }
 
 /**
- * Creates a `QueueClient` that keeps its messages in process memory, for tests.
- *
- * It follows the same delivery, retry and dead-letter rules as the RabbitMQ client, including
- * the real backoff delays, so tests that use it should configure short delays. Payloads are
- * serialised to JSON on publish, as they are on the wire. Nothing survives the process.
+ * Creates a `QueueClient` that keeps its messages in process memory, for tests. It follows the
+ * RabbitMQ client's delivery, retry and dead-letter rules, including the real backoff delays, so
+ * tests should configure short delays. Payloads are serialised to JSON as they are on the wire.
  */
 export function createInMemoryQueue(): QueueClient {
   const queues = new Map<string, Queue>();

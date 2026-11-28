@@ -20,10 +20,9 @@ type MessageRow = typeof messages.$inferSelect;
 type DecisionRow = typeof replyDecisions.$inferSelect;
 
 /**
- * A message as the list returns it. `preview` is the start of the body, and the full body is
- * returned only for one message. `outcome` and `deliveryState` come from the decision of the
- * pipeline and are null while there is none, and `deliveryState` is also null for a decision that
- * has no reply to deliver (decisions 0043 and 0046).
+ * A message as the list returns it, with `preview` instead of the full body. `outcome` and
+ * `deliveryState` come from the pipeline's decision and are null while there is none.
+ * `deliveryState` is also null when the decision has no reply.
  */
 export type MessageSummary = ReturnType<typeof toSummary>;
 

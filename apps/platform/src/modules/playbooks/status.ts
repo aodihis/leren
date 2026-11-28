@@ -8,10 +8,9 @@ import type { Playbook } from "./types";
 export type PlaybookStatus = "disabled" | "active" | "scheduled" | "expired";
 
 /**
- * Whether a playbook is on and listens on a channel without an account that is active. It names no
- * account, or it names one that was revoked or deleted, so it answers no email, and the list shows
- * it so that the user can choose an account (decision 0044). `activeAccountIds` is `null` when the
- * accounts could not be loaded, and then only a playbook that names no account is flagged.
+ * Whether a playbook is on but listens on a channel without an active account, so it answers no
+ * email (decision 0044). When `activeAccountIds` is `null` because the accounts could not be
+ * loaded, only a playbook that names no account is flagged.
  */
 export function hasNoMailbox(
   playbook: Pick<Playbook, "enabled" | "conditions">,

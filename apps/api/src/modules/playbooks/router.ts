@@ -173,12 +173,9 @@ const deleteRoute = createRoute({
 });
 
 /**
- * Mounts the routes of the signed-in user's playbooks under `/api/playbooks`. Every route requires
- * a session and every query is scoped by the session's user, so a playbook of another user is
- * reported as not found. `PATCH /api/playbooks/:id` turns a playbook on or off. After every change
- * that was written, `requestIndex` asks for the vector index of the playbook to be updated. The
- * routes are documented in the OpenAPI document and chained so that the platform can infer their
- * types through Hono RPC.
+ * Mounts the playbook routes under `/api/playbooks`. Every route requires a session and is scoped
+ * to its user. After every written change, `requestIndex` asks for the playbook's vector index to
+ * be updated.
  */
 export function createPlaybooksRouter(
   auth: Auth,

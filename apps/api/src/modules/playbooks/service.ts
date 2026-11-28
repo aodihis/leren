@@ -19,10 +19,8 @@ export type PlaybookView = ReturnType<typeof toView>;
 export type PlaybookResult = { status: "saved"; playbook: PlaybookView } | { status: "not_found" };
 
 /**
- * Converts the stored rows to the representation the API returns. Each conditions row becomes one
- * entry that names its channel. The period status and `usable` are derived from the playbook and
- * `now` and are not stored. The stored settings were validated against the schema of their channel
- * when they were written.
+ * Converts the stored rows to the API representation, with one conditions entry per channel. The
+ * period status and `usable` are derived from `now` and are never stored.
  */
 function toView(playbook: PlaybookRow, conditions: ConditionsRow[], now: Date) {
   return {
@@ -96,15 +94,10 @@ export class ChannelAccountRequiredError extends Error {
 }
 
 /**
- * Checks that every channel account named by `conditions` belongs to `userId` and is on the
- * channel of the entry that names it. When `enabled` is true, every entry must also name an account,
- * because a playbook that is on and has none handles no email (decision 0044). A disabled playbook
- * may have no account. When `requireActive` is true the account must also be active. A playbook
- * that is created or turned on needs an active account, and a playbook that is replaced does not,
- * so that its owner can still edit it after the account was revoked. It runs inside the write's
- * transaction, so a playbook never listens through another user's account. The account row is
- * locked with `FOR KEY SHARE`, so a disconnect waits until the transaction commits and then clears
- * the new reference through the foreign key's `ON DELETE SET NULL`.
+ * Checks, inside the write's transaction, that every account named by `conditions` belongs to
+ * `userId` and is on the entry's channel. An enabled playbook must name one per entry, active when
+ * `requireActive` is set (decision 0044). Rows are locked `FOR KEY SHARE`, so a concurrent
+ * disconnect waits, then clears the reference.
  */
 async function assertAccountsAvailable(
   tx: Pick<Db, "select">,
@@ -240,10 +233,9 @@ export async function createPlaybook(
 }
 
 /**
- * Replaces a playbook and its conditions, including the account of each channel. An enabled
- * playbook may keep an account that was revoked, unless the replacement turns the playbook on. A
- * channel that the input leaves out loses its conditions. Returns `not_found` when the playbook does not exist or belongs to another user, in
- * which case nothing is written.
+ * Replaces a playbook and its conditions. A channel that the input leaves out loses its conditions.
+ * A revoked account may stay unless the replacement turns the playbook on. Returns `not_found`, and
+ * writes nothing, when the user has no such playbook.
  */
 export async function updatePlaybook(
   db: Db,
@@ -308,10 +300,9 @@ export async function updatePlaybook(
 }
 
 /**
- * Turns a playbook on or off without touching anything else. Returns `not_found` when the playbook
- * does not exist or belongs to another user. Turning a playbook on checks, in the same transaction,
- * that every channel of its conditions names an active account of the owner, and throws
- * `ChannelAccountRequiredError` or `ChannelAccountUnavailableError` otherwise (decision 0044).
+ * Turns a playbook on or off. Turning it on requires every channel to name an active account of the
+ * owner, and throws `ChannelAccountRequiredError` or `ChannelAccountUnavailableError` otherwise
+ * (decision 0044). Returns `not_found` when the user has no such playbook.
  */
 export async function setPlaybookEnabled(
   db: Db,

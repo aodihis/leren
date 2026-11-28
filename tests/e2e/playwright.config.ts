@@ -11,10 +11,10 @@ import {
 import { getE2eDatabaseUrl } from "./support/database";
 
 /**
- * Settings that the API reads from the development `.env` file through `--env-file-if-exists`. The
- * file can hold encrypted values, and Node does not override a variable that is already set, so
- * each one is set here to a value that turns its feature off or satisfies the validation. The tests
- * then behave the same with or without that file, and never reach a real Lens server or provider.
+ * Settings that the API would otherwise read from the development `.env` file. Node does not
+ * override a variable that is already set, so each one here turns its feature off or satisfies
+ * validation. The tests then behave the same with or without that file and never reach real
+ * services.
  */
 const NEUTRAL_ENVIRONMENT = {
   EMAIL_FROM: "Leren <noreply@example.com>",

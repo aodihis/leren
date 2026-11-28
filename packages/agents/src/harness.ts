@@ -23,9 +23,9 @@ export interface Harness {
   /** Builds the model that `task` runs on, as selected by its environment variable. */
   createModel(task: ModelTask): CompletionModel;
   /**
-   * Builds the model of the config with the key `key`, and the controls to call it with. The call
-   * uses `reasoning` when the model lists it, and otherwise the model's default effort, so a model
-   * is never asked for an effort that it does not accept. A model without efforts gets no controls.
+   * Builds the model with the key `key` and the controls to call it with. It uses `reasoning` when
+   * the model lists it and the model's default effort otherwise, so a model is never asked for an
+   * effort it does not accept.
    */
   model(key: string, reasoning?: ReasoningEffort): HarnessModel;
 }

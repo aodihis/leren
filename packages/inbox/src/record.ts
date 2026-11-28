@@ -64,16 +64,9 @@ export function truncate(text: string, limit: number): { text: string; truncated
 }
 
 /**
- * Records an email and publishes it to `email.received`. The record is unique on the user, the
- * channel, the provider and the provider's message id, so a message that is delivered twice is
- * recorded once. The message is published when the record is new, and again while the stored status
- * is still `received`, which repairs a publish that was lost after the row was written. The id of
- * the record is the idempotency key of the queue message. A failed publish throws, and recording
- * the same email again publishes it.
- *
- * The gate deletes a `received` record that no playbook handles (decision 0064), so the existing
- * row can disappear between the insert that conflicts with it and the read that follows. The email
- * is then recorded again once, as a new record.
+ * Records an email once per provider message id and publishes it to `email.received`, keyed by the
+ * record id. It publishes again while the status is still `received`, which repairs a lost publish.
+ * If the gate deletes the conflicting row before it is read, the email is recorded again once.
  */
 export async function recordInboundEmail(
   deps: { db: Db; queue: Pick<QueueClient, "publish"> },

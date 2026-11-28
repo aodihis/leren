@@ -1,8 +1,8 @@
 /**
- * Walks through the success criteria of the product against a running local stack. It signs in as a
- * new user through the Mailpit inbox, connects the development mailbox, saves one playbook, records
- * five simulated emails and prints how each one ended. Start `pnpm services:up`, the API with
- * `CHANNEL_PROVIDERS=mailpit`, and the worker first. The worker needs a model API key to answer.
+ * Walks through the product's success criteria against a running local stack: signs in a new user
+ * through Mailpit, connects the development mailbox, saves a playbook, records five simulated
+ * emails and prints how each ended. Start `pnpm services:up`, the API with
+ * `CHANNEL_PROVIDERS=mailpit`, and the worker, which needs a model API key.
  */
 
 const API_URL = process.env.API_URL ?? "http://localhost:3000";

@@ -11,10 +11,9 @@ function isWorkerRole(name: string): name is WorkerRole {
 }
 
 /**
- * Reads the value of `WORKER_ROLES`: role names separated by commas. An empty or unset value
- * selects every role, so a development setup with one process needs no setting. A name that is not
- * a role is an error that lists the valid names, so that a typo stops the process at startup and
- * does not silently run fewer jobs. A repeated name counts once.
+ * Reads `WORKER_ROLES`, a comma-separated list of role names. An empty or unset value selects every
+ * role. An unknown name is an error that lists the valid names, so a typo stops the process at
+ * startup. A repeated name counts once.
  */
 export function parseWorkerRoles(value: string | undefined): ParsedRoles {
   const names = (value ?? "")

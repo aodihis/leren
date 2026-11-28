@@ -61,9 +61,9 @@ function clean(text: string): string {
 
 /**
  * The input guardrail. It removes control and invisible characters, cuts the body at
- * `EMAIL_BODY_LIMIT` and reports whether the text matches a known injection phrase. It never
- * blocks, because a message that quotes such a phrase is still a message that needs an answer. The
- * flag is passed on so that later stages can treat the email with more care.
+ * `EMAIL_BODY_LIMIT` and flags known injection phrases. It never blocks, because a message that
+ * quotes such a phrase may still need an answer, and later stages treat a flagged email with more
+ * care.
  */
 export function prepareEmail(email: Email): PreparedEmail {
   const from = clean(email.from);

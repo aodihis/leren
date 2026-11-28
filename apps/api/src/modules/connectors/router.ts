@@ -58,15 +58,9 @@ export const NO_CONNECTORS: ConnectorsRouterDependencies = {
 };
 
 /**
- * Mounts the routes of connectors under `/api/connectors` (decision 0054). Every route, including
- * the callback, requires a session and is scoped to the signed-in user. A connector that is not
- * enabled is reported as not found.
- *
- * A connection is kept between the connect request and the callback in a signed, `httpOnly`
- * cookie that expires after ten minutes. It holds the random `state` value, the PKCE code verifier,
- * the user and the connector. The callback accepts a request only when the cookie is present, its
- * `state` equals the query's and the session's user is the cookie's user. The cookie is cleared on
- * every callback, so a `state` value is used once. Tokens are never logged.
+ * Mounts the connector routes under `/api/connectors` (decision 0054). Every route requires a
+ * session and is scoped to its user. The OAuth callback is accepted only with the signed,
+ * single-use cookie whose `state` and user match the request. Tokens are never logged.
  */
 export function createConnectorsRouter({
   auth,

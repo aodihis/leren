@@ -66,9 +66,9 @@ function isReply(outcome: ReplyResult["outcome"]): boolean {
 }
 
 /**
- * Saves the result of the pipeline. A message has at most one decision, so saving it twice keeps the
- * first one. A reply is saved with its delivery mode and the delivery state `pending`, so that the
- * decision and the fact that it waits for delivery are written together (decision 0046).
+ * Saves the result of the pipeline. A message has at most one decision, so a second save keeps the
+ * first. A reply is saved with its delivery mode and the state `pending` in the same write
+ * (decision 0046).
  */
 async function saveDecision(
   db: Db,
@@ -116,10 +116,9 @@ async function settle(
 }
 
 /**
- * Publishes `email.deliver` for the decision of a message whose delivery is `pending`. It returns
- * whether it did. The publish is safe to repeat, because the deliverer lets only one delivery move
- * the state from `pending` to `started`, so it is repeated whenever the job finds a reply that was
- * saved but may not have been published (decision 0046).
+ * Publishes `email.deliver` for a message whose delivery is `pending`, and returns whether it did.
+ * Repeating it is safe, because only one delivery can move from `pending` to `started` (decision
+ * 0046).
  */
 async function publishPendingDelivery(
   { db, publishDeliver }: ReplyRunDependencies,
@@ -140,17 +139,9 @@ async function publishPendingDelivery(
 }
 
 /**
- * Runs the reply pipeline for one message that the gate queued (decision 0043). The function reads
- * the current record and never trusts the job about its state, so a repeated delivery does nothing
- * once the message has left the pipeline, and a delivery after a crash finishes the work: a saved
- * decision is not computed again, the move to the final status is repeated, and a reply that waits
- * for delivery is published again. When the pipeline ends in a reply, the mode of its playbooks
- * decides whether it is delivered as a draft or sent, and `email.deliver` is published.
- *
- * The default reply instruction of the owner is part of the input, and an instruction of a playbook
- * applies together with it and wins where the two conflict (decision 0051). The MCP session of
- * the run is bound to the owner of the record and is revoked when the run ends, whether it
- * succeeded or failed. The mention check is made only when every playbook of the job asks for it.
+ * Runs the reply pipeline for one queued message (decisions 0043 and 0051). It trusts the current
+ * record, not the job, so a repeated job does nothing and a resumed job reuses a saved decision.
+ * The MCP session is bound to the record's owner and revoked when the run ends.
  */
 export async function processMessage(
   dependencies: ReplyRunDependencies,

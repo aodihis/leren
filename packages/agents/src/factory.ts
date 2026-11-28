@@ -3,12 +3,9 @@ import type { AgentOptions } from "@anvia/core";
 import type { Observer } from "@leren/observability";
 
 /**
- * Everything needed to build one agent.
- *
- * The fields come from Anvia's `AgentOptions`. The instructions and the turn limit are required
- * here, and the observer replaces Anvia's observability options. `maxTokens` limits the tokens
- * that the model writes in each turn, and `controls` sets the model's declared controls, such as
- * its reasoning effort, for each turn.
+ * Everything needed to build one agent, taken from Anvia's `AgentOptions`. The instructions and
+ * turn limit are required, and the observer replaces Anvia's observability options. `maxTokens` and
+ * `controls`, such as the reasoning effort, apply to each turn.
  */
 export type CreateAgentOptions = Required<Pick<AgentOptions, "instructions" | "maxTurns">> &
   Pick<

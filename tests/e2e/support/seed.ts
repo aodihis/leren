@@ -61,10 +61,10 @@ type SeededMessage = {
 };
 
 /**
- * Writes the records of a finished playbook period for the user `email`: a playbook that ended a
- * day ago, and the messages that it handled while it was running, with their decisions, and two
- * messages that failed. The overview of the user then has six messages and two failures, and the
- * report of the playbook has four decisions. Returns the topic of the playbook.
+ * Writes a finished playbook period for the user `email`: a playbook that ended a day ago, the
+ * messages it handled with their decisions, and two failed messages. The user's overview then has
+ * six messages and two failures, and the playbook's report has four decisions. Returns the
+ * playbook's topic.
  */
 export async function seedFinishedPlaybook(email: string): Promise<string> {
   return withUser(email, async (db, user) => {

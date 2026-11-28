@@ -15,9 +15,9 @@ export interface ModelOptions {
   readonly baseUrl?: string;
   readonly api?: ModelApi;
   /**
-   * The reasoning efforts that the model accepts, from the lowest to the highest. When it is given,
-   * they replace the efforts that the provider's adapter declares for the model id, so a model that
-   * the adapter does not know, such as one behind a gateway, can be called with an effort.
+   * The reasoning efforts that the model accepts, from lowest to highest. They replace the efforts
+   * that the provider's adapter declares for the model id, so a model the adapter does not know,
+   * such as one behind a gateway, can be called with an effort.
    */
   readonly reasoningEfforts?: readonly ReasoningEffort[];
 }

@@ -145,10 +145,9 @@ async function srvServer(
 }
 
 /**
- * Suggests the server settings of an address (decision 0063). It tries the domain's own autoconfig
- * document, then Mozilla's database, then the DNS SRV records of RFC 6186 and RFC 8314, and returns
- * the first complete answer, or null when none is found. Requests use HTTPS, follow no redirect and
- * reach only public addresses.
+ * Suggests the server settings of an address (decision 0063) from the domain's autoconfig document,
+ * then Mozilla's database, then DNS SRV records. Returns the first complete answer, or null.
+ * Requests use HTTPS, follow no redirect and reach only public addresses.
  */
 export async function suggestImapSettings(
   address: string,

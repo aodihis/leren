@@ -45,18 +45,10 @@ async function deleteSkipped(db: Db, messageId: string): Promise<GateOutcome> {
 }
 
 /**
- * Decides whether a recorded message is handled (decisions 0039 and 0064). The decision is code
- * only and calls no model. A message that no playbook handles is deleted, so the database keeps
- * only the messages that the pipeline considers. The function reads the current row and never
- * trusts a message about its state, so a repeated or reordered `email.received` leaves the same
- * result: a record that has left `received` and `queued` is ignored, and a `queued` record is
- * published again, which repairs a publish that was lost after the status changed.
- *
- * The playbooks considered are the user's, are usable at `now` according to `isKnowledgeUsable`,
- * and name the channel account that the message arrived on. An account that was deleted or revoked
- * has no playbooks to consider. A message sent from any of the user's own accounts on the channel
- * is never handled, so two mailboxes of one user cannot answer each other without end
- * (decision 0065). A playbook whose stored email settings are invalid is not evaluated.
+ * Decides, in code alone, whether a recorded message is handled. Only the user's playbooks that are
+ * usable at `now` and name the receiving account count. An unhandled message is deleted, as is one
+ * sent by the user's own account (decision 0065). Reading the current row makes redelivery
+ * idempotent.
  */
 export async function gateMessage(
   { db, publishProcess }: EmailGateDependencies,

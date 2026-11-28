@@ -28,10 +28,9 @@ function withoutTemperature(model: CompletionModel): CompletionModel {
 }
 
 /**
- * Builds the model that grades answers. `EVAL_JUDGE_MODEL` names a model in `harness.config.ts`.
- * Without it, the first of the preferred models whose API key is set and that differs from the
- * models under evaluation is used. The judge must differ from them, because a model that grades
- * its own answers is lenient toward its own mistakes, so this throws when they are the same.
+ * Builds the model that grades answers. `EVAL_JUDGE_MODEL` names a model in `harness.config.ts`,
+ * and otherwise the first preferred model with an API key is used. The judge must differ from the
+ * models under evaluation, because a model is lenient toward its own mistakes.
  */
 export async function getJudgeModel(options: JudgeModelOptions): Promise<CompletionModel> {
   const harness = await loadHarness();

@@ -13,9 +13,8 @@ export type TokenResponse = Readonly<Record<string, unknown>>;
 
 /**
  * The stored credentials of a connection. `clientId` names the OAuth client that the tokens were
- * issued to. It is null when the product's own client is used, and it is the id that the
- * authorization server registered for the connection when the connector uses dynamic registration.
- * A refresh must present the same client.
+ * issued to, which a refresh must present again. It is null for the product's own client, and the
+ * registered id when the connector uses dynamic registration.
  */
 export type ConnectorTokens = ProviderTokens & { clientId: string | null };
 

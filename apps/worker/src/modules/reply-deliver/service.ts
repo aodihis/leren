@@ -18,10 +18,9 @@ export type ReplyDeliverDependencies = {
 };
 
 /**
- * What a run did. `delivered` means that the provider answered and the record is complete.
- * `refused` and `rejected` mean that the delivery ended without a call, or with an answer that
- * refuses it, and that the message is `failed`. `unknown` means that an earlier call has no
- * recorded end, so nothing is called again. `ignored` means that there was nothing to deliver.
+ * What a run did. `delivered` means the provider accepted the delivery. `refused` and `rejected`
+ * mean the delivery ended without a call or was refused, and the message is `failed`. `unknown`
+ * means an earlier call has no recorded end. `ignored` means nothing was delivered.
  */
 export type ReplyDeliverOutcome = "delivered" | "refused" | "rejected" | "unknown" | "ignored";
 
@@ -74,11 +73,9 @@ function withReplyPrefix(subject: string): string {
 }
 
 /**
- * Ends a delivery that is `pending` or `started` as failed and moves the message to `failed`. The
- * record keeps the request and the times. `reason` is the code of the cause and is the status reason
- * of the message. The stored error is the code alone, or the code, a colon and a description, so the
- * code can always be read back from it. A delivery that has already ended is left alone, and so is
- * its message. Returns whether the record was changed.
+ * Ends a `pending` or `started` delivery as failed and moves its message to `failed`, with `reason`
+ * as the message's status reason. The stored error starts with that code, optionally followed by a
+ * colon and a description. An ended delivery is left alone. Returns whether the record changed.
  */
 export async function failDelivery(
   db: Db,
@@ -170,15 +167,10 @@ async function finishSent(db: Db, { message, decision }: DeliveryRecord): Promis
 }
 
 /**
- * Delivers the reply of one message as a draft in the mailbox or as a sent mail (decision 0046).
- * The function reads the current records and does nothing unless the message is `drafted` and the
- * delivery is `pending`.
- *
- * Everything that can fail before the call is done first: the credentials, the headers of the
- * original and the checks. Then one conditional update moves the delivery from `pending` to
- * `started` and stores the exact request, so that a delivery that is `started` and has no end is
- * visible. A delivery that is found `started` is never called again: it ends as `delivery_unknown`.
- * A delivery that is known not to have reached the provider goes back to `pending` and is retried.
+ * Delivers the reply of a `drafted` message whose delivery is `pending` (decision 0046). Everything
+ * that can fail runs before one conditional update marks the delivery `started` with its exact
+ * request. A `started` delivery is never called again and ends as `delivery_unknown`, so a reply is
+ * never delivered twice.
  */
 export async function deliverReply(
   { db, channels }: ReplyDeliverDependencies,
@@ -292,10 +284,9 @@ export async function deliverReply(
 }
 
 /**
- * Makes the call and writes its end. A known failure ends the delivery or puts it back to
- * `pending`. Credentials that the mailbox refused make the account `revoked` and end the delivery,
- * because nothing was delivered and nothing can be until the account is connected again. Any other
- * failure is thrown and leaves the delivery `started`, so that it is never called again.
+ * Makes the call and records its end. A known failure ends the delivery or returns it to `pending`,
+ * and refused credentials also make the account `revoked`. Any other failure is thrown and leaves
+ * the delivery `started`, so it is never called again.
  */
 async function callProvider(
   db: Db,

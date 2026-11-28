@@ -5,10 +5,9 @@ import { runAgent } from "./agent";
 /**
  * Runs the Assistant Agent from the command line and prints its answer as it streams.
  *
- * Usage: `pnpm runner:assistant "your question"`.
- * It loads `harness.config.ts`, which supplies the prompt, the model, its endpoint and the name of
- * the variable that holds its API key. The model is the one that `ASSISTANT_MODEL` selects, or the
- * default model. It connects to the MCP server only when `MCP_URL` and `MCP_TOKEN` are set.
+ * Usage: `pnpm runner:assistant "your question"`. The prompt and model come from
+ * `harness.config.ts`, where `ASSISTANT_MODEL` selects the model. It connects to the MCP server
+ * only when `MCP_URL` and `MCP_TOKEN` are set.
  */
 async function main(): Promise<void> {
   const prompt = process.argv.slice(2).join(" ");

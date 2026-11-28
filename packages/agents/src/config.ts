@@ -7,15 +7,10 @@ export const REASONING_EFFORTS = ["minimal", "low", "medium", "high"] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
 /**
- * One model the harness can run an agent on, together with the client that talks to it.
- *
- * `modelId` is the identifier the provider expects. `apiKeyEnv` names the environment variable that
- * holds the credentials, so the config file never contains a secret. `baseUrl` selects the
- * endpoint of an OpenAI-compatible service and defaults to the provider's own. `api` selects the
- * wire protocol and defaults to `"responses"`. `reasoningEfforts` lists the efforts that the model
- * accepts, and a model with efforts must name its `defaultReasoningEffort`, which every call uses
- * unless it asks for another listed effort. An empty list means that the model does not reason,
- * and `defaultReasoningEffort` must be omitted.
+ * One model the harness can run an agent on. `apiKeyEnv` names the variable that holds the key, so
+ * the config never contains a secret. `baseUrl` and `api` default to the provider's endpoint and
+ * `"responses"`. A model with `reasoningEfforts` must name a `defaultReasoningEffort`, and a model
+ * without them must not.
  */
 export interface ModelDefinition {
   readonly provider: "openai";
@@ -55,11 +50,9 @@ export type AgentName =
   | "replyStyleJudge";
 
 /**
- * The single configuration file of the harness, `harness.config.ts` in the repository root.
- *
- * Paths are relative to the directory that contains the config file. `models` is keyed by a
- * name chosen here, and `defaultModel` must be one of those keys. `embeddingModels` and
- * `defaultEmbeddingModel` follow the same rule for the models that produce vectors.
+ * The single configuration file of the harness, `harness.config.ts` in the repository root. Paths
+ * are relative to its directory. `defaultModel` must be a key of `models`, and
+ * `defaultEmbeddingModel` must be a key of `embeddingModels`.
  */
 export interface HarnessConfig {
   readonly prompts: Readonly<Record<AgentName, string>>;
@@ -103,11 +96,9 @@ export interface ResolvedModel {
 }
 
 /**
- * Finds the model a task runs on and reads its API key.
- *
- * The task's environment variable names a key of `config.models`. Throws an error that lists the
- * available keys when the key is unknown, and an error that names the variable when the model's
- * API key is not set, so a misconfigured process fails before the first request.
+ * Finds the model a task runs on and reads its API key. The task's environment variable names a key
+ * of `config.models`. Throws an error when the key is unknown or the model's API key is not set, so
+ * a misconfigured process fails before its first request.
  */
 export function resolveTaskModel(
   config: HarnessConfig,

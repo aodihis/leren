@@ -1,10 +1,9 @@
 const AUTOMATIC_PRECEDENCE = new Set(["bulk", "list", "junk"]);
 
 /**
- * Reads whether a message is a reply and whether it is bulk from its headers, keyed by lower-case
- * name (decision 0041). A message is a reply when it names the message it answers, and it is bulk
- * when its headers say it was sent to a list or by a program. Every provider applies these rules,
- * so the gate treats mail the same whichever mailbox it came from.
+ * Reads whether a message is a reply, because it names the message it answers, and whether it is
+ * bulk, because it was sent to a list or by a program (decision 0041). Every provider applies these
+ * rules, so the gate treats mail the same from any mailbox.
  */
 export function readMailFlags(headers: ReadonlyMap<string, string>): {
   isReply: boolean;
@@ -30,10 +29,8 @@ export function headerMap(
 
 /**
  * Returns one address for each mailbox in a header such as `Ana <ana@example.com>, bo@example.com`.
- * A mailbox is split from the next at a comma that is outside a quoted display name. Its address is
- * the one in angle brackets when it has one, and the bare address otherwise. Quoted strings are
- * removed first, so an address written inside a display name, with or without angle brackets, is
- * never taken for the address of the mailbox.
+ * The address is the one in angle brackets, or the bare address. Quoted display names are removed
+ * first, so an address written inside one is never taken for the mailbox's address.
  */
 export function parseAddresses(value: string | undefined): string[] {
   if (!value) {

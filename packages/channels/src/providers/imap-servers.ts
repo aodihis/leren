@@ -51,10 +51,9 @@ function errorCode(error: unknown): string {
 const TEMPORARY_IMAP_CODES = new Set(["UNAVAILABLE", "INUSE", "LIMIT", "SERVERBUG"]);
 
 /**
- * Classifies an error of opening an IMAP session. `imapflow` marks a refused sign-in and a failed
- * TLS set-up on the error. A sign-in that the server refuses for a temporary reason means the
- * server could not be used, so it never counts as refused credentials. Anything else that stops a
- * session from opening also means the server could not be used.
+ * Classifies an error of opening an IMAP session. Only a sign-in that the server refuses for a
+ * permanent reason counts as refused credentials. A temporary refusal, a failed TLS set-up and
+ * anything else mean that the server could not be used.
  */
 export function imapOpenFailure(error: unknown): SignInFailure {
   const details = (error ?? {}) as {

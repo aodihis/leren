@@ -14,11 +14,9 @@ import { imapSettingsSchema, readStoredSettings } from "./imap-settings";
 import type { MailDeliverer, MailReader, SignInProvider } from "./types";
 
 /**
- * The provider of mailboxes reached with IMAP and SMTP (decision 0063), such as the mailbox that
- * comes with a domain or a web hosting plan. Connecting signs in to both servers with the settings
- * the user gives, and the account is saved only when both sign-ins succeed. The settings and the
- * password are stored as the account's access token, which never expires, so `refresh` returns it
- * unchanged. A password cannot be revoked by the product, so `revoke` does nothing.
+ * The provider of mailboxes reached through IMAP and SMTP (decision 0063). An account is saved only
+ * when both sign-ins succeed. Its settings and password are stored as an access token that never
+ * expires, so `refresh` returns it unchanged and `revoke` does nothing.
  */
 export function createImapProvider(
   servers: MailServers = createMailServers(),

@@ -13,9 +13,9 @@ export type RateLimitResult = {
 };
 
 /**
- * Counts calls for a key. Each window starts with the first call for the key, lasts
- * `windowSeconds` and then resets, so a caller can make up to twice the limit across the boundary
- * of two windows. A call that is over the limit is still counted, and that never extends the window.
+ * Counts calls for a key in fixed windows of `windowSeconds` that start with the first call, so a
+ * caller can make up to twice the limit across a window boundary. A call over the limit is still
+ * counted and never extends the window.
  */
 export type RateLimiter = {
   consume(key: string, rule: RateLimitRule): Promise<RateLimitResult>;

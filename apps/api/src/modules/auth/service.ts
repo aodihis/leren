@@ -40,15 +40,9 @@ function textOrFallback(value: unknown, fallback: unknown): string {
 }
 
 /**
- * Creates the Better Auth instance. Users register and sign in the same way: they enter an email
- * address, receive a one-time code and submit it. An unknown address becomes a new user when its
- * code is verified. There are no passwords.
- *
- * The code email is sent without awaiting delivery, so the response time does not reveal whether
- * an address is deliverable. A delivery failure is logged, and the API checks the email transport
- * at startup so a misconfigured SMTP server is reported before a user waits for a code.
- *
- * A partial profile update keeps the stored half of the display name.
+ * Creates the Better Auth instance. Users sign in, and register, with a one-time code sent to their
+ * email address, and there are no passwords. The code email is sent without awaiting delivery, so
+ * the response time does not reveal whether an address is deliverable.
  */
 export function createAuth(options: CreateAuthOptions) {
   return betterAuth({
@@ -130,9 +124,8 @@ export async function getProfile(db: Db, userId: string) {
 
 /**
  * Saves a user's first and last name and derives the display name from them. The default reply
- * instruction is saved only when the input has one, so a request without it keeps the stored
- * value. The update is scoped to `userId`. Returns the updated profile, or `null` when the user
- * does not exist.
+ * instruction changes only when the input has one. Returns the updated profile, or `null` when the
+ * user does not exist.
  */
 export async function updateProfile(db: Db, userId: string, input: UpdateProfileInput) {
   const changes: Partial<typeof users.$inferInsert> = {

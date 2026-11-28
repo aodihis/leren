@@ -104,12 +104,9 @@ export interface RunAgentOptions extends Omit<AssistantAgentOptions, "memory"> {
 }
 
 /**
- * Runs the Assistant Agent once and yields its stream events as they happen.
- *
- * The MCP connection is opened when iteration starts and is closed when the stream ends, fails or
- * is abandoned by the caller, so it cannot outlive the run. When `memory` is given, the store
- * already holds the earlier turns, so only the newest user message is sent and the turn is saved
- * when it ends. Otherwise all of `messages` is sent and nothing is saved.
+ * Runs the Assistant Agent once and yields its stream events. The MCP connection lives only while
+ * the stream is iterated. With `memory`, the store holds earlier turns, so only the newest user
+ * message is sent and the turn is saved. Without it, all `messages` are sent and nothing is saved.
  */
 export async function* runAgent(options: RunAgentOptions): AsyncGenerator<AgentStreamEvent> {
   const { agent, close } = await createAssistantAgent({

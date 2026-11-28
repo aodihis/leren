@@ -19,13 +19,9 @@ export type McpRouterDependencies = {
 };
 
 /**
- * Mounts the MCP endpoint at `/mcp` and the routes that manage the signed-in user's access tokens.
- * `GET` and `POST /api/mcp/tokens` list and create the access tokens that a user gives to their own
- * agent: named, long-lived sessions of the `assistant` role. The user can never choose another user,
- * role or scope. `DELETE /api/mcp/sessions/:id` revokes one of the user's own sessions. No route
- * mints a session without a name, so only code inside the API and the worker can open the unnamed
- * sessions of the built-in agents. `/mcp` does not use the browser session: it accepts only a bearer
- * token.
+ * Mounts the MCP endpoint at `/mcp` and the routes that manage the user's access tokens. A user can
+ * create, list and revoke only their own named `assistant` sessions. No route mints an unnamed
+ * session, which only the built-in agents use. `/mcp` accepts only a bearer token.
  */
 export function createMcpRouter({ auth, db, sessions, endpoint }: McpRouterDependencies) {
   return new Hono<{ Variables: AuthVariables }>()

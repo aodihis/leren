@@ -19,10 +19,9 @@ export type ReplyRunJobDependencies = ReplyRunDependencies & {
 };
 
 /**
- * Consumes `email.process`: runs the reply pipeline for one message that the gate queued (decision
- * 0043). A failure is retried. When the last attempt fails, or the failure cannot succeed on a
- * retry, the message is marked as failed so that the user can see it, and the failure is reported,
- * which sends the message to the dead-letter queue.
+ * Consumes `email.process` and runs the reply pipeline for one queued message (decision 0043). A
+ * failure is retried. A final failure marks the message as failed so that the user sees it, and
+ * dead-letters the job.
  */
 export function createReplyRunJob(dependencies: ReplyRunJobDependencies) {
   const { db, observer } = dependencies;

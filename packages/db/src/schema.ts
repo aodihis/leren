@@ -14,11 +14,10 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * Application users. The shape follows Better Auth's `user` model, with `firstName` and
- * `lastName` as additional fields. Users sign in with an emailed code and have no password.
- * `name` is the display name Better Auth requires and stays empty until a profile is saved.
- * `replyInstruction` is the default instruction for how replies are written. It is empty when the
- * user has not set one (decision 0051).
+ * Application users, following Better Auth's `user` model with `firstName` and `lastName` added.
+ * Users sign in with an emailed code and have no password. `name` stays empty until a profile is
+ * saved. `replyInstruction` is the default instruction for replies, empty when unset (decision
+ * 0051).
  */
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -98,15 +97,10 @@ export const verifications = pgTable(
 );
 
 /**
- * Playbooks. A playbook says when the assistant replies and what it says, one topic for each row.
- * `information` is what the assistant knows about the topic, and retrieval finds the playbook by
- * its topic and its information. `instruction` says how to answer when the playbook is used and
- * applies together with the default instruction of the user. It is empty when the playbook has none (decision
- * 0051). Whom a sender may contact is written in `information`. `startsAt` and `endsAt` are
- * instants and a null bound is open. `timezone` is the IANA zone the user enters and reads the bounds in. A playbook
- * is usable only when it is `enabled` and the current time is inside its period, and the period
- * status is derived and never stored (decision 0036). The channel conditions of a playbook are
- * rows of `reply_conditions`.
+ * Playbooks: each row is one topic that says when the assistant replies and what it says.
+ * `instruction` applies together with the user's default instruction (decision 0051). A null period
+ * bound is open. Whether a playbook is usable is derived from `enabled` and the period and never
+ * stored (decision 0036).
  */
 export const playbooks = pgTable(
   "playbooks",
@@ -131,16 +125,10 @@ export const playbooks = pgTable(
 export const channelAccountStatusEnum = pgEnum("channel_account_status", ["active", "revoked"]);
 
 /**
- * A user's authorised account on a channel, such as one Gmail mailbox. `provider` names the adapter
- * that connected it and `providerAccountId` is the provider's stable identifier of the account, so
- * an account belongs to exactly one user. `label` is the text shown to the user, such as the
- * address. `credentials` is the encrypted token set, and it is null for a provider that has none.
- * `syncCursor` is the opaque position from which the listener reads new mail. Only the provider that
- * wrote it interprets it. Connecting sets it to the position of the mailbox at that moment, and it
- * is null only when the provider could not read that position, so the first poll sets it
- * (decision 0041).
- * Whether an account is usable also depends on its provider being enabled in the configuration, so
- * disabling a provider changes no row (decision 0038).
+ * A user's authorised account on a channel, such as one Gmail mailbox. `providerAccountId` is the
+ * provider's stable identifier, so an account belongs to exactly one user. `credentials` is
+ * encrypted. `syncCursor` is opaque outside its provider (decision 0041). Disabling a provider in
+ * the configuration changes no row (decision 0038).
  */
 export const channelAccounts = pgTable(
   "channel_accounts",
@@ -195,11 +183,9 @@ export const connectors = pgTable(
 );
 
 /**
- * The reply conditions of a playbook for one channel, such as `email` or `slack`. A playbook
- * listens on a channel when it has a row for that channel, and it has at most one row for each.
- * `channel` is text and not an enum so that a new channel needs no migration. `settings` holds the
- * conditions of that channel, whose shape is defined and validated per channel by the API and
- * `@leren/auto-reply`. Keeping them here keeps `playbooks` channel-agnostic.
+ * The reply conditions of a playbook for one channel, at most one row per channel. `channel` is
+ * text, so a new channel needs no migration. `settings` is defined and validated per channel by the
+ * API and `@leren/auto-reply`, which keeps `playbooks` channel-agnostic.
  */
 export const replyConditions = pgTable(
   "reply_conditions",
@@ -233,13 +219,10 @@ export const messageStatusEnum = pgEnum("message_status", [
 ]);
 
 /**
- * The record of one received message and where it stands in the pipeline (decision 0039). It holds
- * only the email data: the sender, the recipients, the subject and a body that is cut to a fixed
- * length, with `bodyTruncated` set when it was cut. `providerMessageId` and `providerThreadId` are
- * the provider's own identifiers, and a message is unique on the user, the channel, the provider
- * and `providerMessageId`, which makes recording it idempotent. `channelAccountId` is set to null
- * when the account is deleted, and the record stays. `status` moves forward through the pipeline
- * and `statusReason` is a short code that says why.
+ * The record of one received message and where it stands in the pipeline (decision 0039). The body
+ * is cut to a fixed length, and `bodyTruncated` says when. A message is unique on the user,
+ * channel, provider and `providerMessageId`, so recording is idempotent. `status` only moves
+ * forward.
  */
 export const messages = pgTable(
   "messages",
@@ -293,9 +276,9 @@ export const replyOutcomeEnum = pgEnum("reply_outcome", ["answer", "escalate", "
 export const deliveryModeEnum = pgEnum("delivery_mode", ["draft", "send"]);
 
 /**
- * How far the delivery of a reply got (decision 0046). `pending` means that it is queued, `started`
- * that the deliverer is about to call the provider or has called it and has no answer, `completed`
- * that the provider answered and its id is stored, and `failed` that it ended with an error.
+ * How far the delivery of a reply got (decision 0046): `pending` is queued, `started` has called or
+ * is about to call the provider without an answer, `completed` has the provider's id stored, and
+ * `failed` ended with an error.
  */
 export const deliveryStateEnum = pgEnum("delivery_state", [
   "pending",
@@ -305,19 +288,10 @@ export const deliveryStateEnum = pgEnum("delivery_state", [
 ]);
 
 /**
- * The result of the reply pipeline for one message, at most one row for each message (decision
- * 0043). `body` is the draft when the outcome is `answer` and is null otherwise.
- * `citations` are the ids of the playbooks that the draft cites, `playbookIds` are all the playbooks
- * that the run used, `reasons` say why the pipeline ended as it did, and `evaluations` keeps what
- * the evaluator found for each draft. The rows go with their message and their user.
- *
- * The `delivery*` columns, `mailboxDraftId` and `sentMessageId` are the record of delivering the
- * reply (decision 0046). They are empty until a delivery is queued. `deliveryRequest` is written
- * before the provider is called and holds the exact reply, and `deliveryResponse` holds the whole
- * answer of the provider, so that a delivery that lost its answer can be investigated afterwards.
- * Three checks keep that record whole: a delivery that has a state has a mode, a delivery that
- * started or completed has the request and the time it started, and a completed delivery has the id
- * that the provider returned.
+ * The result of the reply pipeline, at most one row per message (decision 0043). `body` is set only
+ * for the `answer` outcome. The `delivery*` columns record delivering the reply (decision 0046).
+ * `deliveryRequest` is written before the provider is called, and check constraints keep the
+ * delivery record complete for each state.
  */
 export const replyDecisions = pgTable(
   "reply_decisions",
@@ -369,12 +343,9 @@ export const replyDecisions = pgTable(
 export const mcpClientRoleEnum = pgEnum("mcp_client_role", ["assistant", "reply"]);
 
 /**
- * MCP sessions. The id is the `jti` of the signed token, so a token is valid only while its row
- * exists, has not expired and is not revoked. `scopes` is the set granted at minting time and
- * `messageId` and `playbookIds` are set only for a reply session: `playbookIds` holds the playbooks
- * that the email gate allowed for that message, and the session can read no other playbook. `name`
- * is set only for an access token that the user created in the dashboard, and is null for the
- * short-lived sessions that the built-in agents open. A session is removed with its user.
+ * MCP sessions. The id is the signed token's `jti`, so a token is valid only while its row exists
+ * and is neither expired nor revoked. A reply session can read only the `playbookIds` that the gate
+ * allowed for `messageId`. `name` is set only for access tokens that the user created.
  */
 export const mcpSessions = pgTable(
   "mcp_sessions",

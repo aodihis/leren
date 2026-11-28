@@ -13,14 +13,10 @@ export type EmailPollDependencies = {
 };
 
 /**
- * What a poll did. `ingested` means that the mailbox was read and `count` emails were recorded.
- * `unreadable` lists the ids of messages that the provider could not convert and that were left
- * out. `baseline` means that the poll stored the current position of the mailbox and recorded
- * nothing. `gap` is true when the poll had a cursor that the provider could no longer resume from,
- * so mail that arrived since then was not ingested. `skipped` means that the account cannot be
- * polled: it is gone, revoked, has a provider that is disabled or cannot read a mailbox, or has no
- * usable credentials. `revoked` means that the mailbox refused the stored credentials during this
- * poll, so the account was made `revoked` (decision 0062).
+ * What a poll did: `ingested` recorded `count` emails and lists the `unreadable` ones, `baseline`
+ * stored the mailbox position without recording, and `gap` means the old cursor could not be
+ * resumed. `skipped` means the account cannot be polled, and `revoked` means the mailbox refused
+ * its credentials (decision 0062).
  */
 export type PollOutcome =
   | { kind: "ingested"; count: number; unreadable: string[] }
@@ -53,10 +49,9 @@ export async function listPollableAccountIds(
 }
 
 /**
- * Reads the new mail of one account and records it (decision 0041). The cursor is stored after
- * every email is recorded, so a failure repeats emails that are already recorded and loses none,
- * because recording is idempotent. The cursor is written only while it is still the one that was
- * read, so overlapping polls and a reconnection, which replaces it, never move it backwards.
+ * Reads the new mail of one account and records it (decision 0041). The cursor is stored only after
+ * every email is recorded, and only while it is still the cursor that was read, so a failure loses
+ * no mail and overlapping polls never move it backwards.
  */
 export async function pollAccount(
   { db, channels, recordEmail }: EmailPollDependencies,

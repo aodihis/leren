@@ -236,11 +236,8 @@ function registerReadTool(
 
 /**
  * Builds the MCP server of one request for one verified session. A tool, resource or prompt is
- * registered only when the session holds its scope, so a call outside the granted scopes is
- * rejected as an unknown name. The user is the session's user, and no tool takes a user id.
- * Every call that reaches a tool body writes an audit row, and the endpoint audits the calls that
- * the SDK rejects first. The tools that change data are the actions that the caller supplies, and
- * each is registered only for a session that holds its write scope.
+ * registered only when the session holds its scope, and no tool takes a user id. Every call that
+ * reaches a tool body writes an audit row. Write actions come from the caller.
  */
 export function createMcpServer(session: McpSession, deps: McpToolDependencies): McpServer {
   const { db } = deps;

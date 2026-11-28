@@ -61,9 +61,8 @@ export type Config = z.infer<ReturnType<typeof createConfigSchema>>;
 
 /**
  * Reads and validates the worker's configuration from environment variables. Throws one error that
- * lists every missing or invalid variable, so a misconfigured process fails at startup. When
- * `WORKER_ROLES` itself is invalid, the variables that depend on the roles are not checked, so that
- * the error names the real problem and not settings of roles that the operator never asked for.
+ * lists every missing or invalid variable. When `WORKER_ROLES` itself is invalid, the variables of
+ * individual roles are not checked, so the error names the real problem.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsedRoles = parseWorkerRoles(env.WORKER_ROLES);

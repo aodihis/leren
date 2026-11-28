@@ -30,11 +30,9 @@ const HOLIDAY_PAGES = [
 ];
 
 /**
- * Cases for how the agent asks. The prompt says to ask when a request, a fact or a choice is unclear
- * or a required field is missing, never to guess, and never to ask about optional settings. Each
- * case is graded by a judge against criteria, and by a deterministic check that nothing was saved
- * while the question was open: no write call, or, where a failed write is allowed, an empty store
- * afterwards.
+ * Cases for when the agent asks: when a request, fact or choice is unclear or a required field is
+ * missing, and never about optional settings. A judge grades each case, and a deterministic check
+ * confirms that nothing was saved while the question was open.
  */
 export const clarificationCases = defineEvalCases([
   {

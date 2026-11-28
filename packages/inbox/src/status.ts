@@ -6,10 +6,9 @@ import { and, eq, inArray } from "drizzle-orm";
 export type MessageStatus = (typeof messages.$inferSelect)["status"];
 
 /**
- * The statuses that a message may move to from each status (decisions 0039, 0046 and 0064). A
- * status that maps to an empty list is final. A status only moves forward, so no path leads back to
- * an earlier one. A reply that is ready, `drafted`, is then sent or fails to be delivered. A
- * `received` message that the gate skips is deleted, so it never becomes `not_applicable`.
+ * The statuses that a message may move to from each status (decisions 0039, 0046 and 0064). An
+ * empty list is final, and no path leads back to an earlier status. A `received` message that the
+ * gate skips is deleted, so it never becomes `not_applicable`.
  */
 const TRANSITIONS: Record<MessageStatus, readonly MessageStatus[]> = {
   received: ["queued", "failed"],
@@ -23,10 +22,9 @@ const TRANSITIONS: Record<MessageStatus, readonly MessageStatus[]> = {
 };
 
 /**
- * The statuses that end the processing of a message's text. When a message moves to one of them,
- * its subject and body are redacted. A message that is `drafted` is not in the list, because the
- * delivery of its reply still reads the subject. `redactMessageText` is called when that delivery
- * ends.
+ * The statuses that end the processing of a message's text, so entering one redacts its subject and
+ * body. `drafted` is not one, because the delivery still reads the subject, and `redactMessageText`
+ * is called when the delivery ends.
  */
 const REDACTED_ON_ENTRY: readonly MessageStatus[] = [
   "not_applicable",
@@ -84,13 +82,10 @@ export async function deleteReceivedMessage(db: Db, messageId: string): Promise<
 }
 
 /**
- * Moves a message to `to` and stores the reason, but only when its stored status allows the move.
- * The check and the write are one conditional update, so two workers that race, a repeated
- * message and a message that arrives late cannot move a record backwards. Returns whether the
- * status changed. A message that is already in `to` is left alone and reports `false`. When
- * `only` is given, the move is also limited to messages that are in one of those statuses, so a
- * stage cannot fail a message that a later stage has taken over. A move to a status that ends the
- * processing of the text redacts the subject and the body in the same transaction.
+ * Moves a message to `to` with a reason in one conditional update, so races and late messages never
+ * move a record backwards. Returns whether the status changed. `only` further limits the allowed
+ * source statuses. Entering a status that ends text processing redacts the text in the same
+ * transaction.
  */
 export async function transitionMessage(
   db: Db,

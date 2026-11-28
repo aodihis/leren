@@ -2,11 +2,9 @@ import { connectMcp } from "@leren/agents";
 import type { McpConnection, McpOptions } from "@leren/agents";
 
 /**
- * The MCP tools the Assistant Agent may use.
- *
- * The agent can create and change playbooks, including turning them on or off, and read the
- * mail that was processed. It has no tool that deletes anything or sends email. The MCP server enforces scopes, and this list is a second,
- * client-side filter.
+ * The MCP tools the Assistant Agent may use: it can create, change and toggle playbooks and read
+ * processed mail, but never delete anything or send email. This list is a client-side filter in
+ * addition to the scopes the server enforces.
  */
 export const allowedTools = [
   "list_playbooks",
@@ -20,11 +18,9 @@ export const allowedTools = [
 ] as const;
 
 /**
- * Connects to the MCP server and exposes only the Assistant Agent's tools. The agent confirms
- * every change with the user in the conversation before it calls a tool that writes.
- *
- * The URL is Leren's own MCP endpoint, which comes from deployment configuration and commonly
- * points at a loopback address, so the library's check for private addresses is disabled.
+ * Connects to Leren's own MCP server and exposes only the Assistant Agent's tools. The URL comes
+ * from deployment configuration and is commonly a loopback address, so the library's private
+ * address check is disabled.
  */
 export function connectAssistantMcp(
   options: McpOptions,
@@ -47,11 +43,9 @@ export interface ExternalMcpServer {
 }
 
 /**
- * Connects to the external MCP servers that a user has connected. Only the servers in `servers` are
- * opened, so a connector that the user has not added is never registered. A server that cannot be
- * reached is reported to `onError` and left out, because one unavailable tool must not stop the
- * run. The address is checked against loopback and private ranges, because it is not Leren's own.
- * The caller must call `close` on the result.
+ * Connects to the external MCP servers in `servers`, so a connector the user has not added is never
+ * registered. An unreachable server is reported to `onError` and left out instead of stopping the
+ * run. Private and loopback addresses are refused. The caller must call `close` on the result.
  */
 export async function connectExternalMcpServers(
   servers: readonly ExternalMcpServer[],

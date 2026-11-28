@@ -17,13 +17,9 @@ export type TestDatabase = {
 };
 
 /**
- * Creates an empty PostgreSQL database with every migration applied, for integration tests.
- *
- * The database is created on the server named by `baseConnectionString`, which defaults to
- * `DATABASE_URL`. Each call gets its own uniquely named database, so test files can run in
- * parallel without sharing rows. The caller must call `drop` when it is done, which closes the
- * connection pool and removes the database. The generated name is hexadecimal, so it is safe to
- * use as a quoted identifier.
+ * Creates an empty, fully migrated PostgreSQL database for integration tests, on the server named
+ * by `baseConnectionString`. Each call gets its own uniquely named database, so test files can run
+ * in parallel. The caller must call `drop`, which closes the pool and removes the database.
  */
 export async function createTestDatabase(
   baseConnectionString = process.env.DATABASE_URL ?? DEFAULT_CONNECTION_STRING,

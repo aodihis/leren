@@ -2,13 +2,10 @@ import { connectMcp } from "@leren/agents";
 import type { McpConnection, McpOptions } from "@leren/agents";
 
 /**
- * The MCP tools the Reply Agent may use.
- *
- * The agent can only search and read playbooks. It has no tool that changes data, sends or approves
- * email, because the pipeline saves the result itself (decision 0042). It cannot list every playbook
- * either, because the playbooks that its tools return count as found, and the pipeline escalates an
- * email for which a search found none (decision 0066). The MCP server enforces scopes, and this list
- * is a second, client-side filter.
+ * The MCP tools the Reply Agent may use: only searching and reading playbooks, because the pipeline
+ * saves the result itself (decision 0042). There is no list tool, because returned playbooks count
+ * as found (decision 0066). This list is a client-side filter in addition to the scopes the server
+ * enforces.
  */
 export const allowedTools = ["search_playbooks", "get_playbook"] as const;
 

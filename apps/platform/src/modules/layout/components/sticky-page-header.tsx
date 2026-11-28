@@ -2,10 +2,9 @@ import { cn } from "@leren/ui";
 import type { ComponentProps } from "react";
 
 /**
- * The header of a page that scrolls inside the dashboard shell. It sticks to the top edge of the
- * scrolling area and cancels the 1.5rem padding of that area, so it spans the whole width, and it
- * stays opaque so that the content scrolls underneath it. A line under it separates it from the
- * content.
+ * The header of a page in the dashboard shell. It sticks to the top of the scrolling area, cancels
+ * that area's padding to span its full width, and stays opaque so that content scrolls underneath
+ * it.
  */
 export function StickyPageHeader({ className, ...props }: ComponentProps<"header">) {
   return (

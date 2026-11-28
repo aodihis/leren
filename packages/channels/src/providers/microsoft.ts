@@ -44,10 +44,9 @@ export type MicrosoftProviderOptions = {
 
 /**
  * The Microsoft provider for the `email` channel (decision 0060). It connects a Microsoft 365 or
- * Outlook.com mailbox through the `common` tenant with the authorization code flow, PKCE and
- * offline access. The account is identified by its tenant and object id and labelled with the
- * address of its mailbox. It reads new mail with a Graph delta query. Microsoft cannot revoke the tokens of
- * one application, so `revoke` calls nothing.
+ * Outlook.com mailbox through the `common` tenant with PKCE, identifies the account by its tenant
+ * and object id, and reads mail with a Graph delta query. Microsoft cannot revoke one application's
+ * tokens, so `revoke` does nothing.
  */
 export function createMicrosoftProvider(
   options: MicrosoftProviderOptions,

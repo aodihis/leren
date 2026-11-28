@@ -39,10 +39,9 @@ export type AgentOptions = {
 };
 
 /**
- * Builds the agent that serves the chat. Every run gets its own MCP session, bound to the user
- * and limited to the `assistant` role, and the session is revoked when the run ends, fails or is
- * abandoned, so a token never outlives its run. The run registers the external MCP servers of the
- * user's active connections and no others (decision 0054).
+ * Builds the agent that serves the chat. Every run gets its own MCP session, bound to the user and
+ * limited to the `assistant` role, which is revoked when the run ends in any way. A run registers
+ * only the external MCP servers of the user's active connections (decision 0054).
  */
 export function createAgent(options: AgentOptions): Agent {
   return async function* run(input) {

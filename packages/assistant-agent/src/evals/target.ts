@@ -239,10 +239,9 @@ function defined(input: Record<string, unknown>) {
 }
 
 /**
- * Builds the playbook tools over an in-memory store. Names, descriptions and argument shapes match
- * the MCP tools in `@leren/mcp-server` and `apps/api`, so the agent sees the same tool surface as
- * in production. The store is the only state, and `search_playbooks` is a keyword match that
- * returns enabled playbooks that are valid now.
+ * Builds the playbook tools over an in-memory store. Their names, descriptions and argument shapes
+ * match the production MCP tools, so the agent sees the same tool surface. `search_playbooks` is a
+ * keyword match over the enabled playbooks that are valid now.
  */
 function createFakePlaybookTools(
   initial: readonly PlaybookFixture[],

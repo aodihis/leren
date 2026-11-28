@@ -69,9 +69,8 @@ export function isPublicAddress(address: string): boolean {
 
 /**
  * Resolves a host that a user chose and returns the address to connect to (decision 0063). Every
- * address of the host must be public, so a host that also points inside the network is refused.
- * The caller connects to the returned address and gives the host name as the TLS server name, so a
- * DNS answer that changes after this check cannot redirect the connection.
+ * address of the host must be public. The caller connects to the returned address with the host
+ * name as the TLS server name, so a later DNS change cannot redirect the connection.
  */
 export async function resolvePublicAddress(
   host: string,

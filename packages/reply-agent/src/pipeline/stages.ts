@@ -183,15 +183,10 @@ function describeVerdict(failed: readonly string[], feedback: string): string[] 
 }
 
 /**
- * The answer loop (decision 0066). The answering agent searches the playbooks for the questions of
- * the email, decides whether to answer or escalate, and writes the content of the reply. A content
- * draft goes through the checks that need no model and then the content judge, and a failure goes
- * back to the agent as feedback, at most `MAX_REVISIONS` times.
- *
- * Abstention is decided in code: an answer for which the agent found no allowed playbook ends the
- * loop with a failure, so a reply is never built on nothing. A judge answer that cannot be read
- * also ends the loop with a failure, so an unchecked draft is never accepted. A failure of a model
- * call or of a playbook search is thrown, so that the queue retries the message.
+ * The answer loop: the answering agent searches the playbooks and answers or escalates. Each
+ * content draft passes the deterministic checks and the content judge, or returns as feedback at
+ * most `MAX_REVISIONS` times. An answer without an allowed playbook, or an unreadable verdict,
+ * fails. Failed model calls and searches are thrown.
  */
 export async function answerAndEvaluate(
   deps: ReplyPipelineDeps,
@@ -204,10 +199,9 @@ export async function answerAndEvaluate(
   let previousBody: string | undefined;
 
   /**
-   * Adds the allowed playbooks that the searches of a run returned, also of a run that used all its
-   * turns, so that a later attempt is shown them and does not have to search again. Throws when a
-   * playbook search failed, so that a server or authorization problem is retried by the queue and
-   * is not recorded as an escalation.
+   * Adds the allowed playbooks that a run's searches returned, even when the run used all its
+   * turns, so a later attempt does not have to search again. Throws when a playbook search failed,
+   * so the queue retries it instead of recording an escalation.
    */
   const remember = (messages: readonly Message[]) => {
     if (playbookSearchFailed(messages)) {
@@ -373,12 +367,10 @@ export interface StyleOutcome {
 }
 
 /**
- * The style stage (decision 0066). The style model rewrites the content draft with the persona,
- * the tone and the prohibitions of the reply instructions and of the cited playbooks. The styled
- * reply is checked once, by the checks that need no model and then by the style judge, and is never
- * revised. A styled reply that fails, or an answer that cannot be read, is discarded and the
- * content draft is used, because the content judge has already passed it. A failure of a model
- * call itself is thrown, so that the queue retries the message.
+ * The style stage (decision 0066) rewrites the content draft with the persona, tone and
+ * prohibitions of the reply instructions and cited playbooks. The styled reply is checked once and
+ * never revised, and if it fails, the already approved content draft is used. Failed model calls
+ * are thrown.
  */
 export async function styleAndEvaluate(
   deps: ReplyPipelineDeps,

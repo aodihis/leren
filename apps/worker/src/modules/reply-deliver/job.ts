@@ -10,10 +10,9 @@ import type { ReplyDeliverDependencies } from "./service";
 export const REPLY_DELIVER_MAX_ATTEMPTS = 5;
 
 /**
- * Consumes `email.deliver`: delivers the reply of one message as a draft or as a sent mail
- * (decision 0046). A failure that is known not to have reached the provider is retried. When the
- * last attempt fails, or the failure cannot succeed on a retry, the delivery and the message are
- * marked as failed and the failure is reported, which sends the job to the dead-letter queue.
+ * Consumes `email.deliver` and delivers the reply of one message as a draft or a sent mail
+ * (decision 0046). Only a failure known not to have reached the provider is retried. A final
+ * failure marks the delivery and message as failed and dead-letters the job.
  */
 export function createReplyDeliverJob(dependencies: ReplyDeliverDependencies) {
   return defineJob({

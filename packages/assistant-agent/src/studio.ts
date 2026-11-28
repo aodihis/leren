@@ -6,12 +6,11 @@ import { createAssistantAgent } from "./agent";
 const DEFAULT_PORT = 4021;
 
 /**
- * Serves the Assistant Agent in Anvia Studio so that it can be tried in a browser without the
- * application's own frontend or backend. This is a development tool only.
+ * Serves the Assistant Agent in Anvia Studio for trying it in a browser during development.
  *
- * Usage: `pnpm studio:assistant`, then open http://localhost:4021/ui/playground.
- * The prompt and model come from `harness.config.ts`. The agent connects to the MCP server only
- * when `MCP_URL` and `MCP_TOKEN` are set. `STUDIO_PORT` changes the port.
+ * Usage: `pnpm studio:assistant`, then open http://localhost:4021/ui/playground. The prompt and
+ * model come from `harness.config.ts`. It connects to MCP only when `MCP_URL` and `MCP_TOKEN` are
+ * set, and `STUDIO_PORT` changes the port.
  */
 async function main(): Promise<void> {
   const url = process.env.MCP_URL;

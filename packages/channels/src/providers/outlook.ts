@@ -198,11 +198,9 @@ export async function readOutlookPosition(
 }
 
 /**
- * Reads new mail from the inbox of a Microsoft mailbox with a delta query (decision 0060). The
- * cursor is a delta link. Without one, or when Graph can no longer resume from it, the result is a
- * new position from the current time and no emails. Drafts are left out, a message that was
- * deleted after it arrived is skipped, and a message that does not have the expected shape is
- * reported in `unreadable`.
+ * Reads new mail from a Microsoft inbox with a delta query, with a delta link as the cursor
+ * (decision 0060). Without a usable cursor, it returns a new position and no emails. Drafts and
+ * deleted messages are skipped, and malformed messages are reported in `unreadable`.
  */
 export async function fetchNewOutlookMail(
   send: typeof fetch,
@@ -346,10 +344,9 @@ async function writeGraph(
 }
 
 /**
- * Ends a delivery whose draft exists but was not sent, and throws the error to report. The draft
- * is deleted first. Only when the deletion succeeded may the delivery be retried, so a retry never
- * leaves a second draft in the mailbox. When the draft is still there, or Graph refused the
- * delivery, the failure is a refusal that is not retried.
+ * Ends a delivery whose draft exists but was not sent, and throws the error to report. The draft is
+ * deleted first, and the delivery may be retried only when that succeeded, so a retry never leaves
+ * a second draft. Otherwise the failure is a refusal that is not retried.
  */
 async function abandonDraft(
   send: typeof fetch,
@@ -422,9 +419,9 @@ export async function createOutlookDraft(
 }
 
 /**
- * Sends the reply by creating its draft and sending it, and returns the id of the sent message
- * (decision 0060). When the send is known not to have happened, the draft is abandoned. When its
- * outcome is not known, the draft is left as it is and the error is rethrown.
+ * Sends the reply by creating and sending its draft, and returns the sent message's id (decision
+ * 0060). When the send is known not to have happened, the draft is abandoned. When its outcome is
+ * unknown, the draft is kept and the error is rethrown.
  */
 export async function sendOutlookReply(
   send: typeof fetch,

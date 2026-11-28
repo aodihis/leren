@@ -161,9 +161,8 @@ function findRecipientSkip(
 
 /**
  * Decides whether an email is handled under one rule. The bulk mail, sender and thread conditions
- * are always enforced. The recipient conditions can be overridden by a mention of the user's name
- * when `mentionOverrides` is set. The function is pure and never calls a model, so a rule that
- * allows a model to detect mentions receives `check_mention` and the caller asks the model.
+ * always apply, and a mention of the user's name can override the recipient conditions when
+ * `mentionOverrides` is set. It never calls a model, so it returns `check_mention` for the caller.
  */
 export function evaluateEmailConditions(
   conditions: EmailConditions,

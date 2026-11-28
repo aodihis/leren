@@ -5,10 +5,9 @@ interface LogoProps {
 }
 
 /**
- * The Leren brand mark: a single line that rises into a peak and sweeps into a speech bubble. It is
- * drawn with the brand color and cropped to the artwork, so its size follows the height that the
- * caller sets. It is decorative, so it is hidden from assistive technology, and the product name
- * is rendered next to it by the caller.
+ * The Leren brand mark, drawn in the brand color and cropped to the artwork so that its size
+ * follows the height the caller sets. It is hidden from assistive technology, so the caller renders
+ * the product name next to it.
  */
 export function Logo({ className }: LogoProps) {
   return (
