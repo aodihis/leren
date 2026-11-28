@@ -44,7 +44,7 @@ export default defineHarnessConfig({
       api: "chat",
       contextWindow: 1_000_000,
       maxOutputTokens: 384_000,
-      reasoningEfforts: ["low", "high"],
+      reasoningEfforts: ["low", "high", "max"],
       defaultReasoningEffort: "low",
     },
     "deepseek-v4-flash-gateway": {
