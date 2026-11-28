@@ -7,6 +7,7 @@ import {
   gradeEscalation,
   gradeFlags,
   gradeForbiddenContent,
+  gradeLeftOutReported,
   gradeOnlyReadable,
   gradeOutcome,
   gradeQuestionCount,
@@ -91,6 +92,13 @@ describe("pipeline graders", () => {
   it("fails a missing fact and a forbidden one", () => {
     expect(gradeRequiredFacts(output(), [/5 December/]).pass).toBe(false);
     expect(gradeForbiddenContent(output(), [/28 November/]).pass).toBe(false);
+  });
+
+  it("fails an answer that leaves out a question without naming it", () => {
+    const named = output({ reasons: ["The budget question is not covered."] });
+
+    expect(gradeLeftOutReported(output(), true).pass).toBe(false);
+    expect(gradeLeftOutReported(named, true).pass).toBe(true);
   });
 
   it("fails an escalation without a reason or with a body", () => {

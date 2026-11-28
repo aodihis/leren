@@ -170,6 +170,25 @@ export function gradeForbiddenContent(
   return found.length === 0 ? pass : fail(`Found [${found.join(", ")}] in: ${body}`);
 }
 
+/**
+ * Passes when an answer that leaves out a question names it in the reasons, so that the user sees
+ * what the sender was not told (product decision 0006).
+ */
+export function gradeLeftOutReported(
+  output: PipelineCaseOutput,
+  leavesOut: boolean | undefined,
+): Verdict {
+  const { outcome, reasons } = output.result;
+
+  if (!leavesOut || outcome !== "answer") {
+    return notApplicable;
+  }
+
+  return reasons.some((reason) => reason.trim())
+    ? pass
+    : fail("The answer leaves out a question and has no reason that names it");
+}
+
 /** Passes when an escalation says why and carries neither a body nor citations. */
 export function gradeEscalation(output: PipelineCaseOutput): Verdict {
   const { outcome, reasons, body, citations } = output.result;

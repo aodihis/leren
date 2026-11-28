@@ -9,6 +9,7 @@ import {
   gradeEscalation,
   gradeFlags,
   gradeForbiddenContent,
+  gradeLeftOutReported,
   gradeOnlyReadable,
   gradeOutcome,
   gradeQuestionCount,
@@ -113,6 +114,12 @@ await runEvalCli({
       dataType: "BOOLEAN",
       evaluate: ({ case: testCase, output }) =>
         toOutcome(gradeForbiddenContent(output, expectationOf(testCase).mustNotInclude ?? [])),
+    }),
+    defineMetric({
+      name: "left-out-reported",
+      dataType: "BOOLEAN",
+      evaluate: ({ case: testCase, output }) =>
+        toOutcome(gradeLeftOutReported(output, expectationOf(testCase).leavesOut)),
     }),
     defineMetric({
       name: "escalation-reason",

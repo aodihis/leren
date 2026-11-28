@@ -97,8 +97,13 @@ export const answerSchema = z.object({
 
 export type Answer = z.infer<typeof answerSchema>;
 
-/** A reply that the pipeline checks: its body and the ids of the playbooks it cites. */
-export type Draft = Pick<Answer, "body" | "citations" | "confidence">;
+/**
+ * A reply that the pipeline checks: its body and the ids of the playbooks it cites. `reason` names
+ * the questions of the email that the reply leaves out, and is empty when it answers every question
+ * (product decision 0006).
+ */
+export type Draft = Pick<Answer, "body" | "citations" | "confidence"> &
+  Partial<Pick<Answer, "reason">>;
 
 /** What the style model answers: the content draft rewritten with the reply instructions. */
 export const styleSchema = z.object({ body: z.string() });
@@ -167,6 +172,11 @@ export interface ReplyResult {
   readonly outcome: Outcome;
   readonly body?: string | undefined;
   readonly citations: readonly string[];
+  /**
+   * Why the run ended as it did. For `escalate` and `ignore`, the reasons for that outcome. For
+   * `answer`, the questions of the email that the reply leaves out, and why a styled reply was not
+   * used, so that the user sees what the sender was not told.
+   */
   readonly reasons: readonly string[];
   readonly triage?: Triage | undefined;
   readonly playbooks: readonly Playbook[];

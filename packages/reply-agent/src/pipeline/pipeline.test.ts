@@ -179,6 +179,15 @@ describe("runReplyPipeline", () => {
     expect(models.draft.requests).toHaveLength(0);
   });
 
+  it("keeps the questions that an answer leaves out in the reasons", async () => {
+    const reason = "The marketing budget question is not covered.";
+    const { deps } = setup({ runs: [run({ ...answered, reason })] });
+
+    const result = await runReplyPipeline(deps, input);
+
+    expect(result).toMatchObject({ outcome: "answer", reasons: [reason] });
+  });
+
   it("limits the output tokens of every stage", async () => {
     const { deps, models } = setup({
       style: [styledStep],

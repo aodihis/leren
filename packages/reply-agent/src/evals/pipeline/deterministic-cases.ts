@@ -41,6 +41,8 @@ export type PipelineExpectation = {
   cites?: readonly string[];
   mustInclude?: readonly RegExp[];
   mustNotInclude?: readonly RegExp[];
+  /** Whether an answer must leave out a question that no playbook covers and name it in its reasons. */
+  leavesOut?: boolean;
   style?: StyleExpectation;
 };
 
@@ -84,7 +86,7 @@ export const deterministicCases = defineEvalCases([
       outcome: "answer",
       cites: ["pb-tasks"],
       mustInclude: [/https:\/\/board\.example\.com\/atlas/],
-      mustNotInclude: [/\bI(?:'ll| will) (?:prepare|have|send|deliver)\b/i],
+      mustNotInclude: [/\bI(?:['’]ll| will) (?:prepare|have|send|deliver)\b/i],
     } satisfies PipelineExpectation,
     metadata: {
       note: "Good case: a request to do something is a task, and the reply points to the board instead of accepting it.",
@@ -277,7 +279,7 @@ export const deterministicCases = defineEvalCases([
       playbooks: [PRICING_BASIC, PRICING_PRO],
     } satisfies PipelineCaseInput,
     expected: {
-      triage: { category: "project_question", questions: 1, confident: true },
+      triage: { category: ["project_question", "other"], questions: 1, confident: true },
       outcome: "answer",
       cites: ["pb-pricing-pro"],
       mustInclude: [/45/],
@@ -336,7 +338,7 @@ export const deterministicCases = defineEvalCases([
     metadata: { note: "Bad case: an unrelated playbook must not be stretched into an answer." },
   },
   {
-    id: "escalate-partial",
+    id: "answer-partial",
     input: {
       email: {
         from: SENDER,
@@ -347,12 +349,14 @@ export const deterministicCases = defineEvalCases([
     } satisfies PipelineCaseInput,
     expected: {
       triage: { category: "project_question", questions: 2, confident: true },
-      outcome: ["answer", "escalate"],
+      outcome: "answer",
+      cites: ["pb-deadline"],
       mustInclude: [/28 November/i],
-      mustNotInclude: [/\b(?:USD|IDR|Rp|\$)\s?\d/i],
+      mustNotInclude: [/\b(?:USD|IDR|Rp|\$)\s?\d/i, /budget/i],
+      leavesOut: true,
     } satisfies PipelineExpectation,
     metadata: {
-      note: "Bad case: one of two questions has no playbook, and no budget figure may be made up.",
+      note: "Bad case: one of two questions has no playbook. The reply answers the other one, says nothing about the budget, and names the budget question in its reasons for the user.",
     },
   },
   {

@@ -283,6 +283,7 @@ export async function answerAndEvaluate(
       body: answer.body,
       citations: answer.citations,
       confidence: answer.confidence,
+      reason: answer.reason,
     };
 
     const issues = checkDraft(draft, new Set(known.map((playbook) => playbook.id)));
