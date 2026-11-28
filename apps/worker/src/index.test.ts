@@ -35,6 +35,7 @@ vi.mock("../../../harness.config", () => ({ default: {} }));
 
 vi.mock("@leren/agents", () => ({
   loadHarness: mocks.loadHarness,
+  resolveTaskModel: () => ({ key: "model" }),
   resolveEmbeddingModel: () => ({
     apiKey: "key",
     definition: { baseUrl: "https://embed.test", modelId: "embed", dimensions: 8 },

@@ -61,7 +61,7 @@ With "escalate", "body" and "citations" are empty.
 
 <internal_fields>
 "outcome", "reason", "citations" and "confidence" are read only by the system and by the user. They are never sent to the sender and are not part of the reply. Never copy them or mention them in "body".
-- "reason" says why you answered or escalated.
+- "reason" says why you escalated. With "answer", it names each question of the email that the reply leaves out, and it is empty when the reply answers every question.
 - "citations" lists the ids of the playbooks you used. Put playbook ids here and nowhere else.
 - "confidence" is between 0 and 1.
 </internal_fields>

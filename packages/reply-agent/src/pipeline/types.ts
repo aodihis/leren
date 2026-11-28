@@ -14,16 +14,16 @@ export const MAX_QUESTIONS = 5;
 export const MAX_BODY_LENGTH = 3000;
 
 /**
- * The most tokens that each model call of a stage may write (decision 0066). The limit of the
- * answering agent applies to each of its turns. A reasoning model counts its reasoning against the
- * limit as well, so every stage runs it at its lowest reasoning effort (decision 0067). An answer
- * that is cut off is not valid JSON, so the stage treats it as unreadable.
+ * The most tokens that each model call of a stage may write (decision 0066). The limit of
+ * the answering agent applies to each of its turns. A reasoning model counts its reasoning against
+ * the limit as well, so its effort must leave room for the answer. The judges have no limit, so
+ * that their reasoning cannot cut off a verdict (decision 0069). An answer that is cut off is not
+ * valid JSON, so the stage treats it as unreadable.
  */
 export const MAX_OUTPUT_TOKENS = {
   triage: 600,
   answer: 1500,
   style: 1200,
-  judge: 800,
 } as const;
 
 /** The longest reply instructions, in characters, that the pipeline passes to the drafter. */
@@ -97,8 +97,13 @@ export const answerSchema = z.object({
 
 export type Answer = z.infer<typeof answerSchema>;
 
-/** A reply that the pipeline checks: its body and the ids of the playbooks it cites. */
-export type Draft = Pick<Answer, "body" | "citations" | "confidence">;
+/**
+ * A reply that the pipeline checks: its body and the ids of the playbooks it cites. `reason` names
+ * the questions of the email that the reply leaves out, and is empty when it answers every question
+ * (product decision 0006).
+ */
+export type Draft = Pick<Answer, "body" | "citations" | "confidence"> &
+  Partial<Pick<Answer, "reason">>;
 
 /** What the style model answers: the content draft rewritten with the reply instructions. */
 export const styleSchema = z.object({ body: z.string() });
@@ -167,6 +172,11 @@ export interface ReplyResult {
   readonly outcome: Outcome;
   readonly body?: string | undefined;
   readonly citations: readonly string[];
+  /**
+   * Why the run ended as it did. For `escalate` and `ignore`, the reasons for that outcome. For
+   * `answer`, the questions of the email that the reply leaves out, and why a styled reply was not
+   * used, so that the user sees what the sender was not told.
+   */
   readonly reasons: readonly string[];
   readonly triage?: Triage | undefined;
   readonly playbooks: readonly Playbook[];

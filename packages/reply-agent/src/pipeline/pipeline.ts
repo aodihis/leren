@@ -189,8 +189,12 @@ export function createReplyPipeline(deps: ReplyPipelineDeps) {
           return settle(state, "escalate", { reasons: guardrail.reasons });
         }
 
+        const leftOut = draft.reason?.trim();
+
         return settle(state, "answer", {
-          reasons: state.styleFallback ? [state.styleFallback] : [],
+          reasons: [leftOut, state.styleFallback].filter((reason): reason is string =>
+            Boolean(reason),
+          ),
           body: draft.body,
           citations: draft.citations,
         });

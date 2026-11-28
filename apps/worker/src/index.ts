@@ -1,4 +1,4 @@
-import { loadHarness, resolveEmbeddingModel } from "@leren/agents";
+import { loadHarness, resolveEmbeddingModel, resolveTaskModel } from "@leren/agents";
 import { createChannelProviders, parseEncryptionKey } from "@leren/channels";
 import { createDb } from "@leren/db";
 import { EMAIL_DELIVER_QUEUE } from "@leren/inbox";
@@ -59,10 +59,11 @@ async function createReplyRun() {
         await queue.publish(EMAIL_DELIVER_QUEUE, message, { idempotencyKey: message.messageId });
       },
       runPipeline: createPipelineRunner({
+        harness: loaded,
         models: {
-          triage: loaded.createModel("replyTriage"),
-          draft: loaded.createModel("reply"),
-          judge: loaded.createModel("replyJudge"),
+          triage: resolveTaskModel(loaded.config, "replyTriage").key,
+          draft: resolveTaskModel(loaded.config, "reply").key,
+          judge: resolveTaskModel(loaded.config, "replyJudge").key,
         },
         prompts: await readReplyPrompts(loaded),
         observer,

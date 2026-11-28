@@ -1,16 +1,11 @@
 import { MaxTurnsError } from "@anvia/core";
-import type { CompletionModel, Message } from "@anvia/core";
-import type { McpOptions } from "@leren/agents";
+import type { Message } from "@anvia/core";
+import type { Harness, McpOptions } from "@leren/agents";
 import type { Observer } from "@leren/observability";
 import { generateReply } from "../agents/drafter/agent";
-import type { ReplyRun } from "../agents/drafter/agent";
+import type { ReplyRun, RunAgentOptions } from "../agents/drafter/agent";
 import { checkDraft, checkOutput } from "./guardrails";
-import {
-  InvalidModelOutputError,
-  generateJson,
-  lowestReasoningEffort,
-  parseJsonOutput,
-} from "./llm";
+import { InvalidModelOutputError, generateJson, parseJsonOutput } from "./llm";
 import {
   buildAnswerInstructions,
   buildAnswerPrompt,
@@ -38,11 +33,14 @@ import type { Category, ContentVerdict, Draft, Evaluation, StyleVerdict, Triage 
 
 /** Everything the stages need from the outside: models, prompts, the MCP connection and the observer. */
 export interface ReplyPipelineDeps {
+  /** The harness that builds the models of the stages from their keys. */
+  readonly harness: Pick<Harness, "model">;
+  /** The keys of the models in the harness config. */
   readonly models: {
-    readonly triage: CompletionModel;
+    readonly triage: string;
     /** The model of the answering agent and of the style stage. */
-    readonly draft: CompletionModel;
-    readonly judge: CompletionModel;
+    readonly draft: string;
+    readonly judge: string;
   };
   /** The fixed prompts of the stages and of the answering agent. */
   readonly prompts: ReplyPrompts;
@@ -54,35 +52,44 @@ export interface ReplyPipelineDeps {
   readonly allowedPlaybookIds?: ReadonlySet<string> | undefined;
   /** The MCP connection through which the answering agent searches the playbooks, read-only. */
   readonly mcp?: McpOptions | undefined;
+  /**
+   * Tools that the answering agent gets in addition to its own and to those of `mcp`. The evals use
+   * them to give the agent fake playbook tools with the names and results of the MCP tools.
+   */
+  readonly tools?: RunAgentOptions["tools"];
   readonly abortSignal?: AbortSignal | undefined;
 }
 
 /**
- * Asks one of the completion stages its question and reads the answer as `schema`. A reasoning
- * model runs at its lowest reasoning effort.
+ * Asks one of the completion stages its question and reads the answer as `schema`. Without
+ * `reasoning`, the model runs at its default reasoning effort in the harness config (decision 0069).
  */
 function ask<Value>(
   deps: ReplyPipelineDeps,
   stage: Pick<
     Parameters<typeof generateJson<Value>>[0],
-    "model" | "instructions" | "schema" | "maxTokens"
+    "model" | "reasoning" | "instructions" | "schema" | "maxTokens"
   >,
   prompt: string,
 ): Promise<Value> {
   return generateJson({
     ...stage,
+    harness: deps.harness,
     prompt,
-    controls: lowestReasoningEffort(stage.model),
     abortSignal: deps.abortSignal,
   });
 }
 
-/** Classifies an email. */
+/**
+ * Classifies an email. Triage runs at the `minimal` reasoning effort (decision 0069), because its
+ * answer is a short classification that needs no reasoning.
+ */
 export function triage(deps: ReplyPipelineDeps, email: string): Promise<Triage> {
   return ask(
     deps,
     {
       model: deps.models.triage,
+      reasoning: "minimal",
       instructions: deps.prompts.triage,
       schema: triageSchema,
       maxTokens: MAX_OUTPUT_TOKENS.triage,
@@ -106,7 +113,6 @@ function judgeContent(
       model: deps.models.judge,
       instructions: deps.prompts.judge,
       schema: contentVerdictSchema,
-      maxTokens: MAX_OUTPUT_TOKENS.judge,
     },
     buildContentJudgePrompt(options),
   );
@@ -126,7 +132,6 @@ function judgeStyle(
       model: deps.models.judge,
       instructions: deps.prompts.styleJudge,
       schema: styleVerdictSchema,
-      maxTokens: MAX_OUTPUT_TOKENS.judge,
     },
     buildStyleJudgePrompt(options),
   );
@@ -219,6 +224,8 @@ export async function answerAndEvaluate(
     failure,
   });
 
+  const agent = deps.harness.model(deps.models.draft);
+
   for (let attempt = 0; attempt <= MAX_REVISIONS; attempt += 1) {
     let run: ReplyRun;
 
@@ -233,11 +240,12 @@ export async function answerAndEvaluate(
           feedback,
           previousBody,
         }),
-        model: deps.models.draft,
+        model: agent.model,
         observer: deps.observer,
         mcp: deps.mcp,
+        tools: deps.tools,
         maxTokens: MAX_OUTPUT_TOKENS.answer,
-        controls: lowestReasoningEffort(deps.models.draft),
+        controls: agent.controls,
         abortSignal: deps.abortSignal,
       });
     } catch (error) {
@@ -277,6 +285,7 @@ export async function answerAndEvaluate(
       body: answer.body,
       citations: answer.citations,
       confidence: answer.confidence,
+      reason: answer.reason,
     };
 
     const issues = checkDraft(draft, new Set(known.map((playbook) => playbook.id)));
