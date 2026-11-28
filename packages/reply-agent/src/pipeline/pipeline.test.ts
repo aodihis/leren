@@ -1,9 +1,10 @@
-import { MaxTurnsError } from "@anvia/core";
+import { MaxTurnsError, createTool } from "@anvia/core";
 import type { Message } from "@anvia/core";
 import { createFakeModel } from "@leren/agents/testing";
 import type { FakeModel, FakeStep } from "@leren/agents/testing";
 import { createNoopObserver } from "@leren/observability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import type { ReplyRun, RunAgentOptions } from "../agents/drafter/agent";
 import type { Playbook } from "./playbooks";
 import type { ReplyPipelineDeps } from "./stages";
@@ -202,6 +203,23 @@ describe("runReplyPipeline", () => {
     expect(models.draft.requests[0]?.maxTokens).toBe(1200);
     expect(models.judge.requests.map((request) => request.maxTokens)).toEqual([800, 800]);
     expect(models.triage.requests[0]?.controls).toBeUndefined();
+  });
+
+  it("gives the answering agent the extra tools of the dependencies", async () => {
+    const { deps } = setup({});
+
+    const tools = [
+      createTool({
+        name: "search_playbooks",
+        description: "Search.",
+        inputSchema: z.object({ query: z.string() }),
+        handler: () => ({ matches: [] }),
+      }),
+    ];
+
+    await runReplyPipeline({ ...deps, tools }, input);
+
+    expect(generateReply).toHaveBeenCalledWith(expect.objectContaining({ tools }));
   });
 
   it("runs a reasoning model at its lowest reasoning effort in every stage", async () => {

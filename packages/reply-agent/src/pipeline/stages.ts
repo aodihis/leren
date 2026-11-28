@@ -3,7 +3,7 @@ import type { CompletionModel, Message } from "@anvia/core";
 import type { McpOptions } from "@leren/agents";
 import type { Observer } from "@leren/observability";
 import { generateReply } from "../agents/drafter/agent";
-import type { ReplyRun } from "../agents/drafter/agent";
+import type { ReplyRun, RunAgentOptions } from "../agents/drafter/agent";
 import { checkDraft, checkOutput } from "./guardrails";
 import {
   InvalidModelOutputError,
@@ -54,6 +54,11 @@ export interface ReplyPipelineDeps {
   readonly allowedPlaybookIds?: ReadonlySet<string> | undefined;
   /** The MCP connection through which the answering agent searches the playbooks, read-only. */
   readonly mcp?: McpOptions | undefined;
+  /**
+   * Tools that the answering agent gets in addition to its own and to those of `mcp`. The evals use
+   * them to give the agent fake playbook tools with the names and results of the MCP tools.
+   */
+  readonly tools?: RunAgentOptions["tools"];
   readonly abortSignal?: AbortSignal | undefined;
 }
 
@@ -236,6 +241,7 @@ export async function answerAndEvaluate(
         model: deps.models.draft,
         observer: deps.observer,
         mcp: deps.mcp,
+        tools: deps.tools,
         maxTokens: MAX_OUTPUT_TOKENS.answer,
         controls: lowestReasoningEffort(deps.models.draft),
         abortSignal: deps.abortSignal,
